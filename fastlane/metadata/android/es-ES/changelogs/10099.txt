@@ -1,0 +1,1 @@
+Primera versión de desarrollo. Puedes añadir una cuenta con contraseña, ver tus carpetas y etiquetas y recorrer una lista de conversaciones sincronizada. Leer, redactar, buscar y los ajustes todavía no están listos.
