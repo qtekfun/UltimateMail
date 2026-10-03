@@ -38,13 +38,13 @@ import com.qtekfun.ultimatemail.data.local.entity.PendingOperationEntity
 @ColumnTypeConverters(Converters::class)
 abstract class UltimateMailDatabase : RoomDatabase() {
     companion object {
-        const val VERSION = 2
+        const val VERSION = 3
 
         /**
          * Migrations from each released version to the next. There is no destructive fallback:
          * raising [VERSION] requires adding its migration here (checked by DatabaseSchemaTest).
          */
-        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
+        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
     }
 
     abstract fun accountDao(): AccountDao
@@ -65,5 +65,15 @@ internal val MIGRATION_1_2: Migration = object : Migration(1, 2) {
     override suspend fun migrate(connection: SQLiteConnection) {
         connection.execSQL("ALTER TABLE message ADD COLUMN inReplyTo TEXT")
         connection.execSQL("ALTER TABLE message ADD COLUMN referenceIds TEXT NOT NULL DEFAULT ''")
+    }
+}
+
+private const val VERSION_3 = 3
+
+/** T15: attachments remember their Content-ID, so the `cid:` images of a message can be shown. */
+internal val MIGRATION_2_3: Migration = object : Migration(2, VERSION_3) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE attachment ADD COLUMN contentId TEXT")
+        connection.execSQL("ALTER TABLE attachment ADD COLUMN inline INTEGER NOT NULL DEFAULT 0")
     }
 }
