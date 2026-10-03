@@ -3,6 +3,7 @@
 
 package com.qtekfun.ultimatemail.data.local.entity
 
+import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.ForeignKey
 import androidx.room3.Index
@@ -32,5 +33,10 @@ data class AttachmentEntity(
     val size: Long,
     val state: AttachmentState = AttachmentState.REMOTE,
     /** Path of the downloaded copy in app storage; null while the attachment is remote. */
-    val localPath: String? = null
+    val localPath: String? = null,
+    /** Content-ID the HTML refers to as `cid:`, without angle brackets; null when it has none. */
+    val contentId: String? = null,
+    /** The part is meant to be shown inside the message rather than listed (RF-04). */
+    @ColumnInfo(defaultValue = "0")
+    val inline: Boolean = false
 )

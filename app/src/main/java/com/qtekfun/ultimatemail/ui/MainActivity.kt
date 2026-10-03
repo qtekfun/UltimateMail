@@ -11,6 +11,7 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qtekfun.ultimatemail.ui.account.AddAccountViewModel
+import com.qtekfun.ultimatemail.ui.conversation.ConversationViewModel
 import com.qtekfun.ultimatemail.ui.drawer.DrawerViewModel
 import com.qtekfun.ultimatemail.ui.inbox.InboxViewModel
 import com.qtekfun.ultimatemail.ui.nav.AppNavigator
@@ -26,6 +27,7 @@ class MainActivity : ComponentActivity() {
     private val drawer: DrawerViewModel by viewModels()
     private val addAccount: AddAccountViewModel by viewModels()
     private val inbox: InboxViewModel by viewModels()
+    private val conversation: ConversationViewModel by viewModels()
     private val settings: SettingsViewModel by viewModels()
     private val accountSettings: AccountSettingsViewModel by viewModels()
 
@@ -35,7 +37,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             val appSettings by settings.state.collectAsStateWithLifecycle()
             UltimateMailTheme(appSettings.settings) {
-                AppRoot(navigator, drawer, addAccount, inbox, settings, accountSettings)
+                AppRoot(
+                    navigator,
+                    drawer,
+                    addAccount,
+                    inbox,
+                    conversation,
+                    settings,
+                    accountSettings
+                )
             }
         }
     }
