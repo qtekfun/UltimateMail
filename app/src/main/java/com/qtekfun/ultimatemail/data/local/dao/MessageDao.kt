@@ -179,6 +179,13 @@ interface MessageDao {
     @Query("DELETE FROM message WHERE id IN (:ids) AND uid > 0")
     suspend fun deleteServerRows(ids: List<Long>)
 
+    /** The stored rows, among [uids] of one folder, that a search on the server found (T20). */
+    @Query(
+        "SELECT id, uid, sentAt, hasAttachments FROM message WHERE accountId = :accountId " +
+            "AND folderPath = :folderPath AND uid IN (:uids)"
+    )
+    suspend fun rowsByUids(accountId: Long, folderPath: String, uids: List<Long>): List<FoundRow>
+
     /** Server messages, in any folder, that are the message with this identity (SPEC section 5). */
     @Query(
         "SELECT folderPath, uid, messageId, gmailMessageId, labels FROM message " +
@@ -192,6 +199,14 @@ interface MessageDao {
         gmailMessageId: Long?
     ): List<IdentifiedMessage>
 }
+
+/** What a search on the server needs to know about a stored message (T20). */
+data class FoundRow(
+    val id: Long,
+    val uid: Long,
+    val sentAt: java.time.Instant,
+    val hasAttachments: Boolean
+)
 
 /** The state of a stored message that a sync compares with the server. */
 data class MessageSyncRow(

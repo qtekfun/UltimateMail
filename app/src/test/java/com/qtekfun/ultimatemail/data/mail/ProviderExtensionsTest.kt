@@ -6,6 +6,7 @@ package com.qtekfun.ultimatemail.data.mail
 import com.icegreen.greenmail.util.GreenMailUtil
 import com.qtekfun.ultimatemail.domain.mail.GmailMetadata
 import com.qtekfun.ultimatemail.domain.mail.MailResult
+import com.qtekfun.ultimatemail.domain.mail.MailSearchCriteria
 import com.qtekfun.ultimatemail.domain.mail.MailSession
 import com.qtekfun.ultimatemail.domain.mail.UidRange
 import io.mockk.every
@@ -137,5 +138,54 @@ class ProviderExtensionsTest {
         val result = runBlocking { connect().addLabels("INBOX", setOf(1), setOf("Work")) }
         assertEquals(MailResult.Unsupported("gmail-labels"), result)
         verify(exactly = 0) { extensions.changeLabels(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `a search on Gmail goes through the extension in Gmail's own syntax`() {
+        every { extensions.isAvailable(any()) } returns true
+        every { extensions.rawSearch(any(), any()) } answers
+            { firstArg<IMAPFolder>().messages.toList() }
+        val criteria = MailSearchCriteria(text = listOf("one"), unseen = true, hasAttachment = true)
+
+        val result = runBlocking { connect().search("INBOX", criteria) }
+
+        assertEquals(listOf(2L, 1L), (result as MailResult.Success).value)
+        verify(exactly = 1) {
+            extensions.rawSearch(any(), "\"one\" is:unread has:attachment")
+        }
+    }
+
+    @Test
+    fun `a Gmail search keeps only the newest hits up to the limit`() {
+        every { extensions.isAvailable(any()) } returns true
+        every { extensions.rawSearch(any(), any()) } answers
+            { firstArg<IMAPFolder>().messages.toList() }
+
+        val result = runBlocking { connect().search("INBOX", MailSearchCriteria(), limit = 1) }
+
+        assertEquals(listOf(2L), (result as MailResult.Success).value)
+    }
+
+    @Test
+    fun `a search on another server does not touch the Gmail extension`() {
+        every { extensions.isAvailable(any()) } returns false
+
+        val result = runBlocking {
+            connect().search("INBOX", MailSearchCriteria(subject = listOf("two")))
+        }
+
+        assertEquals(listOf(2L), (result as MailResult.Success).value)
+        verify(exactly = 0) { extensions.rawSearch(any(), any()) }
+    }
+
+    @Test
+    fun `a failure inside the Gmail search is mapped, not thrown`() {
+        every { extensions.isAvailable(any()) } returns true
+        every { extensions.rawSearch(any(), any()) } throws
+            jakarta.mail.MessagingException("x", java.net.SocketException("reset"))
+
+        val result = runBlocking { connect().search("INBOX", MailSearchCriteria()) }
+
+        assertEquals(MailResult.NetworkUnavailable, result)
     }
 }

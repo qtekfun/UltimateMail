@@ -36,6 +36,9 @@ internal object MailProperties {
         return build(prefix, server, credentials, config).apply {
             // Reading a body must not mark the message as seen.
             put("$prefix.peek", "true")
+            // A search the server refuses is an error, never a reason to download the folder and
+            // search it here, which is what the library would do by default.
+            put("$prefix.throwsearchexception", "true")
             put("mail.mime.decodefilename", "true")
         }
     }
