@@ -26,18 +26,27 @@ import com.qtekfun.ultimatemail.ui.inbox.InboxActions
 import com.qtekfun.ultimatemail.ui.inbox.InboxViewModel
 import com.qtekfun.ultimatemail.ui.nav.AppNavigator
 import com.qtekfun.ultimatemail.ui.nav.Screen
+import com.qtekfun.ultimatemail.ui.settings.AccountSettingsActions
+import com.qtekfun.ultimatemail.ui.settings.AccountSettingsScreen
+import com.qtekfun.ultimatemail.ui.settings.AccountSettingsViewModel
+import com.qtekfun.ultimatemail.ui.settings.SettingsActions
+import com.qtekfun.ultimatemail.ui.settings.SettingsScreen
+import com.qtekfun.ultimatemail.ui.settings.SettingsViewModel
 import com.qtekfun.ultimatemail.ui.shell.MainShell
 import com.qtekfun.ultimatemail.ui.shell.NoAccountsScreen
 import com.qtekfun.ultimatemail.ui.shell.ShellActions
 import kotlinx.coroutines.launch
 
 /** Shows the current [Screen] and connects each screen to its view model. */
+@Suppress("LongParameterList") // One view model per screen; they are created by the activity.
 @Composable
 fun AppRoot(
     navigator: AppNavigator,
     drawer: DrawerViewModel,
     addAccount: AddAccountViewModel,
-    inbox: InboxViewModel
+    inbox: InboxViewModel,
+    settings: SettingsViewModel,
+    accountSettings: AccountSettingsViewModel
 ) {
     val screen by navigator.screen.collectAsStateWithLifecycle()
     val menuOpen by navigator.drawerOpen.collectAsStateWithLifecycle()
@@ -63,9 +72,13 @@ fun AppRoot(
 
             // One call site for every screen with the side menu, so the menu keeps its state
             // (and its closing animation) while the folder changes.
-            Screen.Home, is Screen.Inbox, Screen.Settings ->
-                // T21: Settings is not reachable yet; it will get its own branch.
+            Screen.Home, is Screen.Inbox ->
                 ShellRoute((current as? Screen.Inbox)?.scope, navigator, drawer, inbox)
+
+            Screen.Settings -> SettingsRoute(settings, navigator)
+
+            is Screen.AccountSettings ->
+                AccountSettingsRoute(current.accountId, accountSettings, navigator)
         }
     }
 }
@@ -131,6 +144,54 @@ private fun ShellRoute(
 }
 
 @Composable
+private fun SettingsRoute(settings: SettingsViewModel, navigator: AppNavigator) {
+    val state by settings.state.collectAsStateWithLifecycle()
+    SettingsScreen(
+        state = state,
+        actions = SettingsActions(
+            onBack = { navigator.back() },
+            onThemeChange = settings::setTheme,
+            onDynamicColorChange = settings::setDynamicColor,
+            onAmoledChange = settings::setAmoled,
+            onSwipeRightChange = settings::setSwipeRight,
+            onSwipeLeftChange = settings::setSwipeLeft,
+            onRemoteContentChange = settings::setRemoteContent,
+            onOpenAccount = { navigator.open(Screen.AccountSettings(it)) }
+        )
+    )
+}
+
+@Composable
+private fun AccountSettingsRoute(
+    accountId: Long,
+    viewModel: AccountSettingsViewModel,
+    navigator: AppNavigator
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(accountId) { viewModel.show(accountId) }
+    // The account was removed from here: nothing is left to show.
+    LaunchedEffect(state.loaded, state.found) {
+        if (state.loaded && !state.found) navigator.open(Screen.Home)
+    }
+    AccountSettingsScreen(
+        state = state,
+        actions = AccountSettingsActions(
+            onBack = { navigator.back() },
+            onNameChange = viewModel::onNameChange,
+            onSignatureChange = viewModel::onSignatureChange,
+            onSignatureEnabledChange = viewModel::onSignatureEnabledChange,
+            onBeforeQuoteChange = viewModel::onBeforeQuoteChange,
+            onSave = viewModel::save,
+            onOfflineWindowChange = viewModel::onOfflineWindowChange,
+            onFolderSyncChange = viewModel::onFolderSyncChange,
+            onRequestRemoval = viewModel::requestRemoval,
+            onDismissRemoval = viewModel::dismissRemoval,
+            onConfirmRemoval = viewModel::confirmRemoval
+        )
+    )
+}
+
+@Composable
 private fun AddAccountRoute(addAccount: AddAccountViewModel, navigator: AppNavigator) {
     val state by addAccount.state.collectAsStateWithLifecycle()
     AddAccountScreen(
@@ -144,7 +205,10 @@ private fun AddAccountRoute(addAccount: AddAccountViewModel, navigator: AppNavig
             onSecurityChange = addAccount::onSecurityChange,
             onAdvancedToggle = addAccount::onAdvancedToggle,
             onSubmit = addAccount::submit,
-            onCancel = addAccount::cancel
+            onCancel = addAccount::cancel,
+            onSignIn = addAccount::onSignInClick,
+            onOAuthLaunched = addAccount::onOAuthLaunched,
+            onOAuthResult = addAccount::onOAuthResult
         )
     )
 }
