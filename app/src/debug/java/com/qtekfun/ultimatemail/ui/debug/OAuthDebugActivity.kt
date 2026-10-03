@@ -10,9 +10,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
@@ -25,6 +27,8 @@ import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import com.qtekfun.ultimatemail.BuildConfig
 import com.qtekfun.ultimatemail.R
+import com.qtekfun.ultimatemail.data.oauth.ClientIdPreferences
+import com.qtekfun.ultimatemail.domain.oauth.GoogleClientId
 import com.qtekfun.ultimatemail.domain.oauth.IdTokenEmail
 import com.qtekfun.ultimatemail.domain.oauth.OAuthLookup
 import com.qtekfun.ultimatemail.domain.oauth.OAuthProviderConfig
@@ -47,6 +51,8 @@ import org.eclipse.angus.mail.imap.IMAPStore
  */
 class OAuthDebugActivity : ComponentActivity() {
     private lateinit var authService: AuthorizationService
+    private lateinit var clientIds: ClientIdPreferences
+    private var clientIdText by mutableStateOf("")
     private var status by mutableStateOf<StatusText>(StatusText.Res(R.string.oauth_debug_idle))
 
     private val authorization =
@@ -77,6 +83,8 @@ class OAuthDebugActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         authService = AuthorizationService(this)
+        clientIds = ClientIdPreferences(this)
+        clientIdText = clientIds.google() ?: BuildConfig.GOOGLE_CLIENT_ID
         setContent {
             UltimateMailTheme {
                 Surface(
@@ -90,6 +98,14 @@ class OAuthDebugActivity : ComponentActivity() {
                         Text(
                             stringResource(R.string.oauth_debug_title),
                             style = MaterialTheme.typography.titleLarge
+                        )
+                        OutlinedTextField(
+                            value = clientIdText,
+                            onValueChange = { clientIdText = it },
+                            label = { Text(stringResource(R.string.oauth_debug_client_id)) },
+                            isError = !GoogleClientId.isValid(clientIdText),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
                         )
                         Button(onClick = ::signIn) {
                             Text(stringResource(R.string.oauth_debug_button))
@@ -107,7 +123,13 @@ class OAuthDebugActivity : ComponentActivity() {
     }
 
     private fun signIn() {
-        val providers = OAuthProviders(BuildConfig.GOOGLE_CLIENT_ID, BuildConfig.APPLICATION_ID)
+        if (!GoogleClientId.isValid(clientIdText)) {
+            status = StatusText.Res(R.string.oauth_debug_client_id_invalid)
+            return
+        }
+        clientIds.setGoogle(clientIdText)
+        val providers =
+            OAuthProviders(GoogleClientId.normalize(clientIdText), BuildConfig.APPLICATION_ID)
         when (val lookup = providers.forHost(GMAIL_IMAP_HOST)) {
             is OAuthLookup.Available -> {
                 status = StatusText.Res(R.string.oauth_debug_authorizing)
