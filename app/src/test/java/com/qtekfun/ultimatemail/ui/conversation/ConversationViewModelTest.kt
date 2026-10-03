@@ -7,6 +7,8 @@ import app.cash.turbine.test
 import com.qtekfun.ultimatemail.data.local.FakeAttachmentStorage
 import com.qtekfun.ultimatemail.data.local.model.AttachmentState
 import com.qtekfun.ultimatemail.data.local.model.OperationType
+import com.qtekfun.ultimatemail.data.settings.FakePreferenceStore
+import com.qtekfun.ultimatemail.data.settings.SettingsRepository
 import com.qtekfun.ultimatemail.domain.conversation.BodyFailure
 import com.qtekfun.ultimatemail.domain.conversation.BodyView
 import com.qtekfun.ultimatemail.domain.conversation.ComposeLauncher
@@ -116,6 +118,7 @@ class ConversationViewModelTest {
             LoadMessageBody(h.messages, h.sessions, BodyStore(h.messages, h.db.attachmentDao())),
             DownloadAttachment(h.db.attachmentDao(), h.messages, h.sessions, storage),
             launcher,
+            SettingsRepository(FakePreferenceStore()),
             NoticeCenter(scheduler),
             Dispatchers.Unconfined
         )

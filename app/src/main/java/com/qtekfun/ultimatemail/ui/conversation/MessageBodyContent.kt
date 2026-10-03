@@ -3,6 +3,7 @@
 
 package com.qtekfun.ultimatemail.ui.conversation
 
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,6 +24,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -40,20 +42,24 @@ import com.qtekfun.ultimatemail.domain.conversation.BodyView
 import com.qtekfun.ultimatemail.domain.conversation.MessageView
 import com.qtekfun.ultimatemail.domain.conversation.RenderedBody
 import com.qtekfun.ultimatemail.domain.conversation.TextRun
+import com.qtekfun.ultimatemail.domain.html.MailDarkMode
 import com.qtekfun.ultimatemail.ui.html.FileCidResolver
 import com.qtekfun.ultimatemail.ui.html.LinkConfirmationDialog
+import com.qtekfun.ultimatemail.ui.html.OriginalColorsToggle
 import com.qtekfun.ultimatemail.ui.html.PendingLink
 import com.qtekfun.ultimatemail.ui.html.RemoteContentBanner
 import com.qtekfun.ultimatemail.ui.html.SafeHtmlView
 import com.qtekfun.ultimatemail.ui.html.openExternally
 
 private val MinTouchTarget = 48.dp
+private const val HALF = 0.5f
 
 /** What the body area of an open message needs to do. */
 data class BodyActions(
     val onRetry: () -> Unit,
     val onToggleQuoted: () -> Unit,
-    val onAllowRemote: () -> Unit
+    val onAllowRemote: () -> Unit,
+    val onToggleOriginalColors: () -> Unit
 )
 
 /**
@@ -157,19 +163,32 @@ private fun ReadyBody(
     actions: BodyActions,
     onLink: (target: String, deceptive: Boolean) -> Unit
 ) {
-    if (body.showRemoteBanner) RemoteContentBanner(onShow = actions.onAllowRemote)
+    body.remoteBanner?.let { RemoteContentBanner(it, onShow = actions.onAllowRemote) }
     when (val rendered = body.rendered) {
         is RenderedBody.Html -> {
             // A new web view when images of the message arrive, since it reads them once.
             key(message.cidFiles.keys) {
                 val resolver = remember(message.cidFiles) { FileCidResolver(message.cidFiles) }
+                val appDark = MaterialTheme.colorScheme.background.luminance() < HALF
+                val mode = MailDarkMode.decide(
+                    appDark = appDark,
+                    viewOriginal = body.originalColors,
+                    declaresDark = remember(rendered.sanitized) {
+                        MailDarkMode.declaresDarkScheme(rendered.sanitized.html)
+                    },
+                    canDarken = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                )
                 SafeHtmlView(
                     content = rendered.sanitized,
                     allowRemoteContent = body.remoteAllowed,
                     onLinkClicked = onLink,
                     modifier = Modifier.fillMaxWidth(),
+                    colors = mode,
                     cidResolver = resolver
                 )
+                if (appDark && MailDarkMode.canToggleOriginal(mode, body.originalColors)) {
+                    OriginalColorsToggle(body.originalColors, actions.onToggleOriginalColors)
+                }
             }
         }
 
