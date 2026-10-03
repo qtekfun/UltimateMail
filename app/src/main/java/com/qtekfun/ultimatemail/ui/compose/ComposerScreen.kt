@@ -44,6 +44,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
@@ -171,6 +173,9 @@ private fun ComposerMenu(actions: ComposerActions) {
 
 @Composable
 private fun ComposerForm(state: ComposerState, actions: ComposerActions) {
+    // A placeholder is gone once there is text: the field would lose its name for a screen reader.
+    val subjectName = stringResource(R.string.composer_subject)
+    val bodyName = stringResource(R.string.composer_body)
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         state.message?.let { MessageBanner(it, actions.onDismissMessage) }
         SenderRow(state, actions.onSelectSender)
@@ -179,8 +184,11 @@ private fun ComposerForm(state: ComposerState, actions: ComposerActions) {
         TextField(
             value = state.subject,
             onValueChange = actions.onSubject,
-            modifier = Modifier.fillMaxWidth().heightIn(min = MinTouchTarget),
-            placeholder = { Text(stringResource(R.string.composer_subject)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = MinTouchTarget)
+                .semantics { contentDescription = subjectName },
+            placeholder = { Text(subjectName) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Sentences,
@@ -192,8 +200,11 @@ private fun ComposerForm(state: ComposerState, actions: ComposerActions) {
         TextField(
             value = state.body,
             onValueChange = actions.onBody,
-            modifier = Modifier.fillMaxWidth().heightIn(min = BODY_MIN_HEIGHT),
-            placeholder = { Text(stringResource(R.string.composer_body)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = BODY_MIN_HEIGHT)
+                .semantics { contentDescription = bodyName },
+            placeholder = { Text(bodyName) },
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Sentences,
                 imeAction = ImeAction.Default
