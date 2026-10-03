@@ -94,11 +94,15 @@ internal class PendingReconciler @Inject constructor(
 
     /**
      * Called when a folder has been pulled completely; [afterReset] when it was downloaded anew,
-     * in which case the stored flags are exactly the server's and the pending changes go over them.
+     * in which case the stored flags are exactly the server's and the pending changes go over
+     * them. Otherwise they go over the stored flags too, but without completing any operation
+     * (the stored flags may already hold the user's value): a change the user made while the pull
+     * was running was not in the list the pull started with, so the server's older value may
+     * have been stored over it.
      */
     suspend fun settle(accountId: Long, folderPath: String, afterReset: Boolean) {
         rebase(accountId, folderPath)
-        if (afterReset) overlayFlags(accountId, folderPath)
+        overlayFlags(accountId, folderPath, completing = afterReset)
         val waiting = operations.all(accountId).filter {
             it.folderPath == folderPath
         }.map { it.uid }.toSet()
@@ -108,7 +112,7 @@ internal class PendingReconciler @Inject constructor(
         waiting.forEach { messages.setPendingSync(accountId, folderPath, it, pending = true) }
     }
 
-    private suspend fun overlayFlags(accountId: Long, folderPath: String) {
+    private suspend fun overlayFlags(accountId: Long, folderPath: String, completing: Boolean) {
         flagOperations(accountId, folderPath).forEach { (uid, pending) ->
             val row = messages.get(accountId, folderPath, uid) ?: return@forEach
             val resolution = FlagResolver.resolve(
@@ -122,7 +126,7 @@ internal class PendingReconciler @Inject constructor(
                 resolution.merged.answered,
                 pendingSync = true
             )
-            complete(resolution)
+            if (completing) complete(resolution)
         }
     }
 

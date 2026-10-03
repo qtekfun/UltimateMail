@@ -77,11 +77,14 @@ interface MessageDao {
 
     /**
      * Drops server headers older than the offline window (RF-10). Messages with a change still
-     * waiting for the server, and local-only rows (uid 0 or below), are kept.
+     * waiting for the server (flagged as pending or named by a queued operation, as a move is),
+     * and local-only rows (uid 0 or below), are kept.
      */
     @Query(
         "DELETE FROM message WHERE accountId = :accountId AND sentAt < :cutoffMillis " +
-            "AND pendingSync = 0 AND uid > 0"
+            "AND pendingSync = 0 AND uid > 0 AND NOT EXISTS (" +
+            "SELECT 1 FROM pending_operation o WHERE o.accountId = message.accountId " +
+            "AND o.folderPath = message.folderPath AND o.uid = message.uid)"
     )
     suspend fun deleteOlderThan(accountId: Long, cutoffMillis: Long)
 

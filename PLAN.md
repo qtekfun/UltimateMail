@@ -25,7 +25,7 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 - [x] **T10 Motor de sincronización**: UIDVALIDITY/UIDNEXT/CONDSTORE/QRESYNC, ventana offline por cuenta, WorkManager periódico (~15 min), sync al abrir y pull-to-refresh.
 - [x] **T10b Descarga de cuerpos para uso offline**: el sync descarga los cuerpos completos (texto y HTML) de los mensajes dentro de la ventana offline, con presupuesto por ejecución, reanudable, tope de 10 MB por mensaje, imágenes `cid:` ≤ 2 MB, interruptor por cuenta (activado por defecto), progreso en el menú lateral y limpieza de archivos de adjuntos huérfanos.
 - [x] **T11 Hilos**: `X-GM-THRID`, `THREAD` y algoritmo References/asunto, con tests.
-- [ ] **T12 Tests de sync offline**: caídas de red, UIDVALIDITY cambiada, cambios concurrentes, app cerrada a mitad de sync.
+- [x] **T12 Tests de sync offline**: caídas de red, UIDVALIDITY cambiada, cambios concurrentes, app cerrada a mitad de sync.
 
 ## Fase 3 — Interfaz del MVP
 - [x] **T13 Añadir cuenta y lista de carpetas/etiquetas** (offline funcional). *(Solo contraseña de aplicación; el acceso con Google/Microsoft queda para después.)*
