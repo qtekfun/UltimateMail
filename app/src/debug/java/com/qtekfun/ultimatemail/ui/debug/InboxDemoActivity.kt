@@ -43,7 +43,8 @@ import kotlinx.coroutines.withContext
 /**
  * Debug builds only: fills Room with made-up accounts and conversations so the inbox can be
  * seen without the sync engine, and removes them again. It only ever creates or deletes accounts
- * of the reserved demo domain (see [DemoData]). The `action` extra (`seed` or `remove`) does it
+ * of the reserved demo domain (see [DemoData]). The `action` extra (`seed`, `seed-bulk` with an optional `count`, or
+ * `remove`) does it
  * without touching the screen, so it can be started from adb.
  */
 @AndroidEntryPoint
@@ -54,7 +55,12 @@ class InboxDemoActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         when (intent.getStringExtra(EXTRA_ACTION)) {
             ACTION_SEED -> launchAction { seed() }
+
             ACTION_REMOVE -> launchAction { remove() }
+
+            ACTION_SEED_BULK -> launchAction {
+                seedBulk(intent.getIntExtra(EXTRA_COUNT, DEFAULT_BULK_COUNT))
+            }
         }
         setContent {
             UltimateMailTheme {
@@ -135,6 +141,19 @@ class InboxDemoActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * A volume test: one made-up account whose INBOX holds [count] conversations, in batches so
+     * memory stays flat. Only the reserved demo domain is used, so `remove` clears it all.
+     */
+    private suspend fun seedBulk(count: Int) {
+        remove()
+        val id = database.accountDao().insert(DemoData.bulkAccount())
+        database.folderDao().upsert(DemoData.folders(id))
+        DemoData.inboxMessages(id, Instant.now(), count, 2)
+            .chunked(BULK_BATCH)
+            .forEach { database.messageDao().upsert(it) }
+    }
+
     private suspend fun remove() {
         val storage = FileAttachmentStorage(File(filesDir, AttachmentModule.FOLDER))
         database.accountDao().observeAll().first()
@@ -149,6 +168,10 @@ class InboxDemoActivity : ComponentActivity() {
         const val EXTRA_ACTION = "action"
         const val ACTION_SEED = "seed"
         const val ACTION_REMOVE = "remove"
+        const val ACTION_SEED_BULK = "seed-bulk"
+        const val EXTRA_COUNT = "count"
+        private const val DEFAULT_BULK_COUNT = 50_000
+        private const val BULK_BATCH = 2_000
         private const val FIRST_COUNT = 70
         private const val SECOND_COUNT = 15
     }

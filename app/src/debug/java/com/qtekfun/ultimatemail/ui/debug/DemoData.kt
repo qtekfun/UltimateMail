@@ -27,6 +27,9 @@ object DemoData {
         demoAccount("work", "Demo Work")
     )
 
+    /** An account for volume tests: it only gets the INBOX that `seed-bulk` fills. */
+    fun bulkAccount() = demoAccount("bulk", "Demo Bulk")
+
     private fun demoAccount(local: String, name: String) = AccountEntity(
         email = "demo.$local@$DEMO_DOMAIN",
         displayName = name,

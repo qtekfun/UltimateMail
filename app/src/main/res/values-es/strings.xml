@@ -558,4 +558,5 @@
         <item quantity="many">%1$d de mensajes esperando para enviarse</item>
         <item quantity="other">%1$d mensajes esperando para enviarse</item>
     </plurals>
+    <string name="backup_result_sign_in_button">Iniciar sesión: %1$s</string>
 </resources>

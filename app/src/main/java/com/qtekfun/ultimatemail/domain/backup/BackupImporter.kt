@@ -78,7 +78,7 @@ sealed interface OpenResult {
 }
 
 /** An account created by an import. */
-data class ImportedAccount(val email: String, val needsSignIn: Boolean) {
+data class ImportedAccount(val accountId: Long, val email: String, val needsSignIn: Boolean) {
     override fun toString(): String = "ImportedAccount(needsSignIn=$needsSignIn)"
 }
 
@@ -236,7 +236,7 @@ class BackupImporter @Inject constructor(
                 null
             } else {
                 scheduler.requestSync(accountId)
-                ImportedAccount(account.email, needsSignIn = credentials == null)
+                ImportedAccount(accountId, account.email, needsSignIn = credentials == null)
             }
         } catch (e: CancellationException) {
             rollBack(accountId)
