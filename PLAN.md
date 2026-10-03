@@ -16,7 +16,7 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 
 ## Fase 1 — Datos y cuentas
 - [x] **T05 Modelo Room**: cuenta (incluye firma y política offline), carpeta/etiqueta, mensaje, hilo, adjunto, cola de operaciones, FTS; migraciones y tests.
-- [ ] **T06 Cuentas y credenciales**: alta con autodetección, contraseña de app y OAuth2, cifrado Keystore, refresco de tokens, eliminación que limpia datos.
+- [x] **T06 Cuentas y credenciales**: alta con autodetección, contraseña de app y OAuth2, cifrado Keystore, refresco de tokens, eliminación que limpia datos.
 - [ ] **T07 Cliente IMAP/SMTP (capa `data`)**: envoltorio de la librería elegida en T03 detrás de interfaces de `domain`; tests con servidor falso (NO/BAD, timeouts, caídas).
 
 ## Fase 2 — Sincronización (lo más crítico)
