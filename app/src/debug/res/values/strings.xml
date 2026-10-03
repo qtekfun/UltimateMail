@@ -24,4 +24,9 @@
     <string name="debug_sample_links">Links</string>
     <string name="debug_bypass_sanitizer">Skip the sanitizer (test only the WebView)</string>
     <string name="debug_allow_remote">Allow remote content</string>
+    <string name="debug_demo_label">Inbox demo data (debug)</string>
+    <string name="debug_demo_explanation">Adds two made-up accounts with fake conversations, to try the inbox without a sync engine. Only accounts ending in @seed.invalid are ever added or removed.</string>
+    <string name="debug_demo_seed">Insert demo data</string>
+    <string name="debug_demo_remove">Remove demo data</string>
+    <string name="debug_demo_done">Done. Open UltimateMail to see it.</string>
 </resources>

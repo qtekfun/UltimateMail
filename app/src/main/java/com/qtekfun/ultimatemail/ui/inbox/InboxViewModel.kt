@@ -235,9 +235,10 @@ class InboxViewModel @Inject constructor(
 
     /** A filter can hide most of a page, so keep paging until it fills or the mail runs out. */
     private fun growWhileFilteredListIsShort(current: InboxState) {
-        if (current.loaded && current.filter != InboxFilter.ALL && current.hasMore &&
-            current.limit == limit.value && current.conversations.size < PAGE_SIZE
-        ) {
+        val filteredAndMoreToLoad =
+            current.loaded && current.filter != InboxFilter.ALL && current.hasMore
+        val pageArrived = current.limit == limit.value
+        if (filteredAndMoreToLoad && pageArrived && current.conversations.size < PAGE_SIZE) {
             setLimit(limit.value + PAGE_SIZE)
         }
     }
