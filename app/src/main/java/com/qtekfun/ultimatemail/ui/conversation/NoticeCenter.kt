@@ -22,6 +22,9 @@ enum class NoticeKind {
     NO_TRASH_FOLDER,
     MOVE_SOON,
     COMPOSE_SOON,
+
+    /** A message that comes ready-made in [ConversationNotice.text]. */
+    CUSTOM,
     ATTACHMENT_FAILED,
     ATTACHMENT_GONE,
     ATTACHMENT_SAVED,
@@ -37,7 +40,9 @@ data class ConversationNotice(
     val id: Long,
     val kind: NoticeKind,
     val undoable: Boolean,
-    val count: Int = 1
+    val count: Int = 1,
+    /** A ready-made message (the move picker's), shown instead of the text of [kind]. */
+    val text: String? = null
 )
 
 /**
@@ -61,11 +66,16 @@ class NoticeCenter @Inject constructor(private val scheduler: SyncScheduler) {
     val notice: StateFlow<ConversationNotice?> = current
 
     /** Shows [kind]; with an [undo] it is offered "Undo". Returns the id of the notice. */
-    fun post(kind: NoticeKind, count: Int = 1, undo: PendingUndo? = null): Long {
+    fun post(
+        kind: NoticeKind,
+        count: Int = 1,
+        undo: PendingUndo? = null,
+        text: String? = null
+    ): Long {
         current.value?.takeIf { it.undoable }?.let { commit(it.id) }
         val id = ++nextId
         if (undo != null) pending[id] = undo
-        current.value = ConversationNotice(id, kind, undo != null, count)
+        current.value = ConversationNotice(id, kind, undo != null, count, text)
         return id
     }
 

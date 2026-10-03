@@ -29,6 +29,15 @@ class NoticeCenterTest {
     }
 
     @Test
+    fun `a custom notice carries its ready-made text and can still be undone`() {
+        center.post(NoticeKind.CUSTOM, text = "Moved 2 conversations to Work", undo = undo(4))
+
+        val shown = center.notice.value!!
+        assertEquals("Moved 2 conversations to Work", shown.text)
+        assertTrue(shown.undoable)
+    }
+
+    @Test
     fun `a plain notice is not undoable`() {
         center.post(NoticeKind.MOVE_SOON)
 

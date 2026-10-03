@@ -3,17 +3,17 @@
 
 package com.qtekfun.ultimatemail.di
 
+import com.qtekfun.ultimatemail.ui.inbox.DialogMovePickerLauncher
 import com.qtekfun.ultimatemail.ui.inbox.MovePickerLauncher
-import com.qtekfun.ultimatemail.ui.inbox.SnackbarMovePickerLauncher
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
-/** TODO(T17): bind the real move/label picker here; until then "Move" says "coming soon". */
+/** Binds the swipe "Move" and the selection bar to the real move/label picker (T17). */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class MovePickerModule {
     @Binds
-    abstract fun movePickerLauncher(impl: SnackbarMovePickerLauncher): MovePickerLauncher
+    abstract fun movePickerLauncher(impl: DialogMovePickerLauncher): MovePickerLauncher
 }

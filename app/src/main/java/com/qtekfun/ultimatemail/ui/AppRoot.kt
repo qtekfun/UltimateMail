@@ -39,6 +39,7 @@ import com.qtekfun.ultimatemail.ui.inbox.InboxViewModel
 import com.qtekfun.ultimatemail.ui.inbox.SelectionActions
 import com.qtekfun.ultimatemail.ui.nav.AppNavigator
 import com.qtekfun.ultimatemail.ui.nav.Screen
+import com.qtekfun.ultimatemail.ui.picker.MovePickerHost
 import com.qtekfun.ultimatemail.ui.settings.AccountSettingsActions
 import com.qtekfun.ultimatemail.ui.settings.AccountSettingsScreen
 import com.qtekfun.ultimatemail.ui.settings.AccountSettingsViewModel
@@ -95,6 +96,7 @@ fun AppRoot(
         }
         // Messages about what was done (archived, deleted, with Undo) outlive the screen.
         NoticeHost(conversation)
+        MovePickerHost()
     }
 }
 
