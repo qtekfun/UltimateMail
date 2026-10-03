@@ -5,6 +5,7 @@ package com.qtekfun.ultimatemail.ui.nav
 
 import com.qtekfun.ultimatemail.domain.conversation.ConversationRef
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
+import com.qtekfun.ultimatemail.domain.search.SearchScope
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -59,14 +60,30 @@ sealed interface Screen {
         override val route = ACCOUNT_SETTINGS_PREFIX + accountId
     }
 
+    /** Search (T20), opened from the top bar of the conversation list in [initialScope]. */
+    data class Search(val initialScope: SearchScope) : Screen {
+        override val route = SEARCH_PREFIX + initialScope.key
+    }
+
     companion object {
+        private const val SEARCH_PREFIX = "search:"
         private const val INBOX_PREFIX = "inbox:"
         private const val CONVERSATION_PREFIX = "conversation:"
         private const val CONVERSATION_PARTS = 3
         private const val ACCOUNT_SETTINGS_PREFIX = "account-settings:"
 
         /** The screen for a saved [route]; anything unknown goes back to the start screen. */
-        fun fromRoute(route: String?): Screen = when {
+        fun fromRoute(route: String?): Screen =
+            if (route != null && route.startsWith(SEARCH_PREFIX)) {
+                Search(
+                    SearchScope.fromKey(route.removePrefix(SEARCH_PREFIX))
+                        ?: SearchScope.AllAccounts
+                )
+            } else {
+                otherFromRoute(route)
+            }
+
+        private fun otherFromRoute(route: String?): Screen = when {
             route == AddAccount.route -> AddAccount
 
             route == Settings.route -> Settings
