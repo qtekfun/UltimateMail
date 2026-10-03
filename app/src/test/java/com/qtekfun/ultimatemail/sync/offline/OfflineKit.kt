@@ -3,6 +3,8 @@
 
 package com.qtekfun.ultimatemail.sync.offline
 
+import com.qtekfun.ultimatemail.data.local.model.OperationType
+import com.qtekfun.ultimatemail.domain.conversation.ConversationActions
 import com.qtekfun.ultimatemail.domain.mail.MailFolderRole
 import com.qtekfun.ultimatemail.domain.mail.MailResult
 import com.qtekfun.ultimatemail.domain.mail.MessageBody
@@ -22,7 +24,9 @@ import com.qtekfun.ultimatemail.sync.engine.PendingReconciler
 import com.qtekfun.ultimatemail.sync.engine.PendingSyncMarker
 import com.qtekfun.ultimatemail.sync.engine.SyncEngine
 import com.qtekfun.ultimatemail.sync.engine.SyncNotices
+import com.qtekfun.ultimatemail.sync.engine.SyncScheduler
 import com.qtekfun.ultimatemail.sync.engine.SyncStatusStore
+import com.qtekfun.ultimatemail.sync.queue.NewOperation
 import com.qtekfun.ultimatemail.sync.queue.OperationQueue
 import java.time.Duration
 import java.time.Instant
@@ -172,9 +176,14 @@ data class RoomState(
 
 suspend fun EngineHarness.roomState(): RoomState {
     val all = folders.all(accountId).sortedBy { it.path }
-    val rows = all.flatMap { folder ->
+    val stored = all.flatMap { folder ->
         messages.identities(accountId, folder.path).mapNotNull { messages.getById(it.id) }
-    }.map {
+    }
+    // A thread id is an opaque key whose spelling depends on where a message was first seen:
+    // compare which messages share a conversation, not the key itself.
+    val groups = stored.sortedBy { "${it.messageId}${it.folderPath}" }.map { it.threadId }
+        .distinct()
+    val rows = stored.map {
         listOf(
             it.folderPath,
             it.uid,
@@ -185,7 +194,7 @@ suspend fun EngineHarness.roomState(): RoomState {
             "answered=${it.answered}",
             "draft=${it.draft}",
             it.labels,
-            it.threadId,
+            "thread=${groups.indexOf(it.threadId)}",
             "text=${it.bodyText}",
             "html=${it.bodyHtml}",
             "pending=${it.pendingSync}"
@@ -250,4 +259,69 @@ fun FakeMailServer.deliverWithBody(
     )
     folder(path).bodies[uid] = MessageBody("text of $tag", "<p>html of $tag</p>", emptyList())
     return uid
+}
+
+class QuietScheduler : SyncScheduler {
+    override fun startPeriodic() = Unit
+
+    override fun requestSync(accountId: Long?, userInitiated: Boolean) = Unit
+
+    override fun stop() = Unit
+}
+
+suspend fun EngineHarness.id(folder: String, uid: Long) =
+    messages.get(accountId, folder, uid)!!.id
+
+/** The user acts offline: read, star, move, delete and read in another folder. */
+suspend fun EngineHarness.userActs() {
+    val actions = ConversationActions(messages, queue, marker, QuietScheduler())
+    actions.markRead(id("INBOX", 1))
+    actions.setStarred(id("INBOX", 2), true)
+    actions.move(listOf(id("INBOX", 3)), "Archive")
+    queue.enqueue(NewOperation(accountId, OperationType.DELETE, "INBOX", 4, ""))
+    actions.markRead(id("Archive", 1))
+}
+
+/** The process dies right here: nothing after this call runs, no cleanup of the app's own. */
+class Killed : Error("process killed")
+
+/** Kills the app at the n-th server call from now, before or after the server applied it. */
+class Killer(harness: EngineHarness) {
+    private var calls = 0
+    private var at = Int.MAX_VALUE
+    private var afterApply = false
+    private var armed = false
+
+    init {
+        harness.server.failure = { _ ->
+            if (++calls == at && !afterApply) throw Killed()
+            if (calls == at) armed = true
+            null
+        }
+        harness.server.answerLost = { _ ->
+            if (armed) throw Killed()
+            null
+        }
+    }
+
+    fun killBefore(n: Int) = arm(n, false)
+
+    fun killAfter(n: Int) = arm(n, true)
+
+    private fun arm(n: Int, after: Boolean) {
+        calls = 0
+        at = n
+        afterApply = after
+        armed = false
+    }
+
+    fun disarm() = arm(Int.MAX_VALUE, false)
+
+    /** Runs [block] and says whether the process died in it. */
+    suspend fun died(block: suspend () -> Unit): Boolean = try {
+        block()
+        false
+    } catch (@Suppress("SwallowedException") killed: Killed) {
+        true
+    }
 }
