@@ -375,6 +375,9 @@ private fun SyncLine.text(): String = when (this) {
 
     SyncLine.Syncing -> stringResource(R.string.sync_status_syncing)
 
+    is SyncLine.DownloadingMessages ->
+        stringResource(R.string.sync_status_downloading, done, total)
+
     is SyncLine.LastSynced -> {
         val context = LocalContext.current
         stringResource(

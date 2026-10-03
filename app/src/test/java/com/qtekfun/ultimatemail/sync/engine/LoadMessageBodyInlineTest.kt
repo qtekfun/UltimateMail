@@ -34,7 +34,7 @@ class LoadMessageBodyInlineTest {
             h.engine.sync(h.accountId)
             val id = h.messages.get(h.accountId, "INBOX", 1)!!.id
 
-            LoadMessageBody(h.messages, h.db.attachmentDao(), h.sessions)(id)
+            LoadMessageBody(h.messages, h.sessions, BodyStore(h.messages, h.db.attachmentDao()))(id)
 
             val stored = h.db.attachmentDao().observe(id).first()
             assertEquals("logo@x", stored[0].contentId)

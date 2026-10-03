@@ -32,13 +32,15 @@ import com.qtekfun.ultimatemail.ui.account.AddAccountScreen
 import com.qtekfun.ultimatemail.ui.account.AddAccountViewModel
 import com.qtekfun.ultimatemail.ui.conversation.ConversationRoute
 import com.qtekfun.ultimatemail.ui.conversation.ConversationViewModel
-import com.qtekfun.ultimatemail.ui.conversation.messageRes
+import com.qtekfun.ultimatemail.ui.conversation.noticeText
 import com.qtekfun.ultimatemail.ui.drawer.DrawerActions
 import com.qtekfun.ultimatemail.ui.drawer.DrawerViewModel
 import com.qtekfun.ultimatemail.ui.inbox.InboxActions
 import com.qtekfun.ultimatemail.ui.inbox.InboxViewModel
+import com.qtekfun.ultimatemail.ui.inbox.SelectionActions
 import com.qtekfun.ultimatemail.ui.nav.AppNavigator
 import com.qtekfun.ultimatemail.ui.nav.Screen
+import com.qtekfun.ultimatemail.ui.picker.MovePickerHost
 import com.qtekfun.ultimatemail.ui.search.SearchActions
 import com.qtekfun.ultimatemail.ui.search.SearchScreen
 import com.qtekfun.ultimatemail.ui.search.SearchViewModel
@@ -51,6 +53,7 @@ import com.qtekfun.ultimatemail.ui.settings.SettingsViewModel
 import com.qtekfun.ultimatemail.ui.shell.MainShell
 import com.qtekfun.ultimatemail.ui.shell.NoAccountsScreen
 import com.qtekfun.ultimatemail.ui.shell.ShellActions
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /** Shows the current [Screen] and connects each screen to its view model. */
@@ -78,11 +81,7 @@ fun AppRoot(
             }
         }
     }
-    // Back closes the menu first, then returns to the start screen, then leaves the app.
-    BackHandler(enabled = screen != Screen.Home || menuOpen) {
-        if (screen == Screen.AddAccount) addAccount.reset()
-        navigator.back()
-    }
+    BackNavigation(screen, menuOpen, navigator, addAccount, inbox)
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         when (val current = screen) {
@@ -104,6 +103,33 @@ fun AppRoot(
         }
         // Messages about what was done (archived, deleted, with Undo) outlive the screen.
         NoticeHost(conversation)
+        MovePickerHost()
+    }
+}
+
+/** Back closes the menu first, then ends a selection, then goes back, then leaves the app. */
+@Composable
+private fun BackNavigation(
+    screen: Screen,
+    menuOpen: Boolean,
+    navigator: AppNavigator,
+    addAccount: AddAccountViewModel,
+    inbox: InboxViewModel
+) {
+    val selecting by remember { inbox.state.map { it.selection.active } }
+        .collectAsStateWithLifecycle(false)
+    val onList = screen == Screen.Home || screen is Screen.Inbox
+    BackHandler(enabled = screen != Screen.Home || menuOpen || (onList && selecting)) {
+        when {
+            menuOpen -> navigator.back()
+
+            onList && selecting -> inbox.clearSelection()
+
+            else -> {
+                if (screen == Screen.AddAccount) addAccount.reset()
+                navigator.back()
+            }
+        }
     }
 }
 
@@ -116,7 +142,7 @@ private fun NoticeHost(conversation: ConversationViewModel) {
     LaunchedEffect(notice?.id) {
         val current = notice ?: return@LaunchedEffect
         val result = host.showSnackbar(
-            message = resources.getString(current.kind.messageRes()),
+            message = resources.noticeText(current),
             actionLabel = if (current.undoable) resources.getString(R.string.notice_undo) else null,
             duration = if (current.undoable) SnackbarDuration.Long else SnackbarDuration.Short
         )
@@ -178,22 +204,11 @@ private fun ShellRoute(
                 onConfirmRemoval = drawer::confirmRemoval,
                 onOpenDestination = navigator::open
             ),
-            inbox = InboxActions(
-                onOpenMenu = { navigator.setDrawerOpen(true) },
-                onRefresh = inbox::refresh,
-                onLoadMore = inbox::loadMore,
-                onFilterChange = inbox::setFilter,
-                onOpenConversation = {
-                    navigator.openConversation(it.accountId, it.folderPath, it.threadId)
-                },
-                onScrolled = inbox::onScrolled,
-                savedScroll = inbox::savedScroll,
-                onOpenSearch = {
-                    val from = SearchScope.startingFrom(scope)
-                    search.startNew(from)
-                    navigator.openSearch(from)
-                }
-            )
+            inbox = inboxActions(inbox, navigator) {
+                val from = SearchScope.startingFrom(scope)
+                search.startNew(from)
+                navigator.openSearch(from)
+            },
         )
     )
 }
@@ -267,6 +282,7 @@ private fun AccountSettingsRoute(
             onBeforeQuoteChange = viewModel::onBeforeQuoteChange,
             onSave = viewModel::save,
             onOfflineWindowChange = viewModel::onOfflineWindowChange,
+            onDownloadForOfflineChange = viewModel::onDownloadForOfflineChange,
             onFolderSyncChange = viewModel::onFolderSyncChange,
             onRequestRemoval = viewModel::requestRemoval,
             onDismissRemoval = viewModel::dismissRemoval,
@@ -296,3 +312,29 @@ private fun AddAccountRoute(addAccount: AddAccountViewModel, navigator: AppNavig
         )
     )
 }
+
+private fun inboxActions(
+    inbox: InboxViewModel,
+    navigator: AppNavigator,
+    onOpenSearch: () -> Unit
+) = InboxActions(
+    onOpenMenu = { navigator.setDrawerOpen(true) },
+    onRefresh = inbox::refresh,
+    onLoadMore = inbox::loadMore,
+    onFilterChange = inbox::setFilter,
+    onOpenConversation = {
+        navigator.openConversation(it.accountId, it.folderPath, it.threadId)
+    },
+    onScrolled = inbox::onScrolled,
+    savedScroll = inbox::savedScroll,
+    selection = SelectionActions(
+        onToggle = inbox::toggleSelection,
+        onSwipe = inbox::onSwipe,
+        onSelectAll = inbox::selectAll,
+        onClear = inbox::clearSelection,
+        onApply = inbox::applyToSelection,
+        onMove = inbox::moveSelection,
+        restoreRequests = inbox.restoreRequests
+    ),
+    onOpenSearch = onOpenSearch
+)

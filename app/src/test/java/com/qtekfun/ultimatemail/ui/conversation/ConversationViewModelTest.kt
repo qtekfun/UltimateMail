@@ -7,6 +7,8 @@ import app.cash.turbine.test
 import com.qtekfun.ultimatemail.data.local.FakeAttachmentStorage
 import com.qtekfun.ultimatemail.data.local.model.AttachmentState
 import com.qtekfun.ultimatemail.data.local.model.OperationType
+import com.qtekfun.ultimatemail.data.settings.FakePreferenceStore
+import com.qtekfun.ultimatemail.data.settings.SettingsRepository
 import com.qtekfun.ultimatemail.domain.conversation.BodyFailure
 import com.qtekfun.ultimatemail.domain.conversation.BodyView
 import com.qtekfun.ultimatemail.domain.conversation.ComposeLauncher
@@ -23,6 +25,7 @@ import com.qtekfun.ultimatemail.domain.mail.MailFolderRole
 import com.qtekfun.ultimatemail.domain.mail.MailResult
 import com.qtekfun.ultimatemail.domain.mail.MessageBody
 import com.qtekfun.ultimatemail.domain.mail.MessageFlags
+import com.qtekfun.ultimatemail.sync.engine.BodyStore
 import com.qtekfun.ultimatemail.sync.engine.DownloadAttachment
 import com.qtekfun.ultimatemail.sync.engine.EngineHarness
 import com.qtekfun.ultimatemail.sync.engine.LoadMessageBody
@@ -112,9 +115,11 @@ class ConversationViewModelTest {
         val vm = ConversationViewModel(
             ConversationReader(h.db),
             actions,
-            LoadMessageBody(h.messages, h.db.attachmentDao(), h.sessions),
+            LoadMessageBody(h.messages, h.sessions, BodyStore(h.messages, h.db.attachmentDao())),
             DownloadAttachment(h.db.attachmentDao(), h.messages, h.sessions, storage),
             launcher,
+            SettingsRepository(FakePreferenceStore()),
+            NoticeCenter(scheduler),
             Dispatchers.Unconfined
         )
         backgroundScope.launch { vm.state.collect {} }
