@@ -118,4 +118,84 @@ class MigrationTest {
             }
         }
     }
+
+    private fun tableOf(sql: String) =
+        if ("`kind`" in sql || "index_draft_" in sql) "draft" else "outgoing_attachment"
+
+    /** The CREATE statements of the draft tables in the exported schema of [version]. */
+    private fun draftTableStatements(version: Int): List<String> {
+        fun isDraftTable(line: String) =
+            "`kind`" in line || "`draftId` INTEGER NOT NULL, `displayName`" in line
+        fun isDraftIndex(line: String) =
+            "index_draft_" in line || "index_outgoing_attachment_" in line
+        return File(schemas, "$version.json").readLines()
+            .filter { "\"createSql\"" in it && (isDraftTable(it) || isDraftIndex(it)) }
+            .map { line ->
+                val sql = line.substringAfter("\"createSql\": \"").substringBeforeLast("\"")
+                val table = tableOf(sql)
+                sql.replace("\${TABLE_NAME}", table)
+            }
+    }
+
+    private fun rows(connection: SQLiteConnection, sql: String, columns: List<Int>): List<String> =
+        connection.prepare(sql).use { statement ->
+            buildList {
+                while (statement.step()) {
+                    add(columns.joinToString("|") { statement.getText(it) })
+                }
+            }
+        }
+
+    /** Columns, indices and foreign keys of [table], in a form two databases can be compared by. */
+    private fun describe(connection: SQLiteConnection, table: String): List<String> =
+        rows(connection, "PRAGMA table_info($table)", listOf(1, 2, 3)) +
+            rows(connection, "PRAGMA index_list($table)", listOf(1, 2)).sorted() +
+            rows(connection, "PRAGMA foreign_key_list($table)", listOf(2, 3, 4, 6))
+
+    @Test
+    fun `migrating 3 to 4 creates the draft tables exactly as the exported schema`() = runTest {
+        val migrated = BundledSQLiteDriver().open(":memory:")
+        val expected = BundledSQLiteDriver().open(":memory:")
+        migrated.use {
+            expected.use {
+                val statements = draftTableStatements(4)
+                assertEquals(5, statements.size)
+                statements.forEach { expected.execSQL(it) }
+
+                MIGRATION_3_4.migrate(migrated)
+
+                listOf("draft", "outgoing_attachment").forEach {
+                    assertEquals(describe(expected, it), describe(migrated, it))
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `after migrating 3 to 4 removing a draft removes its attachments`() = runTest {
+        val connection = BundledSQLiteDriver().open(":memory:")
+        connection.use {
+            connection.execSQL("CREATE TABLE account (id INTEGER PRIMARY KEY AUTOINCREMENT)")
+            connection.execSQL("INSERT INTO account DEFAULT VALUES")
+            MIGRATION_3_4.migrate(connection)
+            connection.execSQL("PRAGMA foreign_keys = ON")
+            connection.execSQL(
+                "INSERT INTO draft (`key`, accountId, kind, toAddresses, ccAddresses, " +
+                    "bccAddresses, subject, body, createdAt, updatedAt) " +
+                    "VALUES ('k', 1, 'NEW', '', '', '', '', '', 0, 0)"
+            )
+            connection.execSQL(
+                "INSERT INTO outgoing_attachment " +
+                    "(draftId, displayName, mimeType, size, filePath) " +
+                    "VALUES (1, 'a.pdf', 'application/pdf', 3, '/x/a.pdf')"
+            )
+
+            connection.execSQL("DELETE FROM draft")
+
+            connection.prepare("SELECT COUNT(*) FROM outgoing_attachment").use {
+                assertTrue(it.step())
+                assertEquals(0L, it.getLong(0))
+            }
+        }
+    }
 }

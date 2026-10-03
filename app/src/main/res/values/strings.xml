@@ -333,4 +333,12 @@
     <string name="density_comfortable">Comfortable</string>
     <string name="density_default">Default</string>
     <string name="density_compact">Compact</string>
+    <!-- Text written into the body of a reply or a forward; the date and sender are filled in by the composer. -->
+    <string name="compose_attribution">On %1$s, %2$s wrote:</string>
+    <string name="compose_forward_marker">---------- Forwarded message ---------</string>
+    <string name="compose_header_from">From:</string>
+    <string name="compose_header_date">Date:</string>
+    <string name="compose_header_subject">Subject:</string>
+    <string name="compose_header_to">To:</string>
+    <string name="compose_header_cc">Cc:</string>
 </resources>

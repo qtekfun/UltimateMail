@@ -5,11 +5,15 @@ package com.qtekfun.ultimatemail.domain.account
 
 import com.qtekfun.ultimatemail.data.local.FakeAttachmentStorage
 import com.qtekfun.ultimatemail.data.local.account
+import com.qtekfun.ultimatemail.data.local.entity.DraftEntity
+import com.qtekfun.ultimatemail.data.local.entity.OutgoingAttachmentEntity
 import com.qtekfun.ultimatemail.data.local.entity.PendingOperationEntity
 import com.qtekfun.ultimatemail.data.local.folder
 import com.qtekfun.ultimatemail.data.local.inMemoryDatabase
 import com.qtekfun.ultimatemail.data.local.message
+import com.qtekfun.ultimatemail.data.local.model.DraftKind
 import com.qtekfun.ultimatemail.data.local.model.OperationType
+import com.qtekfun.ultimatemail.domain.compose.FakeOutboxStorage
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -36,7 +40,8 @@ class AccountRemovalTest {
         }
     }
     private val storage = FakeAttachmentStorage()
-    private val removal = AccountRemoval(db, vault, storage, Dispatchers.Unconfined)
+    private val outbox = FakeOutboxStorage()
+    private val removal = AccountRemoval(db, vault, storage, outbox, Dispatchers.Unconfined)
 
     @AfterEach
     fun close() = db.close()
@@ -108,4 +113,43 @@ class AccountRemovalTest {
 
         assertNotNull(db.accountDao().get(kept))
     }
+
+    private suspend fun draftWithFile(accountId: Long, key: String): Long {
+        val id = db.draftDao().insert(
+            DraftEntity(
+                key = key,
+                accountId = accountId,
+                kind = DraftKind.NEW,
+                createdAt = Instant.EPOCH,
+                updatedAt = Instant.EPOCH
+            )
+        )
+        outbox.files["/outbox/$id/1-a.pdf"] = byteArrayOf(1)
+        db.draftDao().insertAttachment(
+            OutgoingAttachmentEntity(
+                draftId = id,
+                displayName = "a.pdf",
+                mimeType = "application/pdf",
+                size = 1,
+                filePath = "/outbox/$id/1-a.pdf"
+            )
+        )
+        return id
+    }
+
+    @Test
+    fun `removing an account deletes its drafts and the files attached to them and only those`() =
+        runTest {
+            val doomed = populate("a@example.test")
+            val kept = populate("b@example.test")
+            val doomedDraft = draftWithFile(doomed, "k1")
+            val keptDraft = draftWithFile(kept, "k2")
+
+            removal.remove(doomed)
+
+            assertNull(db.draftDao().get(doomedDraft))
+            assertTrue(db.draftDao().attachments(doomedDraft).isEmpty())
+            assertNotNull(db.draftDao().get(keptDraft))
+            assertEquals(setOf("/outbox/$keptDraft/1-a.pdf"), outbox.files.keys)
+        }
 }

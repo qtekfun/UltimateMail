@@ -52,6 +52,12 @@ class FakeMailServer {
 
     val appendedDrafts = mutableListOf<OutgoingMessage>()
 
+    /** Copies filed with appendSent, as (folder, message). */
+    val appendedSent = mutableListOf<Pair<String, OutgoingMessage>>()
+
+    /** Messages given the `$Forwarded` keyword, as (folder, uid). */
+    val forwarded = mutableSetOf<Pair<String, Long>>()
+
     fun folder(
         path: String,
         role: MailFolderRole = MailFolderRole.OTHER,
@@ -188,10 +194,20 @@ class FakeSession(private val server: FakeMailServer) : MailSession {
             val updated = flags.fold(current) { acc, flag ->
                 when (flag) {
                     MailFlag.SEEN -> acc.copy(seen = enabled)
+
                     MailFlag.FLAGGED -> acc.copy(flagged = enabled)
+
                     MailFlag.ANSWERED -> acc.copy(answered = enabled)
+
                     MailFlag.DELETED -> acc.copy(deleted = enabled)
+
                     MailFlag.DRAFT -> acc.copy(draft = enabled)
+
+                    MailFlag.FORWARDED -> {
+                        val key = folder to header.uid
+                        if (enabled) server.forwarded += key else server.forwarded -= key
+                        acc
+                    }
                 }
             }
             f.messages[uid] = header.copy(flags = updated)
@@ -253,6 +269,26 @@ class FakeSession(private val server: FakeMailServer) : MailSession {
                 size = 1,
                 hasAttachments = false
             )
+            MailResult.Success(uid as Long?)
+        }
+
+    override suspend fun appendSent(folder: String, message: OutgoingMessage) =
+        inFolder(folder, "appendSent $folder") { f ->
+            server.appendedSent += folder to message
+            val uid = f.nextUid++
+            f.messages[uid] = MessageHeader(
+                uid = uid,
+                messageId = message.messageId,
+                subject = message.subject,
+                from = message.from,
+                to = message.to,
+                cc = message.cc,
+                date = Instant.EPOCH,
+                flags = MessageFlags(seen = true),
+                size = 1,
+                hasAttachments = message.attachments.isNotEmpty()
+            )
+            f.modSeq++
             MailResult.Success(uid as Long?)
         }
 
