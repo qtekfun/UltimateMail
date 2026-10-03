@@ -5,15 +5,21 @@ package com.qtekfun.ultimatemail.sync.engine
 
 import app.cash.turbine.test
 import com.qtekfun.ultimatemail.data.local.model.AuthType
+import com.qtekfun.ultimatemail.domain.account.AccountConnectionTester
 import com.qtekfun.ultimatemail.domain.account.AccountCredentials
+import com.qtekfun.ultimatemail.domain.account.AccountInput
+import com.qtekfun.ultimatemail.domain.account.ConnectionTestResult
 import com.qtekfun.ultimatemail.domain.account.OAuthRefreshResult
 import com.qtekfun.ultimatemail.domain.account.OAuthTokens
+import com.qtekfun.ultimatemail.domain.account.ReauthResult
+import com.qtekfun.ultimatemail.domain.account.Reauthenticate
 import com.qtekfun.ultimatemail.domain.mail.MailCredentials
 import com.qtekfun.ultimatemail.domain.mail.MailFolderRole
 import com.qtekfun.ultimatemail.domain.mail.MailResult
 import com.qtekfun.ultimatemail.sync.conflict.SyncNotice
 import java.time.Instant
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -342,5 +348,45 @@ class SyncEngineTest {
             expectNoEvents()
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `signing in again lets the next background sync use the new password at once`() = runTest {
+        val h = start()
+        h.engine.sync(h.accountId)
+        h.connector.failure = MailResult.AuthenticationFailed
+        h.engine.sync(h.accountId)
+        assertEquals(AccountSyncState.ReauthenticationNeeded, h.status.get(h.accountId))
+        val requests = mutableListOf<Boolean>()
+        val reauth = Reauthenticate(
+            h.db.accountDao(),
+            h.vault,
+            object : AccountConnectionTester {
+                override suspend fun test(input: AccountInput) = ConnectionTestResult.Success
+            },
+            h.status,
+            object : SyncScheduler {
+                override fun startPeriodic() = Unit
+
+                override fun requestSync(accountId: Long?, userInitiated: Boolean) {
+                    requests += userInitiated
+                }
+
+                override fun stop() = Unit
+            },
+            Dispatchers.Unconfined
+        )
+
+        h.connector.failure = null
+        assertEquals(ReauthResult.Success, reauth.withPassword(h.accountId, "new-pw"))
+        val background = h.engine.sync(h.accountId)
+
+        assertTrue(background is AccountSyncResult.Synced, "no userInitiated flag needed")
+        assertEquals(listOf(true), requests)
+        assertEquals(
+            MailCredentials.Password("ana@example.test", "new-pw"),
+            h.connector.connects.last()
+        )
+        assertEquals(1, h.messages.serverUids(h.accountId, "INBOX").size, "local data stays")
     }
 }

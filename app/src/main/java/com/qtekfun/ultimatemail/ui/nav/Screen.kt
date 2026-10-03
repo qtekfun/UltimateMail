@@ -59,7 +59,16 @@ sealed interface Screen {
         override val route = ACCOUNT_SETTINGS_PREFIX + accountId
     }
 
+    /**
+     * Signing in again to the account [accountId] after its credentials stopped working (T27):
+     * a password, or the provider's browser sign-in. Back returns to where it was opened from.
+     */
+    data class Reauth(val accountId: Long) : Screen {
+        override val route = REAUTH_PREFIX + accountId
+    }
+
     companion object {
+        private const val REAUTH_PREFIX = "reauth:"
         private const val INBOX_PREFIX = "inbox:"
         private const val CONVERSATION_PREFIX = "conversation:"
         private const val CONVERSATION_PARTS = 3
@@ -77,6 +86,9 @@ sealed interface Screen {
             route != null && route.startsWith(ACCOUNT_SETTINGS_PREFIX) ->
                 route.removePrefix(ACCOUNT_SETTINGS_PREFIX).toLongOrNull()
                     ?.let(::AccountSettings) ?: Home
+
+            route != null && route.startsWith(REAUTH_PREFIX) ->
+                route.removePrefix(REAUTH_PREFIX).toLongOrNull()?.let(::Reauth) ?: Home
 
             route != null && route.startsWith(INBOX_PREFIX) ->
                 InboxScope.fromKey(route.removePrefix(INBOX_PREFIX))?.let(::Inbox) ?: Home

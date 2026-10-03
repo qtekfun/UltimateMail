@@ -333,4 +333,18 @@
     <string name="density_comfortable">Comfortable</string>
     <string name="density_default">Default</string>
     <string name="density_compact">Compact</string>
+    <string name="reauth_title">Sign in again</string>
+    <string name="reauth_account_line">%1$s on %2$s</string>
+    <string name="reauth_intro_password">The server no longer accepts the saved password. Enter the current one. Your messages and settings on this device are kept.</string>
+    <string name="reauth_intro_oauth">Access to this account was revoked or has expired. Sign in again with the provider. Your messages and settings on this device are kept.</string>
+    <string name="reauth_hint_gmail">Gmail needs an app password: turn on 2-Step Verification in your Google Account, create an app password and enter it here instead of your normal password.</string>
+    <string name="reauth_submit">Sign in</string>
+    <string name="reauth_error_address_mismatch">You signed in with a different address than the one of this account. Sign in again with the same address.</string>
+    <string name="reauth_error_not_applicable">This account cannot be signed in this way any more. Go back and try again.</string>
+    <string name="reauth_error_test_unavailable">This build cannot test connections, so the new sign-in was not saved.</string>
+    <string name="reauth_error_storage_failed">The new sign-in could not be saved. Try again.</string>
+    <string name="drawer_reauth_action">Sign in again to this account</string>
+    <string name="account_reauth_title">Sign-in needed</string>
+    <string name="account_reauth_body">This account cannot sync until you sign in again. Nothing on this device is lost.</string>
+    <string name="account_reauth_action">Sign in again</string>
 </resources>

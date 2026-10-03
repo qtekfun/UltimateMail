@@ -58,4 +58,12 @@ class SyncStatusStore @Inject constructor() : SyncStatus {
     fun set(accountId: Long, state: AccountSyncState) = current.update { it + (accountId to state) }
 
     fun remove(accountId: Long) = current.update { it - accountId }
+
+    /**
+     * The user signed in again: the account no longer waits for them, so the next sync of any
+     * kind tries it. Other states are left alone (a sync may be running).
+     */
+    fun clearReauthentication(accountId: Long) = current.update {
+        if (it[accountId] == AccountSyncState.ReauthenticationNeeded) it - accountId else it
+    }
 }

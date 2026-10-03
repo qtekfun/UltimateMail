@@ -47,6 +47,15 @@ class AppNavigator @Inject constructor(private val savedState: SavedStateHandle)
         open(Screen.Conversation(accountId, folderPath, threadId))
     }
 
+    /** Opens the sign-in-again screen of [accountId]; Back returns to the screen it came from. */
+    fun openReauth(accountId: Long) {
+        if (current.value !is Screen.Reauth) {
+            cameFrom = current.value
+            savedState[CAME_FROM_KEY] = current.value.route
+        }
+        open(Screen.Reauth(accountId))
+    }
+
     /**
      * Shows the conversations of [scope] and closes the side menu. [home] is the scope the start
      * screen already shows: asking for it goes back to the start screen, so Back from any other
@@ -71,7 +80,7 @@ class AppNavigator @Inject constructor(private val savedState: SavedStateHandle)
             true
         }
 
-        current.value is Screen.Conversation -> {
+        current.value is Screen.Conversation || current.value is Screen.Reauth -> {
             open(cameFrom ?: Screen.Home)
             true
         }
