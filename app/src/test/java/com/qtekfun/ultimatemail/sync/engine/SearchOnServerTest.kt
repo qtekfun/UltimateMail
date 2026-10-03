@@ -107,7 +107,8 @@ class SearchOnServerTest {
         val id = (search.search(query("remote"), h.inbox()) as ServerSearchResult.Found)
             .messageIds.single()
 
-        val body = LoadMessageBody(h.messages, h.db.attachmentDao(), h.sessions)(id)
+        val body =
+            LoadMessageBody(h.messages, h.sessions, BodyStore(h.messages, h.db.attachmentDao()))(id)
 
         assertEquals(BodyResult.Loaded("the text", null), body)
     }
