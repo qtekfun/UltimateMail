@@ -28,10 +28,7 @@ interface MessageDao {
     @Query("SELECT * FROM message WHERE id = :id")
     fun observe(id: Long): Flow<MessageEntity?>
 
-    @Query(
-        "SELECT * FROM message WHERE accountId = :accountId AND folderPath = :folderPath " +
-            "AND threadId = :threadId ORDER BY sentAt, id"
-    )
+    @Query(THREAD_SQL)
     fun observeThread(
         accountId: Long,
         folderPath: String,
@@ -39,10 +36,7 @@ interface MessageDao {
     ): Flow<List<MessageEntity>>
 
     /** The messages of one conversation in one folder, oldest first. */
-    @Query(
-        "SELECT * FROM message WHERE accountId = :accountId AND folderPath = :folderPath " +
-            "AND threadId = :threadId ORDER BY sentAt, id"
-    )
+    @Query(THREAD_SQL)
     suspend fun thread(accountId: Long, folderPath: String, threadId: String): List<MessageEntity>
 
     @Query(
@@ -219,15 +213,7 @@ interface MessageDao {
      * [beforeId]) so a message that keeps failing does not hold up the ones behind it.
      */
     @Suppress("LongParameterList")
-    @Query(
-        "SELECT m.id AS id, m.folderPath AS folderPath, m.uid AS uid, m.sentAt AS sentAt " +
-            "FROM message m JOIN folder f ON f.accountId = m.accountId " +
-            "AND f.path = m.folderPath WHERE m.accountId = :accountId AND f.syncEnabled = 1 " +
-            "AND m.uid > 0 AND m.sentAt >= :sinceMillis AND m.size <= :maxSize " +
-            "AND m.bodyText IS NULL AND m.bodyHtml IS NULL " +
-            "AND (m.sentAt < :beforeSentAt OR (m.sentAt = :beforeSentAt AND m.id < :beforeId)) " +
-            "ORDER BY m.sentAt DESC, m.id DESC LIMIT :limit"
-    )
+    @Query(BODY_WORK_SQL)
     suspend fun bodyWork(
         accountId: Long,
         sinceMillis: Long,
@@ -344,3 +330,18 @@ data class BodyWorkRow(
     val uid: Long,
     val sentAt: java.time.Instant
 )
+
+/** The messages of one conversation; a constant so the query plan can be tested. */
+internal const val THREAD_SQL =
+    "SELECT * FROM message INDEXED BY $THREAD_INDEX WHERE accountId = :accountId " +
+        "AND folderPath = :folderPath AND threadId = :threadId ORDER BY sentAt, id"
+
+/** The body download work list; a constant so the query plan can be tested. */
+internal const val BODY_WORK_SQL =
+    "SELECT m.id AS id, m.folderPath AS folderPath, m.uid AS uid, m.sentAt AS sentAt " +
+        "FROM message m JOIN folder f ON f.accountId = m.accountId " +
+        "AND f.path = m.folderPath WHERE m.accountId = :accountId AND f.syncEnabled = 1 " +
+        "AND m.uid > 0 AND m.sentAt >= :sinceMillis AND m.size <= :maxSize " +
+        "AND m.bodyText IS NULL AND m.bodyHtml IS NULL " +
+        "AND (m.sentAt < :beforeSentAt OR (m.sentAt = :beforeSentAt AND m.id < :beforeId)) " +
+        "ORDER BY m.sentAt DESC, m.id DESC LIMIT :limit"

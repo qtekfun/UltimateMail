@@ -70,11 +70,13 @@ interface FolderDao {
     )
 
     /** Unread messages per folder, for the folder list badges. */
-    @Query(
-        "SELECT folderPath AS path, COUNT(*) AS unread FROM message " +
-            "WHERE accountId = :accountId AND seen = 0 GROUP BY folderPath"
-    )
+    @Query(UNREAD_PER_FOLDER_SQL)
     fun observeUnread(accountId: Long): Flow<List<FolderUnread>>
 }
 
 data class FolderUnread(val path: String, val unread: Int)
+
+/** Unread messages per folder; a constant so the query plan can be tested. */
+internal const val UNREAD_PER_FOLDER_SQL =
+    "SELECT folderPath AS path, COUNT(*) AS unread FROM message " +
+        "WHERE accountId = :accountId AND seen = 0 GROUP BY folderPath"

@@ -33,13 +33,10 @@ interface DraftDao {
     @Query("SELECT * FROM draft WHERE `key` = :key")
     suspend fun getByKey(key: String): DraftEntity?
 
-    @Query(
-        "SELECT * FROM draft WHERE accountId = :accountId AND state = :state " +
-            "ORDER BY updatedAt DESC, id DESC"
-    )
+    @Query(DRAFTS_BY_STATE_SQL)
     fun observeByState(accountId: Long, state: DraftState): Flow<List<DraftEntity>>
 
-    @Query("SELECT * FROM draft WHERE state = :state ORDER BY updatedAt DESC, id DESC")
+    @Query(DRAFTS_ALL_SQL)
     fun observeAllByState(state: DraftState): Flow<List<DraftEntity>>
 
     @Query("SELECT COUNT(*) FROM draft WHERE accountId = :accountId AND state = :state")
@@ -87,3 +84,12 @@ interface DraftDao {
     @Query("SELECT COALESCE(SUM(size), 0) FROM outgoing_attachment WHERE draftId = :draftId")
     suspend fun attachmentBytes(draftId: Long): Long
 }
+
+/** The drafts of one account in a state; a constant so the query plan can be tested. */
+internal const val DRAFTS_BY_STATE_SQL =
+    "SELECT * FROM draft WHERE accountId = :accountId AND state = :state " +
+        "ORDER BY updatedAt DESC, id DESC"
+
+/** The drafts of every account in a state; a constant so the query plan can be tested. */
+internal const val DRAFTS_ALL_SQL =
+    "SELECT * FROM draft WHERE state = :state ORDER BY updatedAt DESC, id DESC"
