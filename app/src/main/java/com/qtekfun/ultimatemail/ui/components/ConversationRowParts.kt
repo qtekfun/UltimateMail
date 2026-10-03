@@ -59,7 +59,7 @@ import com.qtekfun.ultimatemail.domain.search.HighlightField
 import com.qtekfun.ultimatemail.domain.search.SearchHighlights
 import com.qtekfun.ultimatemail.ui.theme.AvatarPalette
 import com.qtekfun.ultimatemail.ui.theme.LocalDensityMetrics
-import com.qtekfun.ultimatemail.ui.theme.StarColor
+import com.qtekfun.ultimatemail.ui.theme.starColor
 
 private val IconSize = 16.dp
 
@@ -109,7 +109,7 @@ internal fun Indicators(item: ConversationItem) {
                 Icons.Filled.Star,
                 contentDescription = null,
                 modifier = Modifier.size(IconSize),
-                tint = StarColor
+                tint = starColor()
             )
         }
     }

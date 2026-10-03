@@ -27,7 +27,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -106,7 +108,10 @@ private fun LoadingBody() {
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
-            .semantics(mergeDescendants = true) { contentDescription = description },
+            .semantics(mergeDescendants = true) {
+                contentDescription = description
+                liveRegion = LiveRegionMode.Polite
+            },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {

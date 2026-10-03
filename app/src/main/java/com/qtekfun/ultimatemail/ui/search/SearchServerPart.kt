@@ -20,7 +20,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.qtekfun.ultimatemail.R
@@ -88,14 +91,12 @@ private fun ServerButton(primary: Boolean, onClick: () -> Unit) {
 private fun ServerRunning(onCancel: () -> Unit) {
     val description = stringResource(R.string.search_server_searching)
     Row(
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.semantics {
-                contentDescription = description
-            }
-        )
+        // The text beside it says it: the spinner alone would make a screen reader repeat it.
+        CircularProgressIndicator(modifier = Modifier.clearAndSetSemantics {})
         Text(description, modifier = Modifier.weight(1f))
         TextButton(onClick = onCancel, modifier = Modifier.heightIn(min = MinTouchTarget)) {
             Text(stringResource(R.string.search_server_cancel))

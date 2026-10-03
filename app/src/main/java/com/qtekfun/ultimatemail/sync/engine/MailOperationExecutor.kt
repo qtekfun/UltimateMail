@@ -105,6 +105,11 @@ class MailOperationExecutor @Inject constructor(
     private suspend fun targeted(
         operation: PendingOperationEntity,
         session: MailSession
+    ): OperationOutcome = folderReset(operation, session) ?: resolveAndPerform(operation, session)
+
+    private suspend fun resolveAndPerform(
+        operation: PendingOperationEntity,
+        session: MailSession
     ): OperationOutcome {
         val kind = checkNotNull(operation.type.toTargetKind())
         val row = messages.get(operation.accountId, operation.folderPath, operation.uid)
@@ -221,18 +226,7 @@ class MailOperationExecutor @Inject constructor(
         // A payload this version cannot read will not become readable by waiting.
         val change = runCatching { FlagChange.decode(operation.payload) }.getOrNull()
             ?: return OperationOutcome.Rejected(Reasons.BAD_PAYLOAD)
-        // A changed UIDVALIDITY means this UID may be another message now: the pull sorts it out.
-        val stored = folders.get(operation.accountId, operation.folderPath)?.uidValidity
-        if (stored != null) {
-            when (val current = session.folderStatus(operation.folderPath)) {
-                is MailResult.Success ->
-                    if (current.value.uidValidity != stored) {
-                        return OperationOutcome.RetryLater(Reasons.FOLDER_RESET)
-                    }
-
-                is MailResult.Failure -> return failure(current)
-            }
-        }
+        folderReset(operation, session)?.let { return it }
         val uids = setOf(operation.uid)
         val steps = listOf(MailFlag.SEEN to change.seen, MailFlag.FLAGGED to change.flagged)
         for ((flag, enabled) in steps) {
@@ -241,6 +235,28 @@ class MailOperationExecutor @Inject constructor(
             if (outcome != OperationOutcome.Done) return outcome
         }
         return OperationOutcome.Done
+    }
+
+    /**
+     * A changed UIDVALIDITY means every UID of the folder may be another message now: nothing
+     * that names a UID may be sent until the pull has downloaded the folder again and found the
+     * message by identity. Returns the outcome that makes the operation wait, or null if the
+     * UIDs can still be trusted.
+     */
+    private suspend fun folderReset(
+        operation: PendingOperationEntity,
+        session: MailSession
+    ): OperationOutcome? {
+        val stored = folders.get(operation.accountId, operation.folderPath)?.uidValidity
+            ?: return null
+        return when (val current = session.folderStatus(operation.folderPath)) {
+            is MailResult.Success ->
+                OperationOutcome.RetryLater(Reasons.FOLDER_RESET).takeIf {
+                    current.value.uidValidity != stored
+                }
+
+            is MailResult.Failure -> failure(current)
+        }
     }
 
     // Each failure leaves early; guard clauses keep the normal path flat.
