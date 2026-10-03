@@ -17,4 +17,10 @@
     <string name="oauth_debug_imap_failed">Falló el login IMAP: %1$s</string>
     <string name="oauth_debug_client_id">Client ID de Google</string>
     <string name="oauth_debug_client_id_invalid">Eso no parece un client ID de Google (…apps.googleusercontent.com)</string>
+    <string name="debug_safe_html_title">HTML seguro (depuración)</string>
+    <string name="debug_sample_hostile">Hostil</string>
+    <string name="debug_sample_newsletter">Boletín</string>
+    <string name="debug_sample_links">Enlaces</string>
+    <string name="debug_bypass_sanitizer">Saltar el sanitizador (probar solo el WebView)</string>
+    <string name="debug_allow_remote">Permitir contenido remoto</string>
 </resources>
