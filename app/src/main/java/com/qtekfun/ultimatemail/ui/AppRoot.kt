@@ -113,7 +113,10 @@ private fun AddAccountRoute(addAccount: AddAccountViewModel, navigator: AppNavig
             onSecurityChange = addAccount::onSecurityChange,
             onAdvancedToggle = addAccount::onAdvancedToggle,
             onSubmit = addAccount::submit,
-            onCancel = addAccount::cancel
+            onCancel = addAccount::cancel,
+            onSignIn = addAccount::onSignInClick,
+            onOAuthLaunched = addAccount::onOAuthLaunched,
+            onOAuthResult = addAccount::onOAuthResult
         )
     )
 }
