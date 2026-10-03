@@ -3,6 +3,7 @@
 
 package com.qtekfun.ultimatemail.domain.account
 
+import com.qtekfun.ultimatemail.data.local.FakeAttachmentStorage
 import com.qtekfun.ultimatemail.data.local.account
 import com.qtekfun.ultimatemail.data.local.entity.PendingOperationEntity
 import com.qtekfun.ultimatemail.data.local.folder
@@ -34,7 +35,8 @@ class AccountRemovalTest {
             saved.remove(accountId)
         }
     }
-    private val removal = AccountRemoval(db, vault, Dispatchers.Unconfined)
+    private val storage = FakeAttachmentStorage()
+    private val removal = AccountRemoval(db, vault, storage, Dispatchers.Unconfined)
 
     @AfterEach
     fun close() = db.close()
@@ -69,6 +71,19 @@ class AccountRemovalTest {
         assertNull(db.messageDao().get(doomed, "INBOX", 1))
         assertNull(db.messageDao().get(doomed, "INBOX", 2))
         assertTrue(db.pendingOperationDao().all(doomed).isEmpty())
+    }
+
+    @Test
+    fun `removing an account deletes its downloaded attachment files and only those`() = runTest {
+        val doomed = populate("a@example.test")
+        val kept = populate("b@example.test")
+        storage.files["/files/$doomed/1/1"] = byteArrayOf(1)
+        storage.files["/files/$kept/1/1"] = byteArrayOf(2)
+
+        removal.remove(doomed)
+
+        assertEquals(listOf(doomed), storage.deletedAccounts)
+        assertEquals(setOf("/files/$kept/1/1"), storage.files.keys)
     }
 
     @Test

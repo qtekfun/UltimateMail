@@ -18,6 +18,16 @@ interface AttachmentDao {
     @Query("SELECT * FROM attachment WHERE messageId = :messageId ORDER BY id")
     fun observe(messageId: Long): Flow<List<AttachmentEntity>>
 
+    /** The attachments of several messages at once, for a whole conversation. */
+    @Query("SELECT * FROM attachment WHERE messageId IN (:messageIds) ORDER BY messageId, id")
+    fun observeForMessages(messageIds: List<Long>): Flow<List<AttachmentEntity>>
+
+    @Query("SELECT * FROM attachment WHERE messageId = :messageId ORDER BY id")
+    suspend fun listFor(messageId: Long): List<AttachmentEntity>
+
+    @Query("SELECT * FROM attachment WHERE id = :id")
+    suspend fun get(id: Long): AttachmentEntity?
+
     @Query("UPDATE attachment SET state = :state, localPath = :localPath WHERE id = :id")
     suspend fun setState(id: Long, state: AttachmentState, localPath: String?)
 }
