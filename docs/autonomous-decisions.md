@@ -62,4 +62,15 @@ Decisiones tomadas por mí (a confirmar):
     partir de 20 MB totales y rechazo por encima de 25 MB (límite de Gmail); en Gmail no se añade copia a Enviados
     (el servidor ya la guarda) y en los demás proveedores sí; sin permiso de contactos: las sugerencias de destinatarios
     salen solo de los correos ya descargados.
+20. **Descarga de cuerpos a local (PR #30).** Decididas por el agente: la fase de cuerpos corre cuando ya se han bajado las
+    cabeceras de todas las carpetas (así las listas se completan antes y el "más nuevo primero" es global); tope de
+    10 MB por mensaje (con el tamaño de cabecera, que incluye adjuntos: un correo de 12 MB con un PDF queda a demanda);
+    presupuesto por sincronización de 500 mensajes, 25 MB de texto/HTML o 2 minutos; tras 3 fallos de un mensaje se
+    salta hasta reiniciar la app; un buzón grande no se vacía de una vez, sigue en la siguiente sincronización
+    (unos 15 minutos después, sin encadenar); sin opción "solo Wi-Fi" para cuerpos (pendiente); el interruptor
+    "Descargar mensajes para uso sin conexión" es por cuenta y está activado por defecto; sin cambio de esquema Room.
+    Todo probado solo contra un servidor falso en memoria.
+21. **Búsqueda (T20) lanzada.** Decidido por Claude: operadores al estilo Gmail (`from:`, `to:`, `subject:`, `label:`,
+    `has:attachment`, `is:unread`, `before:`, `after:`), ámbito carpeta / cuenta / todas, historial de búsquedas
+    reciente solo en el dispositivo (máx. 10) y búsqueda en servidor bajo demanda (IMAP SEARCH; `X-GM-RAW` en Gmail).
 
