@@ -121,6 +121,21 @@ class InboxViewModelTest {
     }
 
     @Test
+    fun `a folder the account does not sync says so instead of waiting for a first sync`() =
+        runTest {
+            val id = db.accountDao().insert(account())
+            val archive = folder(id, "Archive", FolderRole.ARCHIVE).copy(syncEnabled = false)
+            db.folderDao().upsert(listOf(folder(id), archive))
+            val model = viewModel()
+
+            model.state.test {
+                model.show(InboxScope.Folder(id, "Archive"))
+                assertEquals(InboxEmpty.NOT_ENABLED, awaitState { it.loaded }.empty)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
     fun `an empty folder that was never synced says so, a synced one says it is empty`() = runTest {
         val id = db.accountDao().insert(account())
         db.folderDao().upsert(listOf(folder(id), folder(id, "Work", FolderRole.OTHER)))

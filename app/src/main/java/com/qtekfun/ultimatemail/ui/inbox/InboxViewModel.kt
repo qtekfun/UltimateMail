@@ -51,6 +51,9 @@ enum class InboxEmpty {
     /** The first sync has not stored anything yet. */
     NOT_SYNCED,
 
+    /** The account is set not to sync this folder, so nothing will ever arrive. */
+    NOT_ENABLED,
+
     /** Synced, and there is simply no mail here. */
     NO_MESSAGES,
 
@@ -73,6 +76,7 @@ data class InboxState(
     val folderRole: FolderRole? = null,
     val accountEmail: String? = null,
     val synced: Boolean = false,
+    val syncDisabled: Boolean = false,
     val conversations: List<ConversationItem> = emptyList(),
     val loadedCount: Int = 0,
     val limit: Int = 0,
@@ -97,6 +101,7 @@ data class InboxState(
         get() = when {
             !loaded || conversations.isNotEmpty() || hasMore -> null
             loadedCount > 0 -> InboxEmpty.FILTERED_OUT
+            syncDisabled && !synced -> InboxEmpty.NOT_ENABLED
             !synced -> InboxEmpty.NOT_SYNCED
             else -> InboxEmpty.NO_MESSAGES
         }
@@ -224,6 +229,7 @@ class InboxViewModel @Inject constructor(
                 allAccounts.firstOrNull { it.id == f.accountId }?.email
             },
             synced = status.synced,
+            syncDisabled = status.syncDisabled,
             conversations = shown,
             loadedCount = page.items.size,
             limit = page.limit,
