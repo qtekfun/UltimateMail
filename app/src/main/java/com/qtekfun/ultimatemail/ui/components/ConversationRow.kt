@@ -53,6 +53,7 @@ import com.qtekfun.ultimatemail.domain.inbox.LabelPresentation
 import com.qtekfun.ultimatemail.domain.inbox.LabelSummary
 import com.qtekfun.ultimatemail.domain.inbox.MessageTimeFormatter
 import com.qtekfun.ultimatemail.ui.theme.AvatarPalette
+import com.qtekfun.ultimatemail.ui.theme.LocalDensityMetrics
 import com.qtekfun.ultimatemail.ui.theme.StarColor
 
 private val IconSize = 16.dp
@@ -99,24 +100,25 @@ fun ConversationRow(
             .describe(item, formatter.formatSpoken(item.sentAt), labels, accountMarker)
     }
 
+    val background =
+        if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = MinRowHeight)
-            .background(
-                if (selected) {
-                    MaterialTheme.colorScheme.secondaryContainer
-                } else {
-                    Color.Transparent
-                }
-            )
+            .heightIn(min = LocalDensityMetrics.current.listRowMinHeight)
+            .background(background)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .rowSemantics(
                 RowSemantics(description, selected, selectedText, customActions),
                 onClick,
                 onLongClick
             )
-            .padding(start = 6.dp, end = 16.dp, top = 10.dp, bottom = 10.dp),
+            .padding(
+                start = 6.dp,
+                end = 16.dp,
+                top = LocalDensityMetrics.current.listRowVerticalPadding + 2.dp,
+                bottom = LocalDensityMetrics.current.listRowVerticalPadding + 2.dp
+            ),
         verticalAlignment = Alignment.Top
     ) {
         UnreadDot(item.unread)
@@ -262,8 +264,6 @@ private fun SubjectLine(item: ConversationItem) {
         Indicators(item)
     }
 }
-
-private val MinRowHeight = 72.dp
 
 @Composable
 private fun UnreadDot(unread: Boolean) {

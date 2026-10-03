@@ -68,4 +68,19 @@ class RenderingPolicyTest {
             "#frag", "//a.test", "relative", "cid:x", ""
         ).forEach { assertNull(RequestPolicy.externalLink(it), it) }
     }
+
+    @Test
+    fun `the message document itself loads, any other main frame request does not`() {
+        val document = "data:text/html;charset=utf-8;base64,PGh0bWw+PC9odG1sPg=="
+
+        assertTrue(RequestPolicy.isOwnDocument(document, isMainFrame = true))
+        assertTrue(RequestPolicy.isOwnDocument("DATA:TEXT/HTML,<p>x</p>", isMainFrame = true))
+        // The same URL as a sub-resource is not the document.
+        assertFalse(RequestPolicy.isOwnDocument(document, isMainFrame = false))
+        // Navigating the main frame anywhere else stays blocked.
+        assertFalse(RequestPolicy.isOwnDocument("https://tracker.example/x", isMainFrame = true))
+        assertFalse(RequestPolicy.isOwnDocument("javascript:alert(1)", isMainFrame = true))
+        assertFalse(RequestPolicy.isOwnDocument("file:///etc/passwd", isMainFrame = true))
+        assertFalse(RequestPolicy.isOwnDocument("data:image/png;base64,AAAA", isMainFrame = true))
+    }
 }
