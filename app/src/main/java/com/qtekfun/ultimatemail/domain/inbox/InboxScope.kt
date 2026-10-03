@@ -19,9 +19,13 @@ sealed interface InboxScope {
 
     companion object {
         /** The scope for a [key] produced by [InboxScope.key]; null when it is not one. */
-        fun fromKey(key: String?): InboxScope? {
-            if (key == null) return null
-            if (key == Unified.key) return Unified
+        fun fromKey(key: String?): InboxScope? = when {
+            key == null -> null
+            key == Unified.key -> Unified
+            else -> folderFromKey(key)
+        }
+
+        private fun folderFromKey(key: String): Folder? {
             val parts = key.split('/', limit = FOLDER_KEY_PARTS)
             val accountId = parts.getOrNull(1)?.toLongOrNull()
             val path = parts.getOrNull(2)

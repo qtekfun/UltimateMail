@@ -89,6 +89,7 @@
     <string name="conversation_desc_account">Cuenta %1$s</string>
     <plurals name="conversation_desc_messages">
         <item quantity="one">%d mensaje</item>
+        <item quantity="many">%d de mensajes</item>
         <item quantity="other">%d mensajes</item>
     </plurals>
 </resources>

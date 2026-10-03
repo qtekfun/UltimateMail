@@ -53,61 +53,67 @@ fun AppRoot(
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         when (val current = screen) {
-            Screen.Folders -> {
-                val state by folders.state.collectAsStateWithLifecycle()
-                FolderListScreen(
-                    state = state,
-                    actions = FolderListActions(
-                        onSelectAccount = folders::select,
-                        onAddAccount = { navigator.open(Screen.AddAccount) },
-                        onOpenFolder = { accountId, path ->
-                            navigator.open(Screen.Inbox(InboxScope.Folder(accountId, path)))
-                        },
-                        onOpenUnified = { navigator.open(Screen.Inbox(InboxScope.Unified)) },
-                        onRequestRemoval = folders::requestRemoval,
-                        onDismissRemoval = folders::dismissRemoval,
-                        onConfirmRemoval = folders::confirmRemoval
-                    )
-                )
-            }
-
-            is Screen.Inbox -> {
-                val scope = current.scope
-                val state by inbox.state.collectAsStateWithLifecycle()
-                LaunchedEffect(scope) { inbox.show(scope) }
-                InboxScreen(
-                    scope = scope,
-                    state = state,
-                    actions = InboxActions(
-                        onBack = { navigator.back() },
-                        onRefresh = inbox::refresh,
-                        onLoadMore = inbox::loadMore,
-                        onFilterChange = inbox::setFilter,
-                        // Reading a conversation arrives with T15.
-                        onOpenConversation = {},
-                        onScrolled = inbox::onScrolled,
-                        savedScroll = inbox::savedScroll
-                    )
-                )
-            }
-
-            Screen.AddAccount -> {
-                val state by addAccount.state.collectAsStateWithLifecycle()
-                AddAccountScreen(
-                    state = state,
-                    actions = AddAccountActions(
-                        onBack = {
-                            addAccount.reset()
-                            navigator.back()
-                        },
-                        onTextChange = addAccount::onTextChange,
-                        onSecurityChange = addAccount::onSecurityChange,
-                        onAdvancedToggle = addAccount::onAdvancedToggle,
-                        onSubmit = addAccount::submit,
-                        onCancel = addAccount::cancel
-                    )
-                )
-            }
+            Screen.Folders -> FoldersRoute(folders, navigator)
+            is Screen.Inbox -> InboxRoute(current.scope, inbox, navigator)
+            Screen.AddAccount -> AddAccountRoute(addAccount, navigator)
         }
     }
+}
+
+@Composable
+private fun FoldersRoute(folders: FolderListViewModel, navigator: AppNavigator) {
+    val state by folders.state.collectAsStateWithLifecycle()
+    FolderListScreen(
+        state = state,
+        actions = FolderListActions(
+            onSelectAccount = folders::select,
+            onAddAccount = { navigator.open(Screen.AddAccount) },
+            onOpenFolder = { accountId, path ->
+                navigator.open(Screen.Inbox(InboxScope.Folder(accountId, path)))
+            },
+            onOpenUnified = { navigator.open(Screen.Inbox(InboxScope.Unified)) },
+            onRequestRemoval = folders::requestRemoval,
+            onDismissRemoval = folders::dismissRemoval,
+            onConfirmRemoval = folders::confirmRemoval
+        )
+    )
+}
+
+@Composable
+private fun InboxRoute(scope: InboxScope, inbox: InboxViewModel, navigator: AppNavigator) {
+    val state by inbox.state.collectAsStateWithLifecycle()
+    LaunchedEffect(scope) { inbox.show(scope) }
+    InboxScreen(
+        scope = scope,
+        state = state,
+        actions = InboxActions(
+            onBack = { navigator.back() },
+            onRefresh = inbox::refresh,
+            onLoadMore = inbox::loadMore,
+            onFilterChange = inbox::setFilter,
+            // Reading a conversation arrives with T15.
+            onOpenConversation = {},
+            onScrolled = inbox::onScrolled,
+            savedScroll = inbox::savedScroll
+        )
+    )
+}
+
+@Composable
+private fun AddAccountRoute(addAccount: AddAccountViewModel, navigator: AppNavigator) {
+    val state by addAccount.state.collectAsStateWithLifecycle()
+    AddAccountScreen(
+        state = state,
+        actions = AddAccountActions(
+            onBack = {
+                addAccount.reset()
+                navigator.back()
+            },
+            onTextChange = addAccount::onTextChange,
+            onSecurityChange = addAccount::onSecurityChange,
+            onAdvancedToggle = addAccount::onAdvancedToggle,
+            onSubmit = addAccount::submit,
+            onCancel = addAccount::cancel
+        )
+    )
 }

@@ -5,9 +5,6 @@ package com.qtekfun.ultimatemail.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-/** Background and text colour of one label chip. */
-data class ChipColors(val container: Color, val content: Color)
-
 /**
  * Colours of sender avatars and account markers. Every one has at least 4.5:1 contrast with
  * white, the colour of the initial. The size must match `AvatarSpec.PALETTE_SIZE`.

@@ -24,10 +24,8 @@ import androidx.compose.ui.unit.sp
 import com.qtekfun.ultimatemail.domain.inbox.AvatarSpec
 import com.qtekfun.ultimatemail.ui.theme.AvatarPalette
 
-/** Default sizes of [Avatar]. */
-object AvatarDefaults {
-    val Size: Dp = 40.dp
-}
+/** Default diameter of an [Avatar]. */
+val DefaultAvatarSize: Dp = 40.dp
 
 /**
  * The circle with the sender's initial. The initial comes from [name] (or [address] when the
@@ -40,7 +38,7 @@ fun Avatar(
     name: String,
     address: String,
     modifier: Modifier = Modifier,
-    size: Dp = AvatarDefaults.Size,
+    size: Dp = DefaultAvatarSize,
     contentDescription: String? = null
 ) {
     val spec = remember(name, address) { AvatarSpec.of(name, address) }

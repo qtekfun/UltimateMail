@@ -43,6 +43,7 @@ import com.qtekfun.ultimatemail.domain.inbox.ConversationDescriber
 import com.qtekfun.ultimatemail.domain.inbox.ConversationItem
 import com.qtekfun.ultimatemail.domain.inbox.DescriptionTexts
 import com.qtekfun.ultimatemail.domain.inbox.LabelPresentation
+import com.qtekfun.ultimatemail.domain.inbox.LabelSummary
 import com.qtekfun.ultimatemail.domain.inbox.MessageTimeFormatter
 import com.qtekfun.ultimatemail.ui.theme.AvatarPalette
 import com.qtekfun.ultimatemail.ui.theme.StarColor
@@ -83,30 +84,13 @@ fun ConversationRow(
         ConversationDescriber(texts)
             .describe(item, formatter.formatSpoken(item.sentAt), labels, accountMarker)
     }
-    val noSubject = stringResource(R.string.conversation_no_subject)
-    val weight = if (item.unread) FontWeight.Bold else FontWeight.Normal
-    // Semantics have their own onClick/onLongClick, so give these callbacks other names.
-    val tap = onClick
-    val hold = onLongClick
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = MinRowHeight)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .clearAndSetSemantics {
-                contentDescription = description
-                onClick {
-                    tap()
-                    true
-                }
-                if (hold != null) {
-                    onLongClick {
-                        hold()
-                        true
-                    }
-                }
-            }
+            .rowSemantics(description, onClick, onLongClick)
             .padding(start = 6.dp, end = 16.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.Top
     ) {
@@ -117,51 +101,8 @@ fun ConversationRow(
             modifier = Modifier.padding(end = 12.dp)
         )
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = item.sender,
-                        modifier = Modifier.weight(1f, fill = false),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = weight),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (item.messageCount > 1) {
-                        Text(
-                            text = item.messageCount.toString(),
-                            modifier = Modifier.padding(start = 6.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Text(
-                    text = formatter.format(item.sentAt),
-                    modifier = Modifier.padding(start = 8.dp),
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = weight),
-                    color = if (item.unread) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    maxLines = 1
-                )
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = item.subject.ifBlank { noSubject },
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = if (item.unread) FontWeight.SemiBold else FontWeight.Normal
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Indicators(item)
-            }
+            SenderLine(item, formatter.format(item.sentAt))
+            SubjectLine(item)
             if (item.snippet.isNotBlank()) {
                 Text(
                     text = item.snippet.trim(),
@@ -171,17 +112,95 @@ fun ConversationRow(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            if (!labels.isEmpty || accountMarker != null) {
-                Row(
-                    modifier = Modifier.padding(top = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (accountMarker != null) AccountMarkerTag(accountMarker)
-                    if (!labels.isEmpty) LabelChipRow(labels, Modifier.weight(1f))
-                }
+            if (!labels.isEmpty || accountMarker != null) MetaLine(labels, accountMarker)
+        }
+    }
+}
+
+/** The account marker (unified inbox) and the label chips. */
+@Composable
+private fun MetaLine(labels: LabelSummary, accountMarker: AccountMarker?) {
+    Row(
+        modifier = Modifier.padding(top = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (accountMarker != null) AccountMarkerTag(accountMarker)
+        if (!labels.isEmpty) LabelChipRow(labels, Modifier.weight(1f))
+    }
+}
+
+/**
+ * One merged description for screen readers, plus the click actions: clearing the semantics of
+ * the parts would otherwise drop the actions of the clickable row.
+ */
+private fun Modifier.rowSemantics(
+    description: String,
+    onTap: () -> Unit,
+    onHold: (() -> Unit)?
+): Modifier = clearAndSetSemantics {
+    contentDescription = description
+    onClick {
+        onTap()
+        true
+    }
+    if (onHold != null) {
+        onLongClick {
+            onHold()
+            true
+        }
+    }
+}
+
+/** Sender (bold when unread), the number of messages of the conversation, and the time. */
+@Composable
+private fun SenderLine(item: ConversationItem, time: String) {
+    val weight = if (item.unread) FontWeight.Bold else FontWeight.Normal
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = item.sender,
+                modifier = Modifier.weight(1f, fill = false),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = weight),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (item.messageCount > 1) {
+                Text(
+                    text = item.messageCount.toString(),
+                    modifier = Modifier.padding(start = 6.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
+        Text(
+            text = time,
+            modifier = Modifier.padding(start = 8.dp),
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = weight),
+            color = if (item.unread) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun SubjectLine(item: ConversationItem) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = item.subject.ifBlank { stringResource(R.string.conversation_no_subject) },
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = if (item.unread) FontWeight.SemiBold else FontWeight.Normal
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Indicators(item)
     }
 }
 
