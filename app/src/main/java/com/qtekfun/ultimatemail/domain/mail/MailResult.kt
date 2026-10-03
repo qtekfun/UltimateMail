@@ -62,7 +62,9 @@ fun <T> MailResult<T>.getOrNull(): T? = (this as? MailResult.Success)?.value
 val MailResult.Failure.isRetryable: Boolean
     get() = when (this) {
         MailResult.NetworkUnavailable, MailResult.Timeout -> true
+
         is MailResult.ServerRejected -> !permanent
+
         MailResult.AuthenticationFailed,
         MailResult.CertificateRejected,
         MailResult.NotFound,

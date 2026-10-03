@@ -43,7 +43,11 @@ class AngusMailSession(
     private val io: CoroutineDispatcher,
     private val extensions: ProviderExtensions
 ) : MailSession {
-    private class OpenFolder(val path: String, val writable: Boolean, val folder: IMAPFolder)
+    private class OpenFolder(val path: String, val writable: Boolean, val folder: IMAPFolder) {
+        /** Whether this open folder can serve a request, so it need not be reopened. */
+        fun serves(wantedPath: String, wantsWrite: Boolean) =
+            path == wantedPath && folder.isOpen && (writable || !wantsWrite)
+    }
 
     private val mutex = Mutex()
     private var current: OpenFolder? = null
@@ -69,7 +73,7 @@ class AngusMailSession(
 
     private fun open(path: String, writable: Boolean): IMAPFolder {
         current?.let {
-            if (it.path == path && it.folder.isOpen && (it.writable || !writable)) return it.folder
+            if (it.serves(path, writable)) return it.folder
             discardFolder()
         }
         val folder = store.getFolder(path) as IMAPFolder

@@ -26,7 +26,8 @@ import org.junit.jupiter.api.Test
 /** The IMAP session against GreenMail, a real IMAP server, over TLS. */
 class GreenMailSessionTest {
     private val server = GreenMailServer()
-    private val connector = AngusMailConnector(Dispatchers.IO, trustingTestConfig(), GmailExtensions())
+    private val connector =
+        AngusMailConnector(Dispatchers.IO, trustingTestConfig(), GmailExtensions())
     private var session: MailSession? = null
 
     @BeforeEach
@@ -45,7 +46,13 @@ class GreenMailSessionTest {
     }
 
     private fun deliver(subject: String, body: String = "body of $subject") {
-        GreenMailUtil.sendTextEmail(TEST_USER, "bob@example.test", subject, body, server.greenMail.smtps.serverSetup)
+        GreenMailUtil.sendTextEmail(
+            TEST_USER,
+            "bob@example.test",
+            subject,
+            body,
+            server.greenMail.smtps.serverSetup
+        )
     }
 
     private fun <T> ok(result: MailResult<T>): T {
@@ -125,7 +132,12 @@ class GreenMailSessionTest {
         deliver("one")
         server.greenMail.waitForIncomingEmail(1)
         val s = connect()
-        val set = ok(runBlocking { s.setFlags("INBOX", setOf(1, 99), setOf(MailFlag.SEEN, MailFlag.FLAGGED), true) })
+        val set =
+            ok(
+                runBlocking {
+                    s.setFlags("INBOX", setOf(1, 99), setOf(MailFlag.SEEN, MailFlag.FLAGGED), true)
+                }
+            )
         assertEquals(setOf(1L), set.applied)
         assertEquals(setOf(99L), set.missing)
         val flags = ok(runBlocking { s.fetchHeaders("INBOX", UidRange(1)) }).single().flags
@@ -145,8 +157,22 @@ class GreenMailSessionTest {
         createFolder("Archive")
         val moved = ok(runBlocking { s.move("INBOX", setOf(2), "Archive") })
         assertEquals(setOf(2L), moved.applied)
-        assertEquals(listOf("keep"), ok(runBlocking { s.fetchHeaders("INBOX", UidRange(1)) }).map { it.subject })
-        assertEquals(listOf("move me"), ok(runBlocking { s.fetchHeaders("Archive", UidRange(1)) }).map { it.subject })
+        assertEquals(
+            listOf("keep"),
+            ok(
+                runBlocking {
+                    s.fetchHeaders("INBOX", UidRange(1))
+                }
+            ).map { it.subject }
+        )
+        assertEquals(
+            listOf("move me"),
+            ok(
+                runBlocking {
+                    s.fetchHeaders("Archive", UidRange(1))
+                }
+            ).map { it.subject }
+        )
     }
 
     @Test
@@ -202,10 +228,18 @@ class GreenMailSessionTest {
             subject = "with file",
             text = "plain part",
             html = "<p>html part</p>",
-            attachments = listOf(OutgoingAttachment("data.bin", "application/octet-stream", byteArrayOf(1, 2, 3, 4)))
+            attachments = listOf(
+                OutgoingAttachment("data.bin", "application/octet-stream", byteArrayOf(1, 2, 3, 4))
+            )
         )
         ok(runBlocking { s.appendDraft("Drafts", message) })
-        assertTrue(ok(runBlocking { s.fetchHeaders("Drafts", UidRange(1)) }).single().hasAttachments)
+        assertTrue(
+            ok(
+                runBlocking {
+                    s.fetchHeaders("Drafts", UidRange(1))
+                }
+            ).single().hasAttachments
+        )
         val body = ok(runBlocking { s.fetchBody("Drafts", 1) })
         assertEquals("plain part", body.text?.trim())
         assertEquals("<p>html part</p>", body.html?.trim())
@@ -223,8 +257,18 @@ class GreenMailSessionTest {
         deliver("one")
         server.greenMail.waitForIncomingEmail(1)
         val s = connect()
-        assertEquals(MailResult.Unsupported("gmail-labels"), runBlocking { s.addLabels("INBOX", setOf(1), setOf("x")) })
-        assertEquals(MailResult.Unsupported("gmail-labels"), runBlocking { s.removeLabels("INBOX", setOf(1), setOf("x")) })
+        assertEquals(
+            MailResult.Unsupported("gmail-labels"),
+            runBlocking {
+                s.addLabels("INBOX", setOf(1), setOf("x"))
+            }
+        )
+        assertEquals(
+            MailResult.Unsupported("gmail-labels"),
+            runBlocking {
+                s.removeLabels("INBOX", setOf(1), setOf("x"))
+            }
+        )
     }
 
     @Test

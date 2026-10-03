@@ -8,6 +8,7 @@ import jakarta.mail.FetchProfile
 import jakarta.mail.Message
 import org.eclipse.angus.mail.gimap.GmailFolder
 import org.eclipse.angus.mail.gimap.GmailMessage
+import org.eclipse.angus.mail.gimap.GmailStore
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.eclipse.angus.mail.imap.IMAPStore
 
@@ -17,7 +18,9 @@ import org.eclipse.angus.mail.imap.IMAPStore
  * the extension is absent.
  */
 class GmailExtensions : ProviderExtensions {
-    override fun isAvailable(store: IMAPStore): Boolean = store.hasCapability(CAPABILITY)
+    // Only the Gmail-aware store (implicit TLS) produces the folder and message types needed.
+    override fun isAvailable(store: IMAPStore): Boolean =
+        store is GmailStore && store.hasCapability(CAPABILITY)
 
     override fun fetchItems(): List<FetchProfile.Item> = listOf(
         GmailFolder.FetchProfileItem.MSGID,

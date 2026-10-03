@@ -34,7 +34,9 @@ internal const val TEST_PASSWORD = "secret"
  */
 internal object TestTls {
     private const val PASSWORD = "changeit"
-    private val keystoreFile: File = File.createTempFile("ultimatemail-test", ".p12").also { it.delete() }
+    private val keystoreFile: File = File.createTempFile("ultimatemail-test", ".p12").also {
+        it.delete()
+    }
 
     init {
         val keytool = File(System.getProperty("java.home"), "bin/keytool").path
@@ -67,23 +69,30 @@ internal object TestTls {
     val serverSocketFactory: SSLServerSocketFactory by lazy {
         val keys = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
             .apply { init(keyStore, PASSWORD.toCharArray()) }
-        SSLContext.getInstance("TLS").apply { init(keys.keyManagers, null, null) }.serverSocketFactory
+        SSLContext.getInstance("TLS").apply {
+            init(keys.keyManagers, null, null)
+        }.serverSocketFactory
     }
 }
 
-internal fun trustingTestConfig(
-    connectTimeoutMillis: Int = 5_000,
-    readTimeoutMillis: Int = 5_000
-) = MailClientConfig(
-    connectTimeoutMillis = connectTimeoutMillis,
-    readTimeoutMillis = readTimeoutMillis,
-    sslSocketFactory = TestTls.clientSocketFactory
-)
+internal fun trustingTestConfig(connectTimeoutMillis: Int = 5_000, readTimeoutMillis: Int = 5_000) =
+    MailClientConfig(
+        connectTimeoutMillis = connectTimeoutMillis,
+        readTimeoutMillis = readTimeoutMillis,
+        sslSocketFactory = TestTls.clientSocketFactory
+    )
 
-internal fun freePort(): Int = ServerSocket(0, 1, InetAddress.getByName(TEST_HOST)).use { it.localPort }
+internal fun freePort(): Int = ServerSocket(0, 1, InetAddress.getByName(TEST_HOST)).use {
+    it.localPort
+}
 
 /** GreenMail speaking IMAPS and SMTPS on free ports, with one user. */
 internal class GreenMailServer {
+    init {
+        // The certificate must be in place before GreenMail starts its first TLS server.
+        TestTls.clientSocketFactory
+    }
+
     val imapPort = freePort()
     val smtpPort = freePort()
     val greenMail = GreenMail(
@@ -113,7 +122,11 @@ internal class GreenMailServer {
 internal class ScriptedImapServer(
     private val respond: (tag: String, command: String) -> List<String>?
 ) : AutoCloseable {
-    private val socket = TestTls.serverSocketFactory.createServerSocket(0, 1, InetAddress.getByName(TEST_HOST))
+    private val socket = TestTls.serverSocketFactory.createServerSocket(
+        0,
+        1,
+        InetAddress.getByName(TEST_HOST)
+    )
     private val clients = CopyOnWriteArrayList<Socket>()
     val port: Int = socket.localPort
     val commands = CopyOnWriteArrayList<String>()
@@ -130,23 +143,31 @@ internal class ScriptedImapServer(
 
     private fun serve(client: Socket) {
         runCatching {
-            val reader = BufferedReader(InputStreamReader(client.getInputStream(), Charsets.US_ASCII))
+            val reader =
+                BufferedReader(InputStreamReader(client.getInputStream(), Charsets.US_ASCII))
             val writer = client.getOutputStream()
             fun send(line: String) {
                 writer.write("$line\r\n".toByteArray(Charsets.US_ASCII))
                 writer.flush()
             }
             send("* OK scripted ready")
-            while (true) {
-                val line = reader.readLine() ?: break
-                val tag = line.substringBefore(' ')
-                val command = line.substringAfter(' ')
-                commands += command.substringBefore(' ').uppercase()
-                val reply = respond(tag, command) ?: break
-                reply.forEach(::send)
+            var open = true
+            while (open) {
+                val line = reader.readLine()
+                val reply = line?.let { answer(it) }
+                open = reply != null
+                reply?.forEach(::send)
             }
         }
         runCatching { client.close() }
+    }
+
+    /** The reply lines for one command line, or null to drop the connection. */
+    private fun answer(line: String): List<String>? {
+        val tag = line.substringBefore(' ')
+        val command = line.substringAfter(' ')
+        commands += command.substringBefore(' ').uppercase()
+        return respond(tag, command)
     }
 
     override fun close() {

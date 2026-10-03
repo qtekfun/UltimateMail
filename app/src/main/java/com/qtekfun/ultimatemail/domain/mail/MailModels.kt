@@ -20,7 +20,8 @@ sealed interface MailCredentials {
     }
 
     /** XOAUTH2 with an access token the caller keeps fresh (RF-01). */
-    data class OAuthBearer(override val username: String, val accessToken: String) : MailCredentials {
+    data class OAuthBearer(override val username: String, val accessToken: String) :
+        MailCredentials {
         override fun toString(): String = "OAuthBearer(REDACTED)"
     }
 }

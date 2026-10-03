@@ -31,7 +31,12 @@ class AngusMailSender @Inject constructor(
             val mime = MimeMessageBuilder.build(message)
             val session = Session.getInstance(MailProperties.smtp(server, credentials, config))
             session.getTransport(MailProperties.SMTP_PROTOCOL).use { transport ->
-                transport.connect(server.host, server.port, credentials?.username, credentials?.secret())
+                transport.connect(
+                    server.host,
+                    server.port,
+                    credentials?.username,
+                    credentials?.secret()
+                )
                 transport.sendMessage(mime, mime.allRecipients)
             }
             MailResult.Success(checkNotNull(mime.messageID))

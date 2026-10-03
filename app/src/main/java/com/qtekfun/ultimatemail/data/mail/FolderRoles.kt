@@ -33,9 +33,11 @@ internal object FolderRoles {
         "archive" to MailFolderRole.ARCHIVE
     )
 
-    fun detect(attributes: Collection<String>, name: String, path: String): MailFolderRole {
-        if (path.equals("INBOX", ignoreCase = true)) return MailFolderRole.INBOX
-        attributes.firstNotNullOfOrNull { byAttribute[it.lowercase(Locale.ROOT)] }?.let { return it }
-        return byName[name.lowercase(Locale.ROOT)] ?: MailFolderRole.OTHER
+    fun detect(attributes: Collection<String>, name: String, path: String): MailFolderRole = when {
+        path.equals("INBOX", ignoreCase = true) -> MailFolderRole.INBOX
+
+        else -> attributes.firstNotNullOfOrNull { byAttribute[it.lowercase(Locale.ROOT)] }
+            ?: byName[name.lowercase(Locale.ROOT)]
+            ?: MailFolderRole.OTHER
     }
 }

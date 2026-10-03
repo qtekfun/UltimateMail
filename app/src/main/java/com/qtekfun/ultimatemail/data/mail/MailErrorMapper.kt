@@ -55,38 +55,56 @@ internal object MailErrorMapper {
     /** STARTTLS is required, so a server without it is refused rather than used in clear text. */
     private fun mapMissingStartTls(chain: List<Throwable>): MailResult.Failure? =
         MailResult.Unsupported("STARTTLS").takeIf {
-            chain.any { it is MessagingException && it.message.orEmpty().startsWith(STARTTLS_REQUIRED) }
+            chain.any { error -> STARTTLS_REQUIRED.any { error.message.orEmpty().startsWith(it) } }
         }
 
     private fun mapCertificate(chain: List<Throwable>): MailResult.Failure? = when {
         chain.any { it is CertificateException || it is SSLPeerUnverifiedException } ->
             MailResult.CertificateRejected
+
         // The library's own host name check (mail.*.ssl.checkserveridentity).
-        chain.any { it is MessagingException && it.message.orEmpty().startsWith(UNTRUSTED_SERVER) } ->
+        chain.any {
+            it is MessagingException && it.message.orEmpty().startsWith(UNTRUSTED_SERVER)
+        } ->
             MailResult.CertificateRejected
+
         else -> null
     }
 
     private fun mapTimeout(chain: List<Throwable>): MailResult.Failure? = when {
         chain.any { it is SocketTimeoutException } -> MailResult.Timeout
+
         // A read timeout inside an IMAP command surfaces only as text in a BYE response.
         chain.any { TIMED_OUT in it.message.orEmpty() } -> MailResult.Timeout
+
         chain.any { it is InterruptedIOException } -> MailResult.Timeout
+
         else -> null
     }
 
     private fun mapRejection(chain: List<Throwable>): MailResult.Failure? {
         for (cause in chain) {
             val rejection = when (cause) {
-                is BadCommandException -> MailResult.ServerRejected(RejectionKind.BAD, permanent = true)
+                is BadCommandException -> MailResult.ServerRejected(
+                    RejectionKind.BAD,
+                    permanent = true
+                )
+
                 is CommandFailedException ->
                     MailResult.ServerRejected(RejectionKind.NO, permanent = !cause.isTransient())
+
                 is SMTPSendFailedException -> smtp(cause.returnCode)
+
                 is SMTPAddressFailedException -> smtp(cause.returnCode)
+
                 is SMTPSenderFailedException -> smtp(cause.returnCode)
+
                 is FolderNotFoundException -> MailResult.NotFound
+
                 is ConnectionException -> MailResult.NetworkUnavailable
+
                 is ProtocolException -> MailResult.Protocol
+
                 else -> null
             }
             if (rejection != null) return rejection
@@ -103,9 +121,12 @@ internal object MailErrorMapper {
                 it is StoreClosedException ||
                 it is FolderClosedException
         } -> MailResult.NetworkUnavailable
+
         // Not a certificate problem, so TLS itself failed: the server speaks something else.
         chain.any { it is SSLException } -> MailResult.Protocol
+
         chain.any { it is SocketException } -> MailResult.NetworkUnavailable
+
         else -> null
     }
 
@@ -120,6 +141,8 @@ internal object MailErrorMapper {
 
     private const val MAX_CHAIN = 16
     private const val TIMED_OUT = "timed out"
-    private const val STARTTLS_REQUIRED = "STARTTLS is required"
+
+    // The wording differs between the SMTP and the IMAP client of the library.
+    private val STARTTLS_REQUIRED = listOf("STARTTLS is required", "STARTTLS required")
     private const val UNTRUSTED_SERVER = "Server is not trusted"
 }
