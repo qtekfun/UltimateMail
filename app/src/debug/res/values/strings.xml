@@ -18,4 +18,10 @@
     <string name="oauth_debug_imap_failed">IMAP login failed: %1$s</string>
     <string name="oauth_debug_client_id">Google client ID</string>
     <string name="oauth_debug_client_id_invalid">That does not look like a Google client ID (…apps.googleusercontent.com)</string>
+    <string name="debug_safe_html_title">Safe HTML (debug)</string>
+    <string name="debug_sample_hostile">Hostile</string>
+    <string name="debug_sample_newsletter">Newsletter</string>
+    <string name="debug_sample_links">Links</string>
+    <string name="debug_bypass_sanitizer">Skip the sanitizer (test only the WebView)</string>
+    <string name="debug_allow_remote">Allow remote content</string>
 </resources>
