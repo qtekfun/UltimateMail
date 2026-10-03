@@ -357,7 +357,7 @@ private fun SyncLine.text(): String = when (this) {
 }
 
 @Composable
-private fun RemoveAccountDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
+internal fun RemoveAccountDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.account_remove_title)) },

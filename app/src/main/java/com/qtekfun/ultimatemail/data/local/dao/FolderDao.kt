@@ -11,6 +11,7 @@ import com.qtekfun.ultimatemail.data.local.entity.FolderEntity
 import com.qtekfun.ultimatemail.data.local.model.FolderRole
 import kotlinx.coroutines.flow.Flow
 
+@Suppress("TooManyFunctions") // One query per operation on folders.
 @Dao
 interface FolderDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -45,6 +46,12 @@ interface FolderDao {
 
     @Query("SELECT * FROM folder WHERE accountId = :accountId AND syncEnabled = 1 ORDER BY path")
     suspend fun syncable(accountId: Long): List<FolderEntity>
+
+    /** The user's choice of whether a folder is synced (RF-10). */
+    @Query(
+        "UPDATE folder SET syncEnabled = :enabled WHERE accountId = :accountId AND path = :path"
+    )
+    suspend fun setSyncEnabled(accountId: Long, path: String, enabled: Boolean)
 
     /** Removes folders that no longer exist on the server; their messages go with them. */
     @Query("DELETE FROM folder WHERE accountId = :accountId AND path NOT IN (:keep)")

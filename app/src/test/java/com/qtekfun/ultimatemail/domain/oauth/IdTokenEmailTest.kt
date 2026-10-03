@@ -33,4 +33,23 @@ class IdTokenEmailTest {
         assertNull(IdTokenEmail.from("header.%%%not-base64%%%.signature"))
         assertNull(IdTokenEmail.from(token("""{"sub":"1"}""")))
     }
+
+    @Test
+    fun `falls back to preferred_username when there is no email claim`() {
+        val jwt = token("""{"sub":"1","preferred_username":"ana@contoso.test"}""")
+
+        assertEquals("ana@contoso.test", IdTokenEmail.from(jwt))
+    }
+
+    @Test
+    fun `the email claim wins over preferred_username`() {
+        val jwt = token("""{"preferred_username":"upn@contoso.test","email":"ana@contoso.test"}""")
+
+        assertEquals("ana@contoso.test", IdTokenEmail.from(jwt))
+    }
+
+    @Test
+    fun `a preferred_username that is not an address is not used`() {
+        assertNull(IdTokenEmail.from(token("""{"preferred_username":"ana"}""")))
+    }
 }
