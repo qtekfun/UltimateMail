@@ -6,6 +6,7 @@ package com.qtekfun.ultimatemail.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qtekfun.ultimatemail.data.settings.AppSettings
+import com.qtekfun.ultimatemail.data.settings.DisplayDensity
 import com.qtekfun.ultimatemail.data.settings.RemoteContentPolicy
 import com.qtekfun.ultimatemail.data.settings.SettingsRepository
 import com.qtekfun.ultimatemail.data.settings.SwipeAction
@@ -45,6 +46,8 @@ class SettingsViewModel @Inject constructor(
         )
 
     fun setTheme(theme: ThemeMode) = repository.setTheme(theme)
+
+    fun setDensity(density: DisplayDensity) = repository.setDensity(density)
 
     fun setDynamicColor(enabled: Boolean) = repository.setDynamicColor(enabled)
 

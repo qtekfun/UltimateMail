@@ -3,6 +3,7 @@
 
 package com.qtekfun.ultimatemail.sync.engine
 
+import com.qtekfun.ultimatemail.data.local.FakeAttachmentStorage
 import com.qtekfun.ultimatemail.data.local.UltimateMailDatabase
 import com.qtekfun.ultimatemail.data.local.account
 import com.qtekfun.ultimatemail.data.local.entity.AccountEntity
@@ -19,6 +20,7 @@ import com.qtekfun.ultimatemail.domain.mail.MailSender
 import com.qtekfun.ultimatemail.domain.mail.MailServer
 import com.qtekfun.ultimatemail.domain.mail.MailSession
 import com.qtekfun.ultimatemail.domain.mail.OutgoingMessage
+import com.qtekfun.ultimatemail.domain.settings.MemoryOfflineDownloads
 import com.qtekfun.ultimatemail.sync.queue.OperationQueue
 import java.time.Clock
 import java.time.Instant
@@ -126,6 +128,19 @@ class EngineHarness(scope: TestScope, authType: AuthType = AuthType.PASSWORD) {
         clock,
         StandardTestDispatcher(scope.testScheduler)
     )
+    val storage = FakeAttachmentStorage()
+
+    /** Off unless a test turns it on, so the other tests keep bodies to be opened on demand. */
+    val offlineDownloads = MemoryOfflineDownloads(default = false)
+    val bodyStore = BodyStore(db.messageDao(), db.attachmentDao())
+    internal val bodies = BodyDownloader(
+        db.messageDao(),
+        bodyStore,
+        DownloadAttachment(db.attachmentDao(), db.messageDao(), sessions, storage),
+        offlineDownloads,
+        status,
+        clock
+    )
     val accountSync = AccountSync(
         db.accountDao(),
         db.folderDao(),
@@ -139,6 +154,8 @@ class EngineHarness(scope: TestScope, authType: AuthType = AuthType.PASSWORD) {
             clock
         ),
         queue,
+        AttachmentFileCleaner(db.attachmentDao(), storage),
+        bodies,
         clock
     )
     val engine = SyncEngine(db.accountDao(), accountSync, status, clock)

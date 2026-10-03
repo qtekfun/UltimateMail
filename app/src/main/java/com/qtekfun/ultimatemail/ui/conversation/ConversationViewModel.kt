@@ -18,7 +18,6 @@ import com.qtekfun.ultimatemail.domain.conversation.ConversationPresenter
 import com.qtekfun.ultimatemail.domain.conversation.ConversationReader
 import com.qtekfun.ultimatemail.domain.conversation.ConversationRef
 import com.qtekfun.ultimatemail.domain.conversation.ConversationView
-import com.qtekfun.ultimatemail.domain.conversation.MoveUndo
 import com.qtekfun.ultimatemail.sync.engine.BodyResult
 import com.qtekfun.ultimatemail.sync.engine.DownloadAttachment
 import com.qtekfun.ultimatemail.sync.engine.DownloadResult
@@ -75,23 +74,6 @@ sealed interface ConversationEvent {
     ) : ConversationEvent
 }
 
-/** The short messages shown in the snackbar. */
-enum class NoticeKind {
-    ARCHIVED,
-    DELETED,
-    NO_ARCHIVE_FOLDER,
-    NO_TRASH_FOLDER,
-    COMPOSE_SOON,
-    ATTACHMENT_FAILED,
-    ATTACHMENT_GONE,
-    ATTACHMENT_SAVED,
-    ATTACHMENT_NOT_SAVED,
-    NO_APP_FOR_ATTACHMENT
-}
-
-/** A snackbar message; [undoable] ones offer "Undo" and are answered with undo or commit. */
-data class ConversationNotice(val id: Long, val kind: NoticeKind, val undoable: Boolean)
-
 /**
  * The open conversation (RF-03, RF-04, RF-05): which messages are expanded, their bodies and
  * attachments, and the actions on them. Room is the source of truth; what is only about the
@@ -103,7 +85,7 @@ data class ConversationNotice(val id: Long, val kind: NoticeKind, val undoable: 
  */
 // One function per thing the reader can do on the screen; splitting the class would only scatter
 // the state they share.
-@Suppress("TooManyFunctions", "LongParameterList")
+@Suppress("TooManyFunctions", "LongParameterList") // One collaborator per thing the reader does.
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ConversationViewModel @Inject constructor(
@@ -113,6 +95,7 @@ class ConversationViewModel @Inject constructor(
     private val downloadAttachment: DownloadAttachment,
     private val composeLauncher: ComposeLauncher,
     settings: SettingsRepository,
+    private val notices: NoticeCenter,
     @IoDispatcher private val io: CoroutineDispatcher
 ) : ViewModel() {
     private val ref = MutableStateFlow<ConversationRef?>(null)
@@ -120,18 +103,14 @@ class ConversationViewModel @Inject constructor(
     private val presenter = ConversationPresenter()
     private var starting: Job? = null
     private val loadingBodies = mutableSetOf<Long>()
-    private var nextNoticeId = 0L
-    private val pendingMoves = mutableMapOf<Long, Pair<Long, MoveUndo>>()
 
     private val channel = Channel<ConversationEvent>(Channel.BUFFERED)
 
     /** One-off events for the screen; each is delivered once. */
     val events: Flow<ConversationEvent> = channel.receiveAsFlow()
 
-    private val currentNotice = MutableStateFlow<ConversationNotice?>(null)
-
     /** The message to show in the snackbar now, if any. */
-    val notice: StateFlow<ConversationNotice?> = currentNotice
+    val notice: StateFlow<ConversationNotice?> = notices.notice
 
     val state: StateFlow<ConversationState> = ref.flatMapLatest { target ->
         if (target == null) {
@@ -270,14 +249,13 @@ class ConversationViewModel @Inject constructor(
     ) {
         val accountId = ref.value?.accountId
         if (target == null || accountId == null) {
-            post(impossible, undoable = false)
+            notices.post(impossible)
             return
         }
         viewModelScope.launch {
             val undo = actions.move(view.messages.map { it.id }, target)
             if (undo != null) {
-                val id = post(done, undoable = true)
-                pendingMoves[id] = accountId to undo
+                notices.post(done, undo = PendingUndo(setOf(accountId)) { actions.undo(undo) })
             }
             channel.send(ConversationEvent.Close)
         }
@@ -285,43 +263,27 @@ class ConversationViewModel @Inject constructor(
 
     /** The reader tapped "Undo" on the notice [noticeId]: the move is taken back. */
     fun undo(noticeId: Long) {
-        val pending = pendingMoves.remove(noticeId) ?: return
-        clearNotice(noticeId)
-        viewModelScope.launch { actions.undo(pending.second) }
+        val pending = notices.takeUndo(noticeId) ?: return
+        viewModelScope.launch { pending.revert() }
     }
 
     /** The undo window of the notice [noticeId] is over: the move is sent to the server. */
-    fun commit(noticeId: Long) {
-        pendingMoves.remove(noticeId)?.let { actions.sync(it.first) }
-        clearNotice(noticeId)
-    }
+    fun commit(noticeId: Long) = notices.commit(noticeId)
 
     /** Shows a message that does not come from here (the screen did something that failed). */
     fun report(kind: NoticeKind) {
-        post(kind, undoable = false)
+        notices.post(kind)
     }
 
     /** A message without undo was shown. */
-    fun noticeShown(noticeId: Long) = clearNotice(noticeId)
-
-    /** A new notice replaces the one shown; a move waiting on that one's undo is sent now. */
-    private fun post(kind: NoticeKind, undoable: Boolean): Long {
-        currentNotice.value?.takeIf { it.undoable }?.let { commit(it.id) }
-        val id = ++nextNoticeId
-        currentNotice.value = ConversationNotice(id, kind, undoable)
-        return id
-    }
-
-    private fun clearNotice(noticeId: Long) {
-        currentNotice.update { current -> current?.takeIf { it.id != noticeId } }
-    }
+    fun noticeShown(noticeId: Long) = notices.shown(noticeId)
 
     /** Starts writing a message from the newest one (placeholder until T18). */
     fun compose(mode: ComposeMode) {
         val newest = state.value.view?.newest ?: return
         val target = ref.value ?: return
         val request = ComposeRequest(target.accountId, target.folderPath, newest.id, mode)
-        if (!composeLauncher.start(request)) post(NoticeKind.COMPOSE_SOON, undoable = false)
+        if (!composeLauncher.start(request)) notices.post(NoticeKind.COMPOSE_SOON)
     }
 
     /**
@@ -344,10 +306,10 @@ class ConversationViewModel @Inject constructor(
                     ConversationEvent.AttachmentReady(action, result.path, file.mimeType, file.name)
                 )
 
-                DownloadResult.Gone -> post(NoticeKind.ATTACHMENT_GONE, undoable = false)
+                DownloadResult.Gone -> notices.post(NoticeKind.ATTACHMENT_GONE)
 
                 DownloadResult.AuthenticationRequired, is DownloadResult.Failed ->
-                    post(NoticeKind.ATTACHMENT_FAILED, undoable = false)
+                    notices.post(NoticeKind.ATTACHMENT_FAILED)
             }
         }
     }

@@ -24,7 +24,16 @@ interface AttachmentStorage {
 
     /** Whether the file at [path] is still there (the system can clear app storage). */
     fun exists(path: String): Boolean
+
+    /** The finished downloads of an account, for [AttachmentFileCleaner]. */
+    fun stored(accountId: Long): List<StoredAttachment>
+
+    /** Deletes one stored file (and its folder when that is left empty). */
+    fun delete(path: String)
 }
+
+/** A downloaded attachment file and the id of the attachment row it was made for. */
+data class StoredAttachment(val attachmentId: Long, val path: String)
 
 /** The outcome of [DownloadAttachment]. */
 sealed interface DownloadResult {

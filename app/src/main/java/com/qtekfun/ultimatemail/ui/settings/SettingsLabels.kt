@@ -5,6 +5,7 @@ package com.qtekfun.ultimatemail.ui.settings
 
 import androidx.annotation.StringRes
 import com.qtekfun.ultimatemail.R
+import com.qtekfun.ultimatemail.data.settings.DisplayDensity
 import com.qtekfun.ultimatemail.data.settings.RemoteContentPolicy
 import com.qtekfun.ultimatemail.data.settings.SwipeAction
 import com.qtekfun.ultimatemail.data.settings.ThemeMode
@@ -49,4 +50,10 @@ internal fun OfflineWindow.label(): Int = when (this) {
     OfflineWindow.DAYS_180 -> R.string.offline_180_days
     OfflineWindow.YEAR -> R.string.offline_1_year
     OfflineWindow.ALL -> R.string.offline_all
+}
+
+internal fun DisplayDensity.label(): Int = when (this) {
+    DisplayDensity.COMFORTABLE -> R.string.density_comfortable
+    DisplayDensity.DEFAULT -> R.string.density_default
+    DisplayDensity.COMPACT -> R.string.density_compact
 }

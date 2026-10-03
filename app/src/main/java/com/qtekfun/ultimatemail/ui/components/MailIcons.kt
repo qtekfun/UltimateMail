@@ -32,6 +32,22 @@ object MailIcons {
             "c0,-0.48 -0.17,-0.93 -0.46,-1.27zM12,17.5L6.5,12H10v-2h4v2h3.5L12,17.5z" +
             "M5.12,5l0.81,-1h12l0.94,1H5.12z"
 
+    private const val MOVE_PATH =
+        "M20,6h-8l-2,-2H4C2.9,4 2.01,4.9 2.01,6L2,18c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V8" +
+            "C22,6.9 21.1,6 20,6zM12,17v-3H8v-2h4V9l4,4L12,17z"
+
+    private const val MARK_READ_PATH =
+        "M21.99,8c0,-0.72 -0.37,-1.35 -0.94,-1.7L12,1 2.95,6.3C2.38,6.65 2,7.28 2,8v10" +
+            "c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2l-0.01,-10zM12,13L3.74,7.84 12,3l8.26,4.84" +
+            "L12,13z"
+
+    private const val SELECT_ALL_PATH =
+        "M3,5h2L5,3c-1.1,0 -2,0.9 -2,2zM3,13h2v-2L3,11v2zM7,21h2v-2L7,19v2zM3,9h2L5,7L3,7v2z" +
+            "M13,3h-2v2h2L13,3zM19,3v2h2c0,-1.1 -0.9,-2 -2,-2zM5,21v-2L3,19c0,1.1 0.9,2 2,2z" +
+            "M3,17h2v-2L3,15v2zM9,3L7,3v2h2L9,3zM11,21h2v-2h-2v2zM19,13h2v-2h-2v2zM19,21" +
+            "c1.1,0 2,-0.9 2,-2h-2v2zM19,9h2L21,7h-2v2zM19,17h2v-2h-2v2zM15,21h2v-2h-2v2z" +
+            "M15,5h2L17,3h-2v2zM7,17h10L17,7L7,7v10zM9,9h6v6L9,15L9,9z"
+
     private const val FOLDER_PATH =
         "M10,4H4c-1.1,0 -1.99,0.9 -1.99,2L2,18c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V8" +
             "c0,-1.1 -0.9,-2 -2,-2h-8l-2,-2z"
@@ -87,6 +103,15 @@ object MailIcons {
 
     /** A box with a down arrow: archived mail. */
     val Archive: ImageVector by lazy { icon("Archive", ARCHIVE_PATH) }
+
+    /** A folder with an arrow: move to a folder. */
+    val Move: ImageVector by lazy { icon("Move", MOVE_PATH) }
+
+    /** An open envelope: mark as read. */
+    val MarkRead: ImageVector by lazy { icon("MarkRead", MARK_READ_PATH) }
+
+    /** A dotted square with a smaller one inside: select all. */
+    val SelectAll: ImageVector by lazy { icon("SelectAll", SELECT_ALL_PATH) }
 
     /** A plain folder. */
     val Folder: ImageVector by lazy { icon("Folder", FOLDER_PATH) }

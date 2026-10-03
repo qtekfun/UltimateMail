@@ -91,6 +91,7 @@
     </plurals>
     <string name="sync_status_never">Not synced yet</string>
     <string name="sync_status_syncing">Syncing…</string>
+    <string name="sync_status_downloading">Downloading messages %1$d/%2$d</string>
     <string name="sync_status_last">Last synced %1$s</string>
     <string name="sync_status_reauth">Sign in again</string>
     <string name="sync_error_network">No connection</string>
@@ -208,8 +209,6 @@
     <string name="compose_reply">Reply</string>
     <string name="compose_reply_all">Reply all</string>
     <string name="compose_forward">Forward</string>
-    <string name="notice_archived">Conversation archived</string>
-    <string name="notice_deleted">Conversation moved to Trash</string>
     <string name="notice_undo">Undo</string>
     <string name="notice_no_archive">This account has no Archive folder.</string>
     <string name="notice_no_trash">This account has no Trash folder.</string>
@@ -235,7 +234,6 @@
     <string name="language_english" translatable="false">English</string>
     <string name="language_spanish" translatable="false">Español</string>
     <string name="settings_section_gestures">Inbox gestures</string>
-    <string name="settings_gestures_pending">Swipe gestures are not active yet. What you choose here is saved for when they are.</string>
     <string name="settings_swipe_right">Swipe right</string>
     <string name="settings_swipe_left">Swipe left</string>
     <string name="swipe_archive">Archive</string>
@@ -282,6 +280,8 @@
     <string name="offline_title">Mail kept on this device</string>
     <string name="offline_summary">How far back the mail of this account is kept for offline use. Older mail stays on the server.</string>
     <string name="offline_note">Choosing a longer period does not download again the headers that were already removed from this device.</string>
+    <string name="offline_download">Download messages for offline reading</string>
+    <string name="offline_download_summary">Sync downloads the full text of the messages kept on this device, so you can read them without a connection. Attachments are downloaded when you open them. Very large messages are fetched when opened.</string>
     <string name="offline_30_days">30 days</string>
     <string name="offline_90_days">90 days (recommended)</string>
     <string name="offline_180_days">180 days</string>
@@ -291,4 +291,46 @@
     <string name="folders_sync_summary">Folders that are turned off are not synced and keep no mail on this device.</string>
     <string name="folders_sync_always">Always synced</string>
     <string name="folders_sync_none">The folders will appear here after the first sync.</string>
+    <plurals name="notice_archived">
+        <item quantity="one">Conversation archived</item>
+        <item quantity="other">Archived %d conversations</item>
+    </plurals>
+    <plurals name="notice_deleted">
+        <item quantity="one">Conversation moved to Trash</item>
+        <item quantity="other">%d conversations moved to Trash</item>
+    </plurals>
+    <plurals name="notice_marked_read">
+        <item quantity="one">Conversation marked as read</item>
+        <item quantity="other">%d conversations marked as read</item>
+    </plurals>
+    <plurals name="notice_marked_unread">
+        <item quantity="one">Conversation marked as unread</item>
+        <item quantity="other">%d conversations marked as unread</item>
+    </plurals>
+    <plurals name="notice_starred">
+        <item quantity="one">Conversation starred</item>
+        <item quantity="other">%d conversations starred</item>
+    </plurals>
+    <plurals name="notice_unstarred">
+        <item quantity="one">Star removed from conversation</item>
+        <item quantity="other">Star removed from %d conversations</item>
+    </plurals>
+    <string name="notice_move_soon">Moving to a folder is coming soon.</string>
+    <string name="inbox_action_mark_read">Mark as read</string>
+    <string name="inbox_action_move">Move to…</string>
+    <string name="inbox_select">Select</string>
+    <string name="inbox_deselect">Deselect</string>
+    <string name="inbox_state_selected">Selected</string>
+    <string name="inbox_select_all">Select all</string>
+    <string name="inbox_selection_close">Close selection</string>
+    <plurals name="inbox_selection_count">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
+    <string name="inbox_selection_more">More actions</string>
+    <string name="settings_density">Display density</string>
+    <string name="settings_density_summary">Controls how much fits on screen in the side menu and the conversation list. Compact shows more but its rows are smaller than the recommended touch size.</string>
+    <string name="density_comfortable">Comfortable</string>
+    <string name="density_default">Default</string>
+    <string name="density_compact">Compact</string>
 </resources>

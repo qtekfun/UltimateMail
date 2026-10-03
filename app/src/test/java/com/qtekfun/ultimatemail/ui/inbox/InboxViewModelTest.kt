@@ -12,10 +12,16 @@ import com.qtekfun.ultimatemail.data.local.folder
 import com.qtekfun.ultimatemail.data.local.inMemoryDatabase
 import com.qtekfun.ultimatemail.data.local.message
 import com.qtekfun.ultimatemail.data.local.model.FolderRole
+import com.qtekfun.ultimatemail.data.settings.FakePreferenceStore
+import com.qtekfun.ultimatemail.data.settings.SettingsRepository
 import com.qtekfun.ultimatemail.domain.account.AccountListing
+import com.qtekfun.ultimatemail.domain.conversation.RecordingScheduler
+import com.qtekfun.ultimatemail.domain.inbox.ConversationBulkActions
 import com.qtekfun.ultimatemail.domain.inbox.InboxListing
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
 import com.qtekfun.ultimatemail.domain.inbox.RefreshTrigger
+import com.qtekfun.ultimatemail.ui.conversation.NoticeCenter
+import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -53,8 +59,18 @@ class InboxViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) =
-        InboxViewModel(InboxListing(db), AccountListing(db), trigger, saved)
+    private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) = InboxViewModel(
+        InboxListing(db),
+        AccountListing(db),
+        trigger,
+        saved,
+        SettingsRepository(FakePreferenceStore()),
+        RowActionRunner(
+            ConversationBulkActions(db.messageDao(), mockk(relaxed = true)),
+            NoticeCenter(RecordingScheduler()),
+            mockk(relaxed = true)
+        )
+    )
 
     private suspend fun accountWithInbox(email: String = "a@example.test"): Long {
         val id = db.accountDao().insert(account(email))
