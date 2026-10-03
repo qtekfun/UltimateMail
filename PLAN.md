@@ -25,7 +25,7 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 - [x] **T10 Motor de sincronización**: UIDVALIDITY/UIDNEXT/CONDSTORE/QRESYNC, ventana offline por cuenta, WorkManager periódico (~15 min), sync al abrir y pull-to-refresh.
 - [x] **T10b Descarga de cuerpos para uso offline**: el sync descarga los cuerpos completos (texto y HTML) de los mensajes dentro de la ventana offline, con presupuesto por ejecución, reanudable, tope de 10 MB por mensaje, imágenes `cid:` ≤ 2 MB, interruptor por cuenta (activado por defecto), progreso en el menú lateral y limpieza de archivos de adjuntos huérfanos.
 - [x] **T11 Hilos**: `X-GM-THRID`, `THREAD` y algoritmo References/asunto, con tests.
-- [ ] **T12 Tests de sync offline**: caídas de red, UIDVALIDITY cambiada, cambios concurrentes, app cerrada a mitad de sync.
+- [x] **T12 Tests de sync offline**: caídas de red, UIDVALIDITY cambiada, cambios concurrentes, app cerrada a mitad de sync.
 
 ## Fase 3 — Interfaz del MVP
 - [x] **T13 Añadir cuenta y lista de carpetas/etiquetas** (offline funcional). *(Solo contraseña de aplicación; el acceso con Google/Microsoft queda para después.)*
@@ -41,7 +41,7 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 - [x] **T21 Ajustes**: tema, colores dinámicos, idioma, gestos, política offline por cuenta.
 
 ## Fase 4 — Cierre del MVP
-- [ ] **T22 Accesibilidad y rendimiento**: TalkBack, táctiles, fuente grande; medir arranque y scroll con el volumen de referencia.
+- [ ] **T22 Accesibilidad y rendimiento**: TalkBack, táctiles, fuente grande; medir arranque y scroll con el volumen de referencia. (auditoría y correcciones por código hechas; medición en dispositivo pendiente, ver docs/performance-notes.md)
 - [x] **T23 Tests de UI clave (Compose)** (compilan; ejecutarlos requiere un dispositivo o emulador aparte): añadir cuenta, archivar por gesto, mover con búsqueda, enviar offline, firma por cuenta, reautenticación y densidad; ver `docs/ui-tests.md`.
 - [ ] **T24 Metadatos F-Droid** *(metadatos y receta listos; faltan capturas; el icono 512 se generó del vector adaptativo)*: `fastlane/metadata/android/{en-US,es-ES}/`, iconos, capturas; revisar builds reproducibles y ausencia de dependencias no libres.
 - [x] **T25 Documentación**: `README.md`, `CONTRIBUTING.md`, política de privacidad, `CHANGELOG.md`.

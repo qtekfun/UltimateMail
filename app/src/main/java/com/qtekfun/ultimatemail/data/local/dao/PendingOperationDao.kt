@@ -109,12 +109,10 @@ interface PendingOperationDao {
     suspend fun countForMessage(accountId: Long, folderPath: String, uid: Long): Int
 
     /** The SEND operations of the account, oldest first: the state of its outbox (RF-07). */
-    @Query(
-        "SELECT * FROM pending_operation WHERE accountId = :accountId AND type = 'SEND' ORDER BY id"
-    )
+    @Query(OUTBOX_SQL)
     fun observeSends(accountId: Long): Flow<List<PendingOperationEntity>>
 
-    @Query("SELECT * FROM pending_operation WHERE type = 'SEND' ORDER BY id")
+    @Query(OUTBOX_ALL_SQL)
     fun observeAllSends(): Flow<List<PendingOperationEntity>>
 
     /** Drops the operations of [type] that belong to one draft (they use `uid` = draft id). */
@@ -134,3 +132,11 @@ interface PendingOperationDao {
         type: OperationType
     ): List<PendingOperationEntity>
 }
+
+/** The outbox of one account; a constant so the query plan can be tested. */
+internal const val OUTBOX_SQL =
+    "SELECT * FROM pending_operation WHERE accountId = :accountId AND type = 'SEND' ORDER BY id"
+
+/** The outbox of every account; a constant so the query plan can be tested. */
+internal const val OUTBOX_ALL_SQL =
+    "SELECT * FROM pending_operation WHERE type = 'SEND' ORDER BY id"

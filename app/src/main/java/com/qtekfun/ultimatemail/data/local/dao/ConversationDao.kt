@@ -43,6 +43,50 @@ internal const val VISIBLE_M = "NOT EXISTS (SELECT 1 FROM pending_operation p " 
     "WHERE a.accountId = p.accountId AND a.folderPath = p.folderPath AND a.uid = p.uid " +
     "AND a.type = 'ADD_LABEL' AND a.payload = p.payload AND a.id > p.id))))"
 
+/**
+ * The index the latest message of a conversation is looked up by. Without the hint SQLite picks
+ * the (accountId, folderPath, sentAt) index to skip a sort, and then walks the folder from its
+ * newest message down to the conversation's own: the cost of a row grows with its position, so a
+ * list of n conversations costs n squared (12,000 conversations took 10 s, measured on a
+ * desktop). By thread it reads only the few messages of that conversation. The plan test guards
+ * the name.
+ */
+internal const val THREAD_INDEX = "index_message_accountId_folderPath_threadId"
+
+/** The conversations of one folder; a constant so the query plan can be tested. */
+internal const val CONVERSATIONS_OF_FOLDER_SQL =
+    "SELECT m.*, " +
+        "(SELECT COUNT(*) FROM message t WHERE t.accountId = m.accountId " +
+        "AND t.folderPath = m.folderPath AND t.threadId = m.threadId AND $VISIBLE_T) " +
+        "AS messageCount, " +
+        "(SELECT COUNT(*) FROM message t WHERE t.accountId = m.accountId " +
+        "AND t.folderPath = m.folderPath AND t.threadId = m.threadId AND t.seen = 0 " +
+        "AND $VISIBLE_T) AS unreadCount " +
+        "FROM message m WHERE m.accountId = :accountId AND m.folderPath = :folderPath " +
+        "AND " + VISIBLE_M + " " +
+        "AND m.id = (SELECT t.id FROM message t INDEXED BY $THREAD_INDEX " +
+        "WHERE t.accountId = m.accountId " +
+        "AND t.folderPath = m.folderPath AND t.threadId = m.threadId AND $VISIBLE_T " +
+        "ORDER BY t.sentAt DESC, t.id DESC LIMIT 1) " +
+        "ORDER BY m.sentAt DESC, m.id DESC LIMIT :limit"
+
+/** The unified inbox; a constant so the query plan can be tested. */
+internal const val UNIFIED_INBOX_SQL =
+    "SELECT m.*, " +
+        "(SELECT COUNT(*) FROM message t WHERE t.accountId = m.accountId " +
+        "AND t.folderPath = m.folderPath AND t.threadId = m.threadId AND $VISIBLE_T) " +
+        "AS messageCount, " +
+        "(SELECT COUNT(*) FROM message t WHERE t.accountId = m.accountId " +
+        "AND t.folderPath = m.folderPath AND t.threadId = m.threadId AND t.seen = 0 " +
+        "AND $VISIBLE_T) AS unreadCount " +
+        "FROM message m JOIN folder f ON f.accountId = m.accountId AND f.path = m.folderPath " +
+        "WHERE f.role = 'INBOX' AND " + VISIBLE_M + " " +
+        "AND m.id = (SELECT t.id FROM message t INDEXED BY $THREAD_INDEX " +
+        "WHERE t.accountId = m.accountId " +
+        "AND t.folderPath = m.folderPath AND t.threadId = m.threadId AND $VISIBLE_T " +
+        "ORDER BY t.sentAt DESC, t.id DESC LIMIT 1) " +
+        "ORDER BY m.sentAt DESC, m.id DESC LIMIT :limit"
+
 /** A conversation row: its newest message plus the counters the list shows (RF-03). */
 data class ConversationSummary(
     @Embedded val latest: MessageEntity,
@@ -54,21 +98,7 @@ data class ConversationSummary(
 @Dao
 interface ConversationDao {
     /** Conversations of one folder, newest first. */
-    @Query(
-        "SELECT m.*, " +
-            "(SELECT COUNT(*) FROM message t WHERE t.accountId = m.accountId " +
-            "AND t.folderPath = m.folderPath AND t.threadId = m.threadId AND $VISIBLE_T) " +
-            "AS messageCount, " +
-            "(SELECT COUNT(*) FROM message t WHERE t.accountId = m.accountId " +
-            "AND t.folderPath = m.folderPath AND t.threadId = m.threadId AND t.seen = 0 " +
-            "AND $VISIBLE_T) AS unreadCount " +
-            "FROM message m WHERE m.accountId = :accountId AND m.folderPath = :folderPath " +
-            "AND " + VISIBLE_M + " " +
-            "AND m.id = (SELECT t.id FROM message t WHERE t.accountId = m.accountId " +
-            "AND t.folderPath = m.folderPath AND t.threadId = m.threadId AND $VISIBLE_T " +
-            "ORDER BY t.sentAt DESC, t.id DESC LIMIT 1) " +
-            "ORDER BY m.sentAt DESC, m.id DESC LIMIT :limit"
-    )
+    @Query(CONVERSATIONS_OF_FOLDER_SQL)
     fun observeConversations(
         accountId: Long,
         folderPath: String,
@@ -76,21 +106,7 @@ interface ConversationDao {
     ): Flow<List<ConversationSummary>>
 
     /** The unified inbox: conversations of every account's INBOX folder, newest first. */
-    @Query(
-        "SELECT m.*, " +
-            "(SELECT COUNT(*) FROM message t WHERE t.accountId = m.accountId " +
-            "AND t.folderPath = m.folderPath AND t.threadId = m.threadId AND $VISIBLE_T) " +
-            "AS messageCount, " +
-            "(SELECT COUNT(*) FROM message t WHERE t.accountId = m.accountId " +
-            "AND t.folderPath = m.folderPath AND t.threadId = m.threadId AND t.seen = 0 " +
-            "AND $VISIBLE_T) AS unreadCount " +
-            "FROM message m JOIN folder f ON f.accountId = m.accountId AND f.path = m.folderPath " +
-            "WHERE f.role = 'INBOX' AND " + VISIBLE_M + " " +
-            "AND m.id = (SELECT t.id FROM message t WHERE t.accountId = m.accountId " +
-            "AND t.folderPath = m.folderPath AND t.threadId = m.threadId AND $VISIBLE_T " +
-            "ORDER BY t.sentAt DESC, t.id DESC LIMIT 1) " +
-            "ORDER BY m.sentAt DESC, m.id DESC LIMIT :limit"
-    )
+    @Query(UNIFIED_INBOX_SQL)
     fun observeUnifiedInbox(limit: Int): Flow<List<ConversationSummary>>
 
     /** Full-text search over subject, sender and cached bodies; [query] is an FTS4 expression. */

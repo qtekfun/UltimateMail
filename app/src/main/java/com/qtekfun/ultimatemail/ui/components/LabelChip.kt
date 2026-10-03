@@ -4,7 +4,6 @@
 package com.qtekfun.ultimatemail.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -23,6 +22,7 @@ import com.qtekfun.ultimatemail.domain.inbox.LabelSummary
 import com.qtekfun.ultimatemail.ui.theme.ChipColors
 import com.qtekfun.ultimatemail.ui.theme.LabelPaletteDark
 import com.qtekfun.ultimatemail.ui.theme.LabelPaletteLight
+import com.qtekfun.ultimatemail.ui.theme.isLight
 
 /**
  * A Gmail-style coloured label chip. Build [chip] with `LabelPresentation.summarize`; the colour
@@ -63,7 +63,12 @@ fun LabelChipRow(summary: LabelSummary, modifier: Modifier = Modifier) {
 
 @Composable
 private fun labelChipColors(index: Int): ChipColors {
-    val palette = if (isSystemInDarkTheme()) LabelPaletteDark else LabelPaletteLight
+    // The theme of the app, which the user can set apart from the system's.
+    val palette = if (MaterialTheme.colorScheme.surface.isLight()) {
+        LabelPaletteLight
+    } else {
+        LabelPaletteDark
+    }
     return palette[index.coerceIn(palette.indices)]
 }
 

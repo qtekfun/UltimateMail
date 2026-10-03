@@ -46,5 +46,8 @@ internal val LabelPaletteDark = listOf(
     ChipColors(Color(0xFF45352B), Color(0xFFE6DDD6))
 )
 
-/** The colour of the "starred" icon. */
+/** The colour of the "starred" icon on a dark surface; see [starColorOn] for a light one. */
 internal val StarColor = Color(0xFFF2A600)
+
+/** The "starred" icon on a light surface: at least 3:1, as a graphic needs. */
+internal val StarColorOnLight = Color(0xFFB87400)
