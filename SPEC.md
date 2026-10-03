@@ -37,6 +37,7 @@ Cliente Android de correo IMAP/SMTP con UI inspirada en Mail de iOS y Gmail, off
 - **Criterios:** URL/servidor inválido → error claro y accionable; token revocado → se pide reautenticar sin perder datos locales ni acciones pendientes; credenciales ausentes de logs, backups y preferencias en claro.
 
 ### RF-02 Lista de carpetas/etiquetas
+- Las carpetas y etiquetas se muestran en un **menú lateral** (navigation drawer) como en Gmail: bandeja unificada arriba, selector de cuenta en la cabecera y el árbol de la cuenta activa debajo.
 - Árbol de carpetas por cuenta, con carpetas especiales detectadas (`SPECIAL-USE`: Inbox, Sent, Drafts, Trash, Archive, Junk).
 - Gmail: etiquetas como etiquetas (un correo puede tener varias).
 - **Criterio:** funciona offline con lo último sincronizado.
