@@ -5,6 +5,7 @@ package com.qtekfun.ultimatemail.ui.conversation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.qtekfun.ultimatemail.data.settings.SettingsRepository
 import com.qtekfun.ultimatemail.di.IoDispatcher
 import com.qtekfun.ultimatemail.domain.conversation.BodyFailure
 import com.qtekfun.ultimatemail.domain.conversation.BodyLoad
@@ -34,10 +35,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -100,7 +103,7 @@ data class ConversationNotice(val id: Long, val kind: NoticeKind, val undoable: 
  */
 // One function per thing the reader can do on the screen; splitting the class would only scatter
 // the state they share.
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LongParameterList")
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ConversationViewModel @Inject constructor(
@@ -109,6 +112,7 @@ class ConversationViewModel @Inject constructor(
     private val loadMessageBody: LoadMessageBody,
     private val downloadAttachment: DownloadAttachment,
     private val composeLauncher: ComposeLauncher,
+    settings: SettingsRepository,
     @IoDispatcher private val io: CoroutineDispatcher
 ) : ViewModel() {
     private val ref = MutableStateFlow<ConversationRef?>(null)
@@ -133,12 +137,16 @@ class ConversationViewModel @Inject constructor(
         if (target == null) {
             flowOf(ConversationState())
         } else {
-            combine(reader.observe(target), local) { data, screen ->
+            combine(
+                reader.observe(target),
+                local,
+                settings.settings.map { it.remoteContent }.distinctUntilChanged()
+            ) { data, screen, remotePolicy ->
                 ConversationState(
                     ref = target,
                     loaded = true,
                     view = data.takeIf { it.messages.isNotEmpty() }
-                        ?.let { presenter.present(it, screen, target.folderPath) }
+                        ?.let { presenter.present(it, screen, target.folderPath, remotePolicy) }
                 )
             }.flowOn(io)
         }
@@ -222,6 +230,10 @@ class ConversationViewModel @Inject constructor(
     /** Loads the remote images of one message; the choice is not remembered for others. */
     fun allowRemoteContent(messageId: Long) =
         local.update { it.copy(remoteAllowed = it.remoteAllowed + messageId) }
+
+    /** Switches one message between the dark theme's colours and the sender's own. */
+    fun toggleOriginalColors(messageId: Long) =
+        local.update { it.copy(originalColors = it.originalColors.toggled(messageId)) }
 
     /** Stars or unstars the conversation, which is its newest message. */
     fun toggleStar() {
