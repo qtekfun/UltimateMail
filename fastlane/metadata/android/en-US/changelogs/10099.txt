@@ -1,0 +1,1 @@
+First development version. You can add an account with a password, see your folders and labels, and browse a synced conversation list. Reading, composing, search and settings are not ready yet.
