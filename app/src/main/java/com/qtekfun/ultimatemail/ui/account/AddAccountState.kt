@@ -33,7 +33,12 @@ enum class FormInput {
 enum class AddAccountProgress { IDLE, SIGNING_IN, TESTING, SAVING }
 
 /** A browser sign-in the screen has to open with AppAuth, then report back with its result. */
-data class OAuthRequest(val authType: AuthType, val config: OAuthProviderConfig)
+data class OAuthRequest(
+    val authType: AuthType,
+    val config: OAuthProviderConfig,
+    /** The address to prefill at the provider, so the user signs in to the right account. */
+    val loginHint: String? = null
+)
 
 /** Why the last attempt to add the account did not work, apart from invalid fields. */
 sealed interface AddAccountFailure {

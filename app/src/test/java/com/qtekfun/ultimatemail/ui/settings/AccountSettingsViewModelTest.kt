@@ -22,7 +22,9 @@ import com.qtekfun.ultimatemail.domain.settings.MemoryOfflineDownloads
 import com.qtekfun.ultimatemail.domain.settings.OfflineWindow
 import com.qtekfun.ultimatemail.domain.settings.ProfileError
 import com.qtekfun.ultimatemail.domain.settings.ProfileRules
+import com.qtekfun.ultimatemail.sync.engine.AccountSyncState
 import com.qtekfun.ultimatemail.sync.engine.SyncScheduler
+import com.qtekfun.ultimatemail.sync.engine.SyncStatusStore
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -71,6 +73,8 @@ class AccountSettingsViewModelTest {
 
     private val created = mutableListOf<AccountSettingsViewModel>()
 
+    private val syncStatus = SyncStatusStore()
+
     private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) = AccountSettingsViewModel(
         AccountSettingsStore(
             db,
@@ -85,6 +89,7 @@ class AccountSettingsViewModelTest {
             FakeOutboxStorage(),
             Dispatchers.Unconfined
         ),
+        syncStatus,
         saved
     ).also { created += it }
 
@@ -398,5 +403,23 @@ class AccountSettingsViewModelTest {
         var state = awaitItem()
         while (!matches(state)) state = awaitItem()
         return state
+    }
+
+    @Test
+    fun `an account waiting for a new sign in shows the alert until it is cleared`() = runTest {
+        val id = db.accountDao().insert(account())
+        val viewModel = viewModel()
+        viewModel.show(id)
+
+        viewModel.state.test {
+            assertFalse(awaitState { it.found }.needsReauthentication)
+
+            syncStatus.set(id, AccountSyncState.ReauthenticationNeeded)
+            assertTrue(awaitState { it.needsReauthentication }.needsReauthentication)
+
+            syncStatus.clearReauthentication(id)
+            assertFalse(awaitState { !it.needsReauthentication }.needsReauthentication)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

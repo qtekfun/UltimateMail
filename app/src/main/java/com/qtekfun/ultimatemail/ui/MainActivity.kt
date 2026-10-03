@@ -12,6 +12,7 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qtekfun.ultimatemail.ui.account.AddAccountViewModel
+import com.qtekfun.ultimatemail.ui.account.ReauthViewModel
 import com.qtekfun.ultimatemail.ui.compose.ComposeEntryViewModel
 import com.qtekfun.ultimatemail.ui.compose.ComposeScreens
 import com.qtekfun.ultimatemail.ui.compose.ComposeStart
@@ -39,6 +40,7 @@ class MainActivity : ComponentActivity() {
     private val conversation: ConversationViewModel by viewModels()
     private val settings: SettingsViewModel by viewModels()
     private val accountSettings: AccountSettingsViewModel by viewModels()
+    private val reauth: ReauthViewModel by viewModels()
     private val composeEntry: ComposeEntryViewModel by viewModels()
     private val composer: ComposerViewModel by viewModels()
     private val drafts: DraftsViewModel by viewModels()
@@ -61,6 +63,7 @@ class MainActivity : ComponentActivity() {
                     conversation,
                     settings,
                     accountSettings,
+                    reauth,
                     ComposeScreens(composeEntry, composer, drafts, outbox),
                     search
                 )

@@ -31,6 +31,10 @@ import com.qtekfun.ultimatemail.ui.account.AddAccountActions
 import com.qtekfun.ultimatemail.ui.account.AddAccountEvent
 import com.qtekfun.ultimatemail.ui.account.AddAccountScreen
 import com.qtekfun.ultimatemail.ui.account.AddAccountViewModel
+import com.qtekfun.ultimatemail.ui.account.ReauthActions
+import com.qtekfun.ultimatemail.ui.account.ReauthEvent
+import com.qtekfun.ultimatemail.ui.account.ReauthScreen
+import com.qtekfun.ultimatemail.ui.account.ReauthViewModel
 import com.qtekfun.ultimatemail.ui.backup.ExportRoute
 import com.qtekfun.ultimatemail.ui.backup.ImportRoute
 import com.qtekfun.ultimatemail.ui.compose.ComposeEntryEffects
@@ -78,6 +82,7 @@ fun AppRoot(
     conversation: ConversationViewModel,
     settings: SettingsViewModel,
     accountSettings: AccountSettingsViewModel,
+    reauth: ReauthViewModel,
     compose: ComposeScreens,
     search: SearchViewModel
 ) {
@@ -129,6 +134,8 @@ fun AppRoot(
 
             is Screen.AccountSettings ->
                 AccountSettingsRoute(current.accountId, accountSettings, navigator)
+
+            is Screen.Reauth -> ReauthRoute(current.accountId, reauth, navigator)
         }
         // Messages about what was done (archived, deleted, with Undo) outlive the screen.
         NoticeHost(conversation)
@@ -329,7 +336,41 @@ private fun AccountSettingsRoute(
             onFolderSyncChange = viewModel::onFolderSyncChange,
             onRequestRemoval = viewModel::requestRemoval,
             onDismissRemoval = viewModel::dismissRemoval,
-            onConfirmRemoval = viewModel::confirmRemoval
+            onConfirmRemoval = viewModel::confirmRemoval,
+            onReauthenticate = { navigator.openReauth(accountId) }
+        )
+    )
+}
+
+@Composable
+private fun ReauthRoute(accountId: Long, viewModel: ReauthViewModel, navigator: AppNavigator) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(accountId) { viewModel.show(accountId) }
+    LaunchedEffect(viewModel, navigator) {
+        viewModel.events.collect { event ->
+            when (event) {
+                ReauthEvent.SignedIn -> navigator.back()
+            }
+        }
+    }
+    // The account was removed meanwhile: nothing is left to sign in to.
+    LaunchedEffect(state.loaded, state.target) {
+        if (state.loaded && state.target == null) navigator.open(Screen.Home)
+    }
+    ReauthScreen(
+        state = state,
+        actions = ReauthActions(
+            onBack = {
+                viewModel.cancel()
+                navigator.back()
+            },
+            onPasswordChange = viewModel::onPasswordChange,
+            onClientIdChange = viewModel::onClientIdChange,
+            onSubmitPassword = viewModel::submitPassword,
+            onSignIn = viewModel::onSignInClick,
+            onCancel = viewModel::cancel,
+            onOAuthLaunched = viewModel::onOAuthLaunched,
+            onOAuthResult = viewModel::onOAuthResult
         )
     )
 }
@@ -355,44 +396,3 @@ private fun AddAccountRoute(addAccount: AddAccountViewModel, navigator: AppNavig
         )
     )
 }
-
-private fun inboxActions(inbox: InboxViewModel, navigator: AppNavigator, onOpenSearch: () -> Unit) =
-    InboxActions(
-        onOpenMenu = { navigator.setDrawerOpen(true) },
-        onRefresh = inbox::refresh,
-        onLoadMore = inbox::loadMore,
-        onFilterChange = inbox::setFilter,
-        onOpenConversation = {
-            navigator.openConversation(it.accountId, it.folderPath, it.threadId)
-        },
-        onScrolled = inbox::onScrolled,
-        savedScroll = inbox::savedScroll,
-        selection = SelectionActions(
-            onToggle = inbox::toggleSelection,
-            onSwipe = inbox::onSwipe,
-            onSelectAll = inbox::selectAll,
-            onClear = inbox::clearSelection,
-            onApply = inbox::applyToSelection,
-            onMove = inbox::moveSelection,
-            restoreRequests = inbox.restoreRequests
-        ),
-        onOpenSearch = onOpenSearch
-    )
-
-private fun drawerActions(
-    drawer: DrawerViewModel,
-    navigator: AppNavigator,
-    coroutines: CoroutineScope,
-    show: (InboxScope) -> Unit
-) = DrawerActions(
-    onSelectAccount = { id -> coroutines.launch { show(drawer.switchAccount(id)) } },
-    onAddAccount = { navigator.open(Screen.AddAccount) },
-    onOpenUnified = { show(InboxScope.Unified) },
-    onOpenFolder = { accountId, path -> show(InboxScope.Folder(accountId, path)) },
-    onToggleFolder = drawer::toggleFolder,
-    onRefresh = drawer::refresh,
-    onRequestRemoval = drawer::requestRemoval,
-    onDismissRemoval = drawer::dismissRemoval,
-    onConfirmRemoval = drawer::confirmRemoval,
-    onOpenDestination = navigator::open
-)

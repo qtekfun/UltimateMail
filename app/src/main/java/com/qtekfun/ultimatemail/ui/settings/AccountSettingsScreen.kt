@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -76,6 +78,9 @@ fun AccountSettingsScreen(
         }
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding).imePadding()) {
+            if (state.needsReauthentication) {
+                item(key = "reauth") { ReauthAlert(actions.onReauthenticate) }
+            }
             item(key = "profile") { ProfileSection(state, actions) }
             item(key = "offline") { OfflineSection(state, actions) }
             item(key = "folders-header") { FoldersHeader(state.folders.isEmpty()) }
@@ -98,6 +103,41 @@ fun AccountSettingsScreen(
     }
     if (state.confirmingRemoval) {
         RemoveAccountDialog(actions.onDismissRemoval, actions.onConfirmRemoval)
+    }
+}
+
+/** The credentials stopped working: says so and offers the way out (T27). */
+@Composable
+private fun ReauthAlert(onReauthenticate: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(ScreenPadding)
+    ) {
+        Column(
+            modifier = Modifier.padding(ScreenPadding),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.account_reauth_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() }
+            )
+            Text(
+                text = stringResource(R.string.account_reauth_body),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Button(
+                onClick = onReauthenticate,
+                modifier = Modifier.heightIn(min = MinTouchTarget)
+            ) {
+                Text(stringResource(R.string.account_reauth_action))
+            }
+        }
     }
 }
 

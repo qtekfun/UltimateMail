@@ -48,6 +48,8 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 
 - [x] **T26 Exportar e importar cuentas y ajustes**: fichero cifrado con la configuración (sin correo); credenciales solo si el usuario lo pide, con frase de contraseña; selector de ficheros del sistema; importar valida el fichero y recrea las cuentas pidiendo iniciar sesión de nuevo.
 
+- [ ] **T27 Pantalla de reautenticación**: salida cuando una cuenta queda en `ReauthenticationNeeded` (token revocado o caducado, contraseña cambiada, cuenta importada sin credenciales): contraseña (probada con el tester de conexión) o inicio de sesión del proveedor (AppAuth, con la dirección como pista y rechazando otra dirección); solo se sustituyen las credenciales, sin perder nada local; accesible desde el menú lateral y los ajustes de la cuenta.
+
 ## Después del MVP (backlog, no implementar aún)
 - v1.1: notificaciones push con IMAP IDLE, snooze.
 - v2: PGP y S/MIME.
