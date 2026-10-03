@@ -33,7 +33,7 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 - [ ] **T16 Gestos configurables y selección múltiple**, con deshacer.
 - [ ] **T17 Selector mover/etiquetar con búsqueda**: diálogo con filtro en vivo, recientes, etiquetas múltiples en Gmail.
 - [ ] **T18 Redactar y cola de envío**: responder/reenviar, borradores, adjuntos, autocompletado, texto enriquecido básico.
-- [ ] **T19 Firmas por cuenta**: editor en ajustes de cuenta, inserción automática con `-- `, posición en respuestas, cambio de remitente, sin duplicados.
+- [ ] **T19 Firmas por cuenta**: editor en ajustes de cuenta, inserción automática con `-- `, posición en respuestas, cambio de remitente, sin duplicados. *(lógica de dominio; editor y UI pendientes)*
   - *Verificación:* tests unitarios de la lógica de firma (`domain`) y test de UI con dos cuentas.
 - [ ] **T20 Búsqueda**: local (FTS) y en servidor.
 - [ ] **T21 Ajustes**: tema, colores dinámicos, idioma, gestos, política offline por cuenta.
