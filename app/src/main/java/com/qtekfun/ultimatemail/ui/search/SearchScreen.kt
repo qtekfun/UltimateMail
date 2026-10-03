@@ -46,7 +46,10 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -64,6 +67,9 @@ import kotlinx.coroutines.flow.filter
 
 private val MinTouchTarget = 48.dp
 private val DividerIndent = 68.dp
+
+/** Lets the list reuse the composition of a row that scrolled out for the next one. */
+private const val ROW_TYPE = "conversation"
 
 /** Items from the end at which the next page starts loading. */
 private const val PREFETCH_DISTANCE = 10
@@ -122,6 +128,7 @@ fun SearchScreen(state: SearchState, actions: SearchActions, modifier: Modifier 
 private fun SearchField(text: String, actions: SearchActions) {
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
+    val hint = stringResource(R.string.search_field_hint)
     LaunchedEffect(Unit) {
         if (text.isEmpty()) focus.requestFocus()
     }
@@ -131,8 +138,9 @@ private fun SearchField(text: String, actions: SearchActions) {
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = MinTouchTarget)
-            .focusRequester(focus),
-        placeholder = { Text(stringResource(R.string.search_field_hint)) },
+            .focusRequester(focus)
+            .semantics { contentDescription = hint },
+        placeholder = { Text(hint) },
         singleLine = true,
         trailingIcon = {
             if (text.isNotEmpty()) {
@@ -186,7 +194,7 @@ private fun SearchBody(state: SearchState, actions: SearchActions) {
 
             SearchPhase.RESULTS -> Unit
         }
-        items(state.results, key = { it.key }) { item ->
+        items(state.results, key = { it.key }, contentType = { ROW_TYPE }) { item ->
             ConversationRow(
                 item = item,
                 formatter = formatter,
@@ -203,12 +211,16 @@ private fun SearchBody(state: SearchState, actions: SearchActions) {
             item(key = "server-title") {
                 Text(
                     stringResource(R.string.search_server_section),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .semantics { heading() },
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-            items(state.serverResults, key = { "server-" + it.key }) { item ->
+            items(state.serverResults, key = {
+                "server-" + it.key
+            }, contentType = { ROW_TYPE }) { item ->
                 ConversationRow(
                     item = item,
                     formatter = formatter,
@@ -247,7 +259,7 @@ private fun LazyListScope.recentItems(state: SearchState, actions: SearchActions
         ) {
             Text(
                 stringResource(R.string.search_recent_title),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).semantics { heading() },
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -288,7 +300,10 @@ private fun LazyListScope.recentItems(state: SearchState, actions: SearchActions
 private fun Searching() {
     val description = stringResource(R.string.search_searching)
     Column(
-        modifier = Modifier.fillMaxWidth().padding(32.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(32.dp)
+            .semantics { liveRegion = LiveRegionMode.Polite },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         CircularProgressIndicator(
