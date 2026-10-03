@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -74,7 +75,9 @@ data class InboxActions(
     val onOpenConversation: (ConversationItem) -> Unit,
     val onScrolled: (index: Int, offset: Int) -> Unit,
     val savedScroll: () -> ScrollPosition,
-    val selection: SelectionActions
+    val selection: SelectionActions,
+    /** Opens the search (T20) in the scope of the list shown. */
+    val onOpenSearch: () -> Unit = {}
 )
 
 /** What the list does with swipes and the selection (T16). */
@@ -108,20 +111,7 @@ fun InboxScreen(
             if (ready && state.selection.active) {
                 SelectionTopBar(state, actions.selection)
             } else {
-                TopAppBar(
-                    title = { InboxTitle(scope, state.takeIf { ready }) },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = actions.onOpenMenu,
-                            modifier = Modifier.heightIn(min = MinTouchTarget)
-                        ) {
-                            Icon(
-                                Icons.Filled.Menu,
-                                contentDescription = stringResource(R.string.drawer_open)
-                            )
-                        }
-                    }
-                )
+                InboxTopBar(scope, state.takeIf { ready }, actions)
             }
         }
     ) { padding ->
@@ -153,6 +143,30 @@ fun InboxScreen(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun InboxTopBar(scope: InboxScope, state: InboxState?, actions: InboxActions) {
+    TopAppBar(
+        title = { InboxTitle(scope, state) },
+        navigationIcon = {
+            IconButton(
+                onClick = actions.onOpenMenu,
+                modifier = Modifier.heightIn(min = MinTouchTarget)
+            ) {
+                Icon(Icons.Filled.Menu, contentDescription = stringResource(R.string.drawer_open))
+            }
+        },
+        actions = {
+            IconButton(
+                onClick = actions.onOpenSearch,
+                modifier = Modifier.heightIn(min = MinTouchTarget)
+            ) {
+                Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.search_open))
+            }
+        }
+    )
 }
 
 @Composable
