@@ -4,6 +4,7 @@
 package com.qtekfun.ultimatemail.ui.folders
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,8 +39,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.qtekfun.ultimatemail.R
@@ -53,6 +57,8 @@ private val IndentPerLevel = 16.dp
 data class FolderListActions(
     val onSelectAccount: (Long) -> Unit,
     val onAddAccount: () -> Unit,
+    val onOpenFolder: (accountId: Long, path: String) -> Unit,
+    val onOpenUnified: () -> Unit,
     val onRequestRemoval: () -> Unit,
     val onDismissRemoval: () -> Unit,
     val onConfirmRemoval: () -> Unit
@@ -95,8 +101,12 @@ fun FolderListScreen(
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             when {
                 state.selected == null -> NoAccounts(actions.onAddAccount)
+
                 state.folders.isEmpty() -> NoFolders()
-                else -> FolderList(state.folders)
+
+                else -> FolderList(state.folders) {
+                    actions.onOpenFolder(state.selected.id, it.path)
+                }
             }
         }
     }
@@ -147,6 +157,13 @@ private fun AccountSwitcher(state: FolderListState, actions: FolderListActions) 
                     }
                 )
             }
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.inbox_unified)) },
+                onClick = {
+                    open = false
+                    actions.onOpenUnified()
+                }
+            )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.account_add)) },
                 onClick = {
@@ -199,14 +216,15 @@ private fun CenteredMessage(
 }
 
 @Composable
-private fun FolderList(folders: List<FolderListItem>) {
+private fun FolderList(folders: List<FolderListItem>, onOpen: (FolderListItem) -> Unit) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(folders, key = { it.path }) { folder -> FolderRow(folder) }
+        items(folders, key = { it.path }) { folder -> FolderRow(folder) { onOpen(folder) } }
     }
 }
 
 @Composable
-private fun FolderRow(folder: FolderListItem) {
+private fun FolderRow(folder: FolderListItem, onClick: () -> Unit) {
+    val tap = onClick
     val name = folder.role.displayName() ?: folder.name
     val description = when {
         folder.unread > 0 ->
@@ -225,9 +243,17 @@ private fun FolderRow(folder: FolderListItem) {
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = MinTouchTarget)
+            .clickable(onClick = onClick)
             .padding(start = 16.dp + IndentPerLevel * folder.depth, end = 16.dp)
             // One announcement per row instead of the name and the badge separately.
-            .clearAndSetSemantics { contentDescription = description },
+            .clearAndSetSemantics {
+                contentDescription = description
+                role = Role.Button
+                onClick {
+                    tap()
+                    true
+                }
+            },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -250,7 +276,7 @@ private fun FolderRow(folder: FolderListItem) {
 
 /** Localized name of a special folder; other folders show the name the server gave them. */
 @Composable
-private fun FolderRole.displayName(): String? {
+internal fun FolderRole.displayName(): String? {
     val res = when (this) {
         FolderRole.INBOX -> R.string.folder_inbox
         FolderRole.DRAFTS -> R.string.folder_drafts
