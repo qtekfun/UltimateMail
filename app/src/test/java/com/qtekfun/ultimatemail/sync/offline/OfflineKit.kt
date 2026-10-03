@@ -9,6 +9,7 @@ import com.qtekfun.ultimatemail.domain.mail.MailFolderRole
 import com.qtekfun.ultimatemail.domain.mail.MailResult
 import com.qtekfun.ultimatemail.domain.mail.MessageBody
 import com.qtekfun.ultimatemail.domain.mail.MessageFlags
+import com.qtekfun.ultimatemail.sync.conflict.SyncNotice
 import com.qtekfun.ultimatemail.sync.engine.AccountSessions
 import com.qtekfun.ultimatemail.sync.engine.AccountSync
 import com.qtekfun.ultimatemail.sync.engine.AccountSyncResult
@@ -32,6 +33,7 @@ import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * A controllable network between the engine and the [FakeMailServer]: the connection is cut at
@@ -269,8 +271,7 @@ class QuietScheduler : SyncScheduler {
     override fun stop() = Unit
 }
 
-suspend fun EngineHarness.id(folder: String, uid: Long) =
-    messages.get(accountId, folder, uid)!!.id
+suspend fun EngineHarness.id(folder: String, uid: Long) = messages.get(accountId, folder, uid)!!.id
 
 /** The user acts offline: read, star, move, delete and read in another folder. */
 suspend fun EngineHarness.userActs() {
@@ -325,3 +326,17 @@ class Killer(harness: EngineHarness) {
         true
     }
 }
+
+suspend fun EngineHarness.collectNotices(): List<SyncNotice> {
+    val seen = mutableListOf<SyncNotice>()
+    withTimeoutOrNull(1) { notices.notices.collect { seen += it } }
+    return seen
+}
+
+/** The server's copy of a message by Message-ID in [folder], or null if it is not there. */
+fun FakeMailServer.copy(folder: String, tag: String) =
+    folder(folder).messages.values.firstOrNull { it.messageId == "<$tag@example.test>" }
+
+/** How many copies of the message the server has in all its folders. */
+fun FakeMailServer.copies(tag: String) =
+    folders.values.sumOf { f -> f.messages.values.count { it.messageId == "<$tag@example.test>" } }
