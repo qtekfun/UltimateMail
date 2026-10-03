@@ -6,8 +6,8 @@ package com.qtekfun.ultimatemail.di
 import android.content.Context
 import com.qtekfun.ultimatemail.data.auth.AndroidKeystoreCipher
 import com.qtekfun.ultimatemail.data.auth.CredentialStore
+import com.qtekfun.ultimatemail.data.auth.MailAccountConnectionTester
 import com.qtekfun.ultimatemail.data.auth.SecretCipher
-import com.qtekfun.ultimatemail.data.auth.UnavailableConnectionTester
 import com.qtekfun.ultimatemail.data.auth.UnavailableOAuthTokenSource
 import com.qtekfun.ultimatemail.domain.account.AccountConnectionTester
 import com.qtekfun.ultimatemail.domain.account.CredentialVault
@@ -33,9 +33,9 @@ abstract class AuthModule {
     @Binds
     abstract fun oauthTokenSource(source: UnavailableOAuthTokenSource): OAuthTokenSource
 
-    /** Placeholder until the mail client (T07) can test connections. */
+    /** Opens a real IMAP session to test the settings of a new account. */
     @Binds
-    abstract fun connectionTester(tester: UnavailableConnectionTester): AccountConnectionTester
+    abstract fun connectionTester(tester: MailAccountConnectionTester): AccountConnectionTester
 
     companion object {
         private const val CREDENTIALS_DIR = "credentials"

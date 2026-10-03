@@ -3,7 +3,6 @@
 
 package com.qtekfun.ultimatemail.domain.account
 
-import com.qtekfun.ultimatemail.data.auth.UnavailableConnectionTester
 import com.qtekfun.ultimatemail.data.auth.UnavailableOAuthTokenSource
 import com.qtekfun.ultimatemail.data.local.inMemoryDatabase
 import com.qtekfun.ultimatemail.data.local.model.AuthType
@@ -173,11 +172,7 @@ class AccountSetupTest {
     }
 
     @Test
-    fun `the placeholder bindings verify nothing and refresh nothing`() = runTest {
-        assertEquals(
-            ConnectionTestResult.NotAvailable,
-            UnavailableConnectionTester().test(accountInput())
-        )
+    fun `the placeholder token source refreshes nothing`() = runTest {
         assertEquals(
             OAuthRefreshResult.Unavailable,
             UnavailableOAuthTokenSource().refresh(AuthType.OAUTH_GOOGLE, "r")
