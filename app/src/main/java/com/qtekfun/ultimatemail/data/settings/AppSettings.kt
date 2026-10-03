@@ -6,6 +6,12 @@ package com.qtekfun.ultimatemail.data.settings
 /** Light, dark, or whatever the system uses. */
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
+/**
+ * How much fits on screen, like Gmail's display density (RF-11): it sizes the rows of the side
+ * menu and of the conversation list. [COMPACT] trades touch target size for more rows.
+ */
+enum class DisplayDensity { COMFORTABLE, DEFAULT, COMPACT }
+
 /** What swiping a conversation row does (RF-11). The gestures themselves arrive with T16. */
 enum class SwipeAction { ARCHIVE, DELETE, MOVE, TOGGLE_READ, TOGGLE_STAR, NONE }
 
@@ -34,6 +40,7 @@ data class AppSettings(
     val theme: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColor: Boolean = true,
     val amoled: Boolean = false,
+    val density: DisplayDensity = DisplayDensity.DEFAULT,
     val swipe: SwipeActions = SwipeActions(),
     val remoteContent: RemoteContentPolicy = RemoteContentPolicy.NEVER
 )

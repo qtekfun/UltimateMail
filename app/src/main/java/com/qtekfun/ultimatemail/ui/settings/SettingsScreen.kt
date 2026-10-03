@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.qtekfun.ultimatemail.BuildConfig
 import com.qtekfun.ultimatemail.R
+import com.qtekfun.ultimatemail.data.settings.DisplayDensity
 import com.qtekfun.ultimatemail.data.settings.RemoteContentPolicy
 import com.qtekfun.ultimatemail.data.settings.SwipeAction
 import com.qtekfun.ultimatemail.data.settings.ThemeMode
@@ -91,6 +92,14 @@ private fun AppearanceSection(state: SettingsState, actions: SettingsActions) {
         label = { stringResource(it.label()) },
         onSelect = actions.onThemeChange
     )
+    ChoiceRow(
+        title = stringResource(R.string.settings_density),
+        options = DisplayDensity.entries,
+        selected = settings.density,
+        label = { stringResource(it.label()) },
+        onSelect = actions.onDensityChange
+    )
+    SettingsSummary(stringResource(R.string.settings_density_summary))
     SwitchRow(
         title = stringResource(R.string.settings_dynamic_color),
         summary = stringResource(R.string.settings_dynamic_color_summary),
