@@ -50,6 +50,12 @@ class FakeMailServer {
     /** Return a failure to make the call named [call] (with its log line) fail. */
     var failure: (call: String) -> MailResult.Failure? = { null }
 
+    /**
+     * Return a failure to make the call named [call] fail AFTER the server did the work: the
+     * change is applied but the answer never arrives (a connection cut before the reply).
+     */
+    var answerLost: (call: String) -> MailResult.Failure? = { null }
+
     val appendedDrafts = mutableListOf<OutgoingMessage>()
 
     fun folder(
@@ -128,7 +134,9 @@ class FakeSession(private val server: FakeMailServer) : MailSession {
 
     private fun <T> call(name: String, block: () -> MailResult<T>): MailResult<T> {
         server.log += name
-        return server.failure(name) ?: block()
+        server.failure(name)?.let { return it }
+        val result = block()
+        return server.answerLost(name) ?: result
     }
 
     private fun <T> inFolder(
