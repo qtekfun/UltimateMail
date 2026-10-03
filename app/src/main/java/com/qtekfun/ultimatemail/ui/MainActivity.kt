@@ -37,7 +37,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             val appSettings by settings.state.collectAsStateWithLifecycle()
             UltimateMailTheme(appSettings.settings) {
-                AppRoot(navigator, drawer, addAccount, inbox, conversation, settings, accountSettings)
+                AppRoot(
+                    navigator,
+                    drawer,
+                    addAccount,
+                    inbox,
+                    conversation,
+                    settings,
+                    accountSettings
+                )
             }
         }
     }

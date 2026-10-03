@@ -73,6 +73,7 @@ sealed interface Screen {
 
             route != null && route.startsWith(CONVERSATION_PREFIX) ->
                 conversationFromRoute(route.removePrefix(CONVERSATION_PREFIX)) ?: Home
+
             route != null && route.startsWith(ACCOUNT_SETTINGS_PREFIX) ->
                 route.removePrefix(ACCOUNT_SETTINGS_PREFIX).toLongOrNull()
                     ?.let(::AccountSettings) ?: Home
