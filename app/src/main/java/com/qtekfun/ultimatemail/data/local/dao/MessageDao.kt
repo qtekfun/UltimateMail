@@ -38,6 +38,13 @@ interface MessageDao {
         threadId: String
     ): Flow<List<MessageEntity>>
 
+    /** The messages of one conversation in one folder, oldest first. */
+    @Query(
+        "SELECT * FROM message WHERE accountId = :accountId AND folderPath = :folderPath " +
+            "AND threadId = :threadId ORDER BY sentAt, id"
+    )
+    suspend fun thread(accountId: Long, folderPath: String, threadId: String): List<MessageEntity>
+
     @Query(
         "UPDATE message SET seen = :seen, flagged = :flagged, answered = :answered, " +
             "pendingSync = :pendingSync WHERE id = :id"
@@ -187,6 +194,49 @@ interface MessageDao {
     )
     suspend fun rowsByUids(accountId: Long, folderPath: String, uids: List<Long>): List<FoundRow>
 
+    /**
+     * How many messages of synced folders are inside the window ([sinceMillis]) and small enough
+     * ([maxSize]) to have their body downloaded during sync: what "N of M" counts against.
+     */
+    @Query(
+        "SELECT COUNT(*) FROM message m JOIN folder f ON f.accountId = m.accountId " +
+            "AND f.path = m.folderPath WHERE m.accountId = :accountId AND f.syncEnabled = 1 " +
+            "AND m.uid > 0 AND m.sentAt >= :sinceMillis AND m.size <= :maxSize"
+    )
+    suspend fun countBodyCandidates(accountId: Long, sinceMillis: Long, maxSize: Long): Int
+
+    /** How many of those still have no body: the work list of the body download. */
+    @Query(
+        "SELECT COUNT(*) FROM message m JOIN folder f ON f.accountId = m.accountId " +
+            "AND f.path = m.folderPath WHERE m.accountId = :accountId AND f.syncEnabled = 1 " +
+            "AND m.uid > 0 AND m.sentAt >= :sinceMillis AND m.size <= :maxSize " +
+            "AND m.bodyText IS NULL AND m.bodyHtml IS NULL"
+    )
+    suspend fun countBodiesMissing(accountId: Long, sinceMillis: Long, maxSize: Long): Int
+
+    /**
+     * The next [limit] messages without a body, newest first, after the cursor ([beforeSentAt],
+     * [beforeId]) so a message that keeps failing does not hold up the ones behind it.
+     */
+    @Suppress("LongParameterList")
+    @Query(
+        "SELECT m.id AS id, m.folderPath AS folderPath, m.uid AS uid, m.sentAt AS sentAt " +
+            "FROM message m JOIN folder f ON f.accountId = m.accountId " +
+            "AND f.path = m.folderPath WHERE m.accountId = :accountId AND f.syncEnabled = 1 " +
+            "AND m.uid > 0 AND m.sentAt >= :sinceMillis AND m.size <= :maxSize " +
+            "AND m.bodyText IS NULL AND m.bodyHtml IS NULL " +
+            "AND (m.sentAt < :beforeSentAt OR (m.sentAt = :beforeSentAt AND m.id < :beforeId)) " +
+            "ORDER BY m.sentAt DESC, m.id DESC LIMIT :limit"
+    )
+    suspend fun bodyWork(
+        accountId: Long,
+        sinceMillis: Long,
+        maxSize: Long,
+        beforeSentAt: Long,
+        beforeId: Long,
+        limit: Int
+    ): List<BodyWorkRow>
+
     /** Server messages, in any folder, that are the message with this identity (SPEC section 5). */
     @Query(
         "SELECT folderPath, uid, messageId, gmailMessageId, labels FROM message " +
@@ -285,4 +335,12 @@ data class AddressSample(
     val ccAddresses: List<String>,
     val sentAt: Instant,
     val fromUser: Boolean
+)
+
+/** A message whose body is still to be downloaded. */
+data class BodyWorkRow(
+    val id: Long,
+    val folderPath: String,
+    val uid: Long,
+    val sentAt: java.time.Instant
 )

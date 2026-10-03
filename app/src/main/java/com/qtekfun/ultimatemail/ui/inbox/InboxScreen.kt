@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -30,6 +31,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -45,9 +47,16 @@ import androidx.compose.ui.unit.dp
 import com.qtekfun.ultimatemail.R
 import com.qtekfun.ultimatemail.domain.inbox.ConversationItem
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
+import com.qtekfun.ultimatemail.domain.inbox.MessageTimeFormatter
+import com.qtekfun.ultimatemail.domain.inbox.RowChange
+import com.qtekfun.ultimatemail.domain.inbox.SwipeDecision
+import com.qtekfun.ultimatemail.domain.inbox.SwipeDirection
+import com.qtekfun.ultimatemail.domain.inbox.SwipePlanner
 import com.qtekfun.ultimatemail.ui.components.ConversationRow
 import com.qtekfun.ultimatemail.ui.components.rememberMessageTimeFormatter
+import com.qtekfun.ultimatemail.ui.components.rememberReduceMotion
 import com.qtekfun.ultimatemail.ui.drawer.displayName
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 
@@ -66,8 +75,23 @@ data class InboxActions(
     val onOpenConversation: (ConversationItem) -> Unit,
     val onScrolled: (index: Int, offset: Int) -> Unit,
     val savedScroll: () -> ScrollPosition,
+    val selection: SelectionActions,
     /** Opens the search (T20) in the scope of the list shown. */
     val onOpenSearch: () -> Unit = {}
+)
+
+/** What the list does with swipes and the selection (T16). */
+data class SelectionActions(
+    /** Long-press, or a tap while selecting: picks the row or takes it off. */
+    val onToggle: (ConversationItem) -> Unit,
+    /** A row was swiped; true when it leaves the list, false to spring it back. */
+    val onSwipe: (ConversationItem, SwipeDirection) -> Boolean,
+    val onSelectAll: () -> Unit,
+    val onClear: () -> Unit,
+    val onApply: (RowChange) -> Unit,
+    val onMove: () -> Unit,
+    /** Rows (by key) to bring back because their swipe could not be applied. */
+    val restoreRequests: Flow<String>
 )
 
 /** The conversations of a folder or of the unified inbox, with pull-to-refresh and paging. */
@@ -83,7 +107,13 @@ fun InboxScreen(
     val ready = state.loaded && state.scope == scope
     Scaffold(
         modifier = modifier,
-        topBar = { InboxTopBar(scope, state.takeIf { ready }, actions) }
+        topBar = {
+            if (ready && state.selection.active) {
+                SelectionTopBar(state, actions.selection)
+            } else {
+                InboxTopBar(scope, state.takeIf { ready }, actions)
+            }
+        }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
             if (ready) {
@@ -183,28 +213,13 @@ private fun Loading() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun InboxContent(state: InboxState, actions: InboxActions) {
-    // A new state per scope: the list starts where the user left it (see InboxViewModel).
-    val listState = remember(state.scope) {
-        val saved = actions.savedScroll()
-        LazyListState(saved.index, saved.offset)
-    }
-    LaunchedEffect(listState) {
-        snapshotFlow {
-            listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset
-        }.distinctUntilChanged().collect { (index, offset) -> actions.onScrolled(index, offset) }
-    }
-    LaunchedEffect(listState, state.conversations.size, state.hasMore) {
-        snapshotFlow {
-            val info = listState.layoutInfo
-            val last = info.visibleItemsInfo.lastOrNull()?.index ?: -1
-            last >= info.totalItemsCount - PREFETCH_DISTANCE
-        }.filter { it }.collect { if (state.hasMore) actions.onLoadMore() }
-    }
-
+    val listState = rememberInboxListState(state, actions)
     val refreshLabel = stringResource(R.string.inbox_refresh_action)
     val formatter = rememberMessageTimeFormatter()
     val hiddenLabels = remember(state.folderName) { setOfNotNull(state.folderName) }
     val empty = state.empty
+    val reduceMotion = rememberReduceMotion()
+    val restoreTokens = rememberRestoreTokens(actions.selection)
 
     PullToRefreshBox(
         isRefreshing = state.refreshing,
@@ -232,17 +247,54 @@ private fun InboxContent(state: InboxState, actions: InboxActions) {
                 item(key = "loading-more") { Box(Modifier.fillParentMaxSize()) { Loading() } }
             }
             items(state.conversations, key = { it.key }) { item ->
-                ConversationRow(
+                InboxRow(
                     item = item,
-                    formatter = formatter,
-                    onClick = { actions.onOpenConversation(item) },
-                    accountMarker = state.markers[item.accountId],
-                    hiddenLabels = hiddenLabels
+                    state = state,
+                    actions = actions,
+                    view = RowView(
+                        formatter,
+                        hiddenLabels,
+                        restoreTokens[item.key] ?: 0,
+                        reduceMotion
+                    )
                 )
                 HorizontalDivider(modifier = Modifier.padding(start = DividerIndent))
             }
         }
     }
+}
+
+/** The scroll state of the list, remembered per scope, reporting scrolls and asking for pages. */
+@Composable
+private fun rememberInboxListState(state: InboxState, actions: InboxActions): LazyListState {
+    // A new state per scope: the list starts where the user left it (see InboxViewModel).
+    val listState = remember(state.scope) {
+        val saved = actions.savedScroll()
+        LazyListState(saved.index, saved.offset)
+    }
+    LaunchedEffect(listState) {
+        snapshotFlow {
+            listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset
+        }.distinctUntilChanged().collect { (index, offset) -> actions.onScrolled(index, offset) }
+    }
+    LaunchedEffect(listState, state.conversations.size, state.hasMore) {
+        snapshotFlow {
+            val info = listState.layoutInfo
+            val last = info.visibleItemsInfo.lastOrNull()?.index ?: -1
+            last >= info.totalItemsCount - PREFETCH_DISTANCE
+        }.filter { it }.collect { if (state.hasMore) actions.onLoadMore() }
+    }
+    return listState
+}
+
+/** Per row key, how many times its swipe was refused: a change brings the row back. */
+@Composable
+private fun rememberRestoreTokens(selection: SelectionActions): Map<String, Int> {
+    val tokens = remember { mutableStateMapOf<String, Int>() }
+    LaunchedEffect(selection) {
+        selection.restoreRequests.collect { key -> tokens[key] = (tokens[key] ?: 0) + 1 }
+    }
+    return tokens
 }
 
 @Composable

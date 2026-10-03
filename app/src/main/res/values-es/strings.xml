@@ -11,6 +11,9 @@
     <string name="html_link_cancel">Cancelar</string>
     <string name="html_remote_blocked">Las imágenes y otro contenido remoto están bloqueados para proteger tu privacidad.</string>
     <string name="html_remote_show">Cargar imágenes</string>
+    <string name="html_remote_ask">¿Cargar las imágenes de este mensaje? Al cargarlas, el remitente puede saber que lo has abierto.</string>
+    <string name="html_colors_original">Colores originales</string>
+    <string name="html_colors_adapted">Adaptar al tema oscuro</string>
     <string name="home_empty_body">Añade una cuenta de correo para empezar.</string>
     <string name="action_cancel">Cancelar</string>
     <string name="action_back">Atrás</string>
@@ -88,6 +91,7 @@
     </plurals>
     <string name="sync_status_never">Aún sin sincronizar</string>
     <string name="sync_status_syncing">Sincronizando…</string>
+    <string name="sync_status_downloading">Descargando mensajes %1$d/%2$d</string>
     <string name="sync_status_last">Última sincronización: %1$s</string>
     <string name="sync_status_reauth">Vuelve a iniciar sesión</string>
     <string name="sync_error_network">Sin conexión</string>
@@ -208,8 +212,6 @@
     <string name="compose_reply">Responder</string>
     <string name="compose_reply_all">Responder a todos</string>
     <string name="compose_forward">Reenviar</string>
-    <string name="notice_archived">Conversación archivada</string>
-    <string name="notice_deleted">Conversación movida a la papelera</string>
     <string name="notice_undo">Deshacer</string>
     <string name="notice_no_archive">Esta cuenta no tiene carpeta de archivo.</string>
     <string name="notice_no_trash">Esta cuenta no tiene papelera.</string>
@@ -233,7 +235,6 @@
     <string name="settings_language">Idioma de la aplicación</string>
     <string name="language_system">Seguir el sistema</string>
     <string name="settings_section_gestures">Gestos de la bandeja</string>
-    <string name="settings_gestures_pending">Los gestos de deslizar todavía no están activos. Lo que elijas aquí se guarda para cuando lo estén.</string>
     <string name="settings_swipe_right">Deslizar a la derecha</string>
     <string name="settings_swipe_left">Deslizar a la izquierda</string>
     <string name="swipe_archive">Archivar</string>
@@ -278,6 +279,8 @@
     <string name="offline_title">Correo guardado en este dispositivo</string>
     <string name="offline_summary">Hasta cuándo se guarda el correo de esta cuenta para usarlo sin conexión. El correo más antiguo sigue en el servidor.</string>
     <string name="offline_note">Elegir un periodo más largo no vuelve a descargar las cabeceras que ya se quitaron de este dispositivo.</string>
+    <string name="offline_download">Descargar mensajes para leer sin conexión</string>
+    <string name="offline_download_summary">La sincronización descarga el texto completo de los mensajes guardados en este dispositivo para que puedas leerlos sin conexión. Los adjuntos se descargan al abrirlos. Los mensajes muy grandes se descargan al abrirlos.</string>
     <string name="offline_30_days">30 días</string>
     <string name="offline_90_days">90 días (recomendado)</string>
     <string name="offline_180_days">180 días</string>
@@ -287,6 +290,50 @@
     <string name="folders_sync_summary">Las carpetas desactivadas no se sincronizan y no guardan correo en este dispositivo.</string>
     <string name="folders_sync_always">Siempre sincronizada</string>
     <string name="folders_sync_none">Las carpetas aparecerán aquí después de la primera sincronización.</string>
+    <plurals name="notice_archived">
+        <item quantity="one">Conversación archivada</item>
+        <item quantity="many">%d conversaciones archivadas</item>
+        <item quantity="other">%d conversaciones archivadas</item>
+    </plurals>
+    <plurals name="notice_deleted">
+        <item quantity="one">Conversación movida a la papelera</item>
+        <item quantity="many">%d conversaciones movidas a la papelera</item>
+        <item quantity="other">%d conversaciones movidas a la papelera</item>
+    </plurals>
+    <plurals name="notice_marked_read">
+        <item quantity="one">Conversación marcada como leída</item>
+        <item quantity="many">%d conversaciones marcadas como leídas</item>
+        <item quantity="other">%d conversaciones marcadas como leídas</item>
+    </plurals>
+    <plurals name="notice_marked_unread">
+        <item quantity="one">Conversación marcada como no leída</item>
+        <item quantity="many">%d conversaciones marcadas como no leídas</item>
+        <item quantity="other">%d conversaciones marcadas como no leídas</item>
+    </plurals>
+    <plurals name="notice_starred">
+        <item quantity="one">Conversación destacada</item>
+        <item quantity="many">%d conversaciones destacadas</item>
+        <item quantity="other">%d conversaciones destacadas</item>
+    </plurals>
+    <plurals name="notice_unstarred">
+        <item quantity="one">Estrella quitada de la conversación</item>
+        <item quantity="many">Estrella quitada de %d conversaciones</item>
+        <item quantity="other">Estrella quitada de %d conversaciones</item>
+    </plurals>
+    <string name="notice_move_soon">Mover a una carpeta estará disponible pronto.</string>
+    <string name="inbox_action_mark_read">Marcar como leído</string>
+    <string name="inbox_action_move">Mover a…</string>
+    <string name="inbox_select">Seleccionar</string>
+    <string name="inbox_deselect">Quitar de la selección</string>
+    <string name="inbox_state_selected">Seleccionada</string>
+    <string name="inbox_select_all">Seleccionar todo</string>
+    <string name="inbox_selection_close">Cerrar selección</string>
+    <plurals name="inbox_selection_count">
+        <item quantity="one">%d seleccionada</item>
+        <item quantity="many">%d seleccionadas</item>
+        <item quantity="other">%d seleccionadas</item>
+    </plurals>
+    <string name="inbox_selection_more">Más acciones</string>
     <string name="settings_density">Densidad de la pantalla</string>
     <string name="settings_density_summary">Controla cuánto cabe en pantalla en el menú lateral y en la lista de conversaciones. En compacto caben más, pero las filas son más pequeñas que el tamaño táctil recomendado.</string>
     <string name="density_comfortable">Cómoda</string>
