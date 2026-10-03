@@ -7,6 +7,7 @@ import com.qtekfun.ultimatemail.data.local.dao.AttachmentDao
 import com.qtekfun.ultimatemail.data.local.dao.MessageDao
 import com.qtekfun.ultimatemail.data.local.entity.AttachmentEntity
 import com.qtekfun.ultimatemail.data.local.entity.MessageEntity
+import com.qtekfun.ultimatemail.domain.conversation.ContentIds
 import com.qtekfun.ultimatemail.domain.mail.MailResult
 import com.qtekfun.ultimatemail.domain.mail.MessageBody
 import javax.inject.Inject
@@ -80,7 +81,9 @@ class LoadMessageBody @Inject constructor(
                     partId = it.partId,
                     fileName = it.fileName.orEmpty(),
                     mimeType = it.mimeType,
-                    size = it.size
+                    size = it.size,
+                    contentId = it.contentId?.let(ContentIds::normalize),
+                    inline = it.inline
                 )
             }
         )

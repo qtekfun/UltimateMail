@@ -69,4 +69,53 @@ class MigrationTest {
             }
         }
     }
+
+    private fun attachmentTableSql(version: Int): String {
+        val line = File(schemas, "$version.json").readLines().first {
+            "\"createSql\"" in it && "`partId`" in it
+        }
+        return line.substringAfter("\"createSql\": \"").substringBeforeLast("\"")
+            .replace("\${TABLE_NAME}", "attachment")
+    }
+
+    private fun attachmentColumns(connection: SQLiteConnection): Map<String, String> =
+        connection.prepare("PRAGMA table_info(attachment)").use { statement ->
+            buildMap {
+                while (statement.step()) {
+                    put(
+                        statement.getText(1),
+                        "${statement.getText(2)}|${statement.getLong(3)}|" +
+                            if (statement.isNull(4)) "" else statement.getText(4)
+                    )
+                }
+            }
+        }
+
+    @Test
+    fun `migrating 2 to 3 adds the content id and keeps the stored attachments`() = runTest {
+        val connection = BundledSQLiteDriver().open(":memory:")
+        connection.use {
+            connection.execSQL(attachmentTableSql(2))
+            connection.execSQL(
+                "INSERT INTO attachment (messageId, partId, fileName, mimeType, size, state) " +
+                    "VALUES (4, '2', 'a.pdf', 'application/pdf', 10, 'REMOTE')"
+            )
+
+            MIGRATION_2_3.migrate(connection)
+
+            val after = attachmentColumns(connection)
+            val declared = Regex("`(\\w+)` (?:INTEGER|TEXT)")
+                .findAll(attachmentTableSql(3).substringBefore("FOREIGN KEY"))
+                .map { it.groupValues[1] }.toSet()
+            assertEquals(declared, after.keys)
+            assertEquals("TEXT|0|", after.getValue("contentId"))
+            assertEquals("INTEGER|1|0", after.getValue("inline"))
+            connection.prepare("SELECT fileName, contentId, inline FROM attachment").use {
+                assertTrue(it.step())
+                assertEquals("a.pdf", it.getText(0))
+                assertTrue(it.isNull(1))
+                assertEquals(0L, it.getLong(2))
+            }
+        }
+    }
 }
