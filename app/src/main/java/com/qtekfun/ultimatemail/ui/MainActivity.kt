@@ -11,6 +11,7 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qtekfun.ultimatemail.ui.account.AddAccountViewModel
+import com.qtekfun.ultimatemail.ui.account.ReauthViewModel
 import com.qtekfun.ultimatemail.ui.conversation.ConversationViewModel
 import com.qtekfun.ultimatemail.ui.drawer.DrawerViewModel
 import com.qtekfun.ultimatemail.ui.inbox.InboxViewModel
@@ -30,6 +31,7 @@ class MainActivity : ComponentActivity() {
     private val conversation: ConversationViewModel by viewModels()
     private val settings: SettingsViewModel by viewModels()
     private val accountSettings: AccountSettingsViewModel by viewModels()
+    private val reauth: ReauthViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,7 +46,8 @@ class MainActivity : ComponentActivity() {
                     inbox,
                     conversation,
                     settings,
-                    accountSettings
+                    accountSettings,
+                    reauth
                 )
             }
         }

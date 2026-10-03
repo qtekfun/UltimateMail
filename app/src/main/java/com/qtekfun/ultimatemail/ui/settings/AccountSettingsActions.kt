@@ -18,5 +18,6 @@ data class AccountSettingsActions(
     val onFolderSyncChange: (path: String, enabled: Boolean) -> Unit,
     val onRequestRemoval: () -> Unit,
     val onDismissRemoval: () -> Unit,
-    val onConfirmRemoval: () -> Unit
+    val onConfirmRemoval: () -> Unit,
+    val onReauthenticate: () -> Unit
 )

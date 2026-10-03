@@ -82,7 +82,8 @@ data class DrawerActions(
     val onRequestRemoval: () -> Unit,
     val onDismissRemoval: () -> Unit,
     val onConfirmRemoval: () -> Unit,
-    val onOpenDestination: (Screen) -> Unit
+    val onOpenDestination: (Screen) -> Unit,
+    val onReauthenticate: (accountId: Long) -> Unit
 )
 
 /**
@@ -124,7 +125,7 @@ fun DrawerContent(
             }
         }
         DrawerDivider()
-        DrawerFooter(state.syncLine, actions)
+        DrawerFooter(state.syncLine, state.selected.id, actions)
     }
     if (state.confirmingRemoval) {
         RemoveAccountDialog(actions.onDismissRemoval, actions.onConfirmRemoval)
@@ -332,7 +333,7 @@ private fun RowTrailing(
 }
 
 @Composable
-private fun DrawerFooter(syncLine: SyncLine, actions: DrawerActions) {
+private fun DrawerFooter(syncLine: SyncLine, accountId: Long, actions: DrawerActions) {
     Column(modifier = Modifier.padding(horizontal = 12.dp)) {
         Row(
             modifier = Modifier
@@ -342,12 +343,33 @@ private fun DrawerFooter(syncLine: SyncLine, actions: DrawerActions) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = syncLine.text(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f)
-            )
+            if (syncLine.needsSignIn) {
+                // The line is the way out: tapping it opens the sign-in-again screen.
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = MinTouchTarget)
+                        .clickable(
+                            onClickLabel = stringResource(R.string.drawer_reauth_action),
+                            role = Role.Button,
+                            onClick = { actions.onReauthenticate(accountId) }
+                        ),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Text(
+                        text = syncLine.text(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            } else {
+                Text(
+                    text = syncLine.text(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
+                )
+            }
             IconButton(
                 onClick = actions.onRefresh,
                 modifier = Modifier.heightIn(min = MinTouchTarget)

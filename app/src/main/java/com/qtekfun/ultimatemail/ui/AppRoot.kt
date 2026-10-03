@@ -29,6 +29,10 @@ import com.qtekfun.ultimatemail.ui.account.AddAccountActions
 import com.qtekfun.ultimatemail.ui.account.AddAccountEvent
 import com.qtekfun.ultimatemail.ui.account.AddAccountScreen
 import com.qtekfun.ultimatemail.ui.account.AddAccountViewModel
+import com.qtekfun.ultimatemail.ui.account.ReauthActions
+import com.qtekfun.ultimatemail.ui.account.ReauthEvent
+import com.qtekfun.ultimatemail.ui.account.ReauthScreen
+import com.qtekfun.ultimatemail.ui.account.ReauthViewModel
 import com.qtekfun.ultimatemail.ui.conversation.ConversationRoute
 import com.qtekfun.ultimatemail.ui.conversation.ConversationViewModel
 import com.qtekfun.ultimatemail.ui.conversation.noticeText
@@ -62,7 +66,8 @@ fun AppRoot(
     inbox: InboxViewModel,
     conversation: ConversationViewModel,
     settings: SettingsViewModel,
-    accountSettings: AccountSettingsViewModel
+    accountSettings: AccountSettingsViewModel,
+    reauth: ReauthViewModel
 ) {
     val screen by navigator.screen.collectAsStateWithLifecycle()
     val menuOpen by navigator.drawerOpen.collectAsStateWithLifecycle()
@@ -93,6 +98,8 @@ fun AppRoot(
 
             is Screen.AccountSettings ->
                 AccountSettingsRoute(current.accountId, accountSettings, navigator)
+
+            is Screen.Reauth -> ReauthRoute(current.accountId, reauth, navigator)
         }
         // Messages about what was done (archived, deleted, with Undo) outlive the screen.
         NoticeHost(conversation)
@@ -194,7 +201,8 @@ private fun ShellRoute(
                 onRequestRemoval = drawer::requestRemoval,
                 onDismissRemoval = drawer::dismissRemoval,
                 onConfirmRemoval = drawer::confirmRemoval,
-                onOpenDestination = navigator::open
+                onOpenDestination = navigator::open,
+                onReauthenticate = navigator::openReauth
             ),
             inbox = inboxActions(inbox, navigator)
         )
@@ -246,7 +254,41 @@ private fun AccountSettingsRoute(
             onFolderSyncChange = viewModel::onFolderSyncChange,
             onRequestRemoval = viewModel::requestRemoval,
             onDismissRemoval = viewModel::dismissRemoval,
-            onConfirmRemoval = viewModel::confirmRemoval
+            onConfirmRemoval = viewModel::confirmRemoval,
+            onReauthenticate = { navigator.openReauth(accountId) }
+        )
+    )
+}
+
+@Composable
+private fun ReauthRoute(accountId: Long, viewModel: ReauthViewModel, navigator: AppNavigator) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(accountId) { viewModel.show(accountId) }
+    LaunchedEffect(viewModel, navigator) {
+        viewModel.events.collect { event ->
+            when (event) {
+                ReauthEvent.SignedIn -> navigator.back()
+            }
+        }
+    }
+    // The account was removed meanwhile: nothing is left to sign in to.
+    LaunchedEffect(state.loaded, state.target) {
+        if (state.loaded && state.target == null) navigator.open(Screen.Home)
+    }
+    ReauthScreen(
+        state = state,
+        actions = ReauthActions(
+            onBack = {
+                viewModel.cancel()
+                navigator.back()
+            },
+            onPasswordChange = viewModel::onPasswordChange,
+            onClientIdChange = viewModel::onClientIdChange,
+            onSubmitPassword = viewModel::submitPassword,
+            onSignIn = viewModel::onSignInClick,
+            onCancel = viewModel::cancel,
+            onOAuthLaunched = viewModel::onOAuthLaunched,
+            onOAuthResult = viewModel::onOAuthResult
         )
     )
 }

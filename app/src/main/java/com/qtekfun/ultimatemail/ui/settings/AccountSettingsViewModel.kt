@@ -14,6 +14,8 @@ import com.qtekfun.ultimatemail.domain.settings.OfflineWindow
 import com.qtekfun.ultimatemail.domain.settings.ProfileError
 import com.qtekfun.ultimatemail.domain.settings.ProfileRules
 import com.qtekfun.ultimatemail.domain.settings.SaveResult
+import com.qtekfun.ultimatemail.sync.engine.AccountSyncState
+import com.qtekfun.ultimatemail.sync.engine.SyncStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -45,7 +48,9 @@ data class AccountSettingsState(
     val offlineWindow: OfflineWindow = OfflineWindow.DAYS_90,
     val downloadForOffline: Boolean = true,
     val folders: List<FolderSync> = emptyList(),
-    val confirmingRemoval: Boolean = false
+    val confirmingRemoval: Boolean = false,
+    /** The credentials stopped working: the screen offers to sign in again (T27). */
+    val needsReauthentication: Boolean = false
 )
 
 /** The settings screen of one account: profile and signature, offline window, folders. */
@@ -55,6 +60,7 @@ data class AccountSettingsState(
 class AccountSettingsViewModel @Inject constructor(
     private val store: AccountSettingsStore,
     private val removal: AccountRemoval,
+    syncStatus: SyncStatus,
     private val savedState: SavedStateHandle
 ) : ViewModel() {
     private val accountId = MutableStateFlow(savedState.get<Long>(ACCOUNT_KEY))
@@ -71,14 +77,28 @@ class AccountSettingsViewModel @Inject constructor(
         if (id == null) flowOf(emptyList()) else store.observeFolders(id)
     }
 
+    private val needsReauthentication = accountId.flatMapLatest { id ->
+        if (id == null) {
+            flowOf(false)
+        } else {
+            syncStatus.observe(id).map { it == AccountSyncState.ReauthenticationNeeded }
+        }
+    }
+
     private class Form(val edits: AccountProfile?, val saving: Boolean, val confirming: Boolean)
 
     private val form = combine(edits, saving, confirmingRemoval, ::Form)
 
-    val state: StateFlow<AccountSettingsState> = combine(stored, folders, form) {
+    val state: StateFlow<AccountSettingsState> = combine(
+        stored,
+        folders,
+        form,
+        needsReauthentication
+    ) {
             account,
             list,
-            f
+            f,
+            reauth
         ->
         if (account == null) {
             AccountSettingsState(loaded = accountId.value != null)
@@ -100,7 +120,8 @@ class AccountSettingsViewModel @Inject constructor(
                 offlineWindow = account.offlineWindow,
                 downloadForOffline = account.downloadForOffline,
                 folders = list,
-                confirmingRemoval = f.confirming
+                confirmingRemoval = f.confirming,
+                needsReauthentication = reauth
             )
         }
     }.stateIn(

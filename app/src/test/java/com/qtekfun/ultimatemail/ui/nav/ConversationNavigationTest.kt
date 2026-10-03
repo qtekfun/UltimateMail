@@ -104,4 +104,38 @@ class ConversationNavigationTest {
         assertTrue(navigator.screen.value is Screen.Conversation)
         assertFalse(navigator.drawerOpen.value)
     }
+
+    @Test
+    fun `a reauth route restores the same screen`() {
+        val screen = Screen.Reauth(42)
+
+        assertEquals(screen, Screen.fromRoute(screen.route))
+    }
+
+    @Test
+    fun `a damaged reauth route goes to the start screen`() {
+        listOf("reauth:", "reauth:x", "reauth:1:2").forEach {
+            assertEquals(Screen.Home, Screen.fromRoute(it), it)
+        }
+    }
+
+    @Test
+    fun `back from the sign in screen returns to where it was opened`() {
+        val navigator = AppNavigator(SavedStateHandle())
+        navigator.open(Screen.AccountSettings(5))
+
+        navigator.openReauth(5)
+        assertEquals(Screen.Reauth(5), navigator.screen.value)
+
+        assertTrue(navigator.back())
+        assertEquals(Screen.AccountSettings(5), navigator.screen.value)
+    }
+
+    @Test
+    fun `the sign in screen survives a recreated navigator`() {
+        val saved = SavedStateHandle()
+        AppNavigator(saved).openReauth(9)
+
+        assertEquals(Screen.Reauth(9), AppNavigator(saved).screen.value)
+    }
 }

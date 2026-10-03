@@ -24,6 +24,9 @@ sealed interface SyncLine {
 
     data class Failed(val problem: SyncProblem) : SyncLine
 
+    /** True when the line is a call to action: the user can fix it by signing in again (T27). */
+    val needsSignIn: Boolean get() = this == SignInAgain
+
     companion object {
         /** The line for the sync state of an account; an account never heard of counts as idle. */
         fun of(state: AccountSyncState?): SyncLine = when (state) {
