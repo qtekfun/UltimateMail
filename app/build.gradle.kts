@@ -51,6 +51,7 @@ android {
         targetSdk = 37
         versionCode = versionCodeOf(appVersion)
         versionName = appVersion
+        testInstrumentationRunner = "com.qtekfun.ultimatemail.HiltTestRunner"
         // Redirect scheme captured by AppAuth for the OAuth sign-in (T02).
         manifestPlaceholders["appAuthRedirectScheme"] = "com.qtekfun.ultimatemail"
         // Client ID of the Google OAuth client; empty when the build has none (T02). It is public,
@@ -343,4 +344,14 @@ dependencies {
     testImplementation(libs.greenmail)
     // Host JVM build of the bundled SQLite, so Room runs in local unit tests.
     testImplementation(libs.sqlite.bundled.jvm)
+
+    // UI tests (T23): compiled with assembleDebugAndroidTest, run with connectedDebugAndroidTest
+    // on a device or emulator that holds no real account (see docs/ui-tests.md).
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.hilt.android.testing)
+    kspAndroidTest(libs.hilt.compiler)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
