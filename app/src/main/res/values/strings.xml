@@ -348,7 +348,7 @@
     <string name="backup_strength_fair">fair</string>
     <string name="backup_strength_strong">strong</string>
     <string name="backup_issue_empty">Enter a passphrase.</string>
-    <string name="backup_issue_short">With sign-in credentials the passphrase needs at least %1$d characters.</string>
+    <string name="backup_issue_short">With sign-in credentials the passphrase needs a minimum number of characters: %1$d.</string>
     <string name="backup_issue_mismatch">The two passphrases are different.</string>
     <string name="backup_export_button">Choose where to save</string>
     <string name="backup_writing">Saving the file…</string>

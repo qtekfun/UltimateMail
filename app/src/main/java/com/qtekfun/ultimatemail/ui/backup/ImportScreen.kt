@@ -34,16 +34,6 @@ import com.qtekfun.ultimatemail.domain.backup.PreviewStatus
 import com.qtekfun.ultimatemail.ui.settings.MinTouchTarget
 import com.qtekfun.ultimatemail.ui.settings.SwitchRow
 
-/** What the import screen can do. */
-data class ImportActions(
-    val onBack: () -> Unit,
-    val onFileChosen: (String?) -> Unit,
-    val onOpen: (CharArray) -> Unit,
-    val onToggle: (Int) -> Unit,
-    val onImportSettingsChange: (Boolean) -> Unit,
-    val onImport: () -> Unit
-)
-
 /** Import accounts (RF-12): pick the file, passphrase, preview with checkboxes, summary. */
 @Composable
 fun ImportScreen(state: ImportState, actions: ImportActions, modifier: Modifier = Modifier) {

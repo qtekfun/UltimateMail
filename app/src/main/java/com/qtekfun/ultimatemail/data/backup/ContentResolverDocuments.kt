@@ -4,7 +4,7 @@
 package com.qtekfun.ultimatemail.data.backup
 
 import android.content.ContentResolver
-import android.net.Uri
+import androidx.core.net.toUri
 import com.qtekfun.ultimatemail.di.IoDispatcher
 import com.qtekfun.ultimatemail.domain.backup.DocumentRead
 import com.qtekfun.ultimatemail.domain.backup.DocumentSink
@@ -28,7 +28,7 @@ class ContentResolverDocuments @Inject constructor(
     override suspend fun write(uri: String, bytes: ByteArray): Boolean = withContext(io) {
         try {
             // "wt" truncates: a shorter backup must not leave the tail of an older file behind.
-            resolver.openOutputStream(Uri.parse(uri), "wt")?.use { it.write(bytes) } != null
+            resolver.openOutputStream(uri.toUri(), "wt")?.use { it.write(bytes) } != null
         } catch (_: IOException) {
             false
         } catch (_: SecurityException) {
@@ -38,7 +38,7 @@ class ContentResolverDocuments @Inject constructor(
 
     override suspend fun read(uri: String, maxBytes: Int): DocumentRead = withContext(io) {
         try {
-            val stream = resolver.openInputStream(Uri.parse(uri))
+            val stream = resolver.openInputStream(uri.toUri())
                 ?: return@withContext DocumentRead.Unreadable
             stream.use {
                 // One byte more than the limit tells "exactly full" from "too large".

@@ -129,9 +129,22 @@ class AppNavigatorTest {
             Screen.AddAccount,
             Screen.Settings,
             Screen.AccountSettings(7),
+            Screen.ExportAccounts,
+            Screen.ImportAccounts,
             Screen.Inbox(work),
             Screen.Inbox(InboxScope.Unified)
         ).forEach { assertEquals(it, Screen.fromRoute(it.route)) }
+    }
+
+    @Test
+    fun `back from export or import returns to settings`() {
+        val navigator = AppNavigator(SavedStateHandle())
+
+        listOf(Screen.ExportAccounts, Screen.ImportAccounts).forEach { screen ->
+            navigator.open(screen)
+            assertTrue(navigator.back())
+            assertEquals(Screen.Settings, navigator.screen.value)
+        }
     }
 
     @Test
