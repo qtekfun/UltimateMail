@@ -226,6 +226,7 @@ private fun AccountSettingsRoute(
             onBeforeQuoteChange = viewModel::onBeforeQuoteChange,
             onSave = viewModel::save,
             onOfflineWindowChange = viewModel::onOfflineWindowChange,
+            onDownloadForOfflineChange = viewModel::onDownloadForOfflineChange,
             onFolderSyncChange = viewModel::onFolderSyncChange,
             onRequestRemoval = viewModel::requestRemoval,
             onDismissRemoval = viewModel::dismissRemoval,
