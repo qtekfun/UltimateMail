@@ -40,7 +40,14 @@ fun message(
     subject: String = "Subject $uid",
     seen: Boolean = false,
     sentAt: Long = uid * 1000,
-    bodyText: String? = null
+    bodyText: String? = null,
+    senderName: String = "Bob",
+    senderAddress: String = "bob@example.test",
+    snippet: String = "",
+    flagged: Boolean = false,
+    hasAttachments: Boolean = false,
+    labels: List<String> = emptyList(),
+    pendingSync: Boolean = false
 ) = MessageEntity(
     accountId = accountId,
     folderPath = folderPath,
@@ -48,9 +55,14 @@ fun message(
     messageId = "<$uid@example.test>",
     threadId = threadId,
     subject = subject,
-    senderName = "Bob",
-    senderAddress = "bob@example.test",
+    senderName = senderName,
+    senderAddress = senderAddress,
     sentAt = Instant.ofEpochMilli(sentAt),
+    snippet = snippet,
     seen = seen,
-    bodyText = bodyText
+    flagged = flagged,
+    hasAttachments = hasAttachments,
+    labels = labels,
+    bodyText = bodyText,
+    pendingSync = pendingSync
 )
