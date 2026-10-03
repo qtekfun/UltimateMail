@@ -250,3 +250,41 @@ of visible rows on every state change (see "Lists") is the suspect if frames fai
   `am start -W` can report time to a useful screen.
 * Baseline profile (new dependency, needs the owner's decision).
 * Migration to version 6 with the two indexes, only if the device numbers ask for it.
+
+## Medidas en dispositivo (PGEM10, 4 de octubre de 2026)
+
+Hechas con `adb shell am start -W` y `dumpsys gfxinfo`, sobre una cuenta de demostración con
+**50.000 conversaciones** más la cuenta real (2 correos), en la bandeja unificada. La cuenta de
+demostración se siembra con `adb shell am start -n com.qtekfun.ultimatemail/.ui.debug.InboxDemoActivity
+--es action seed-bulk --ei count 50000` y se retira con `--es action remove` (solo toca cuentas
+`@seed.invalid`).
+
+| Medida | Depuración | Producción (R8, firmada con la clave de depuración) | Umbral |
+|---|---|---|---|
+| Arranque en frío, ventana pintada (mediana de 10) | ~600 ms (563–629) | ~145 ms (138–150, la primera 248) | < 1.500 ms |
+| Contenido visible tras el arranque | no medido | lista completa a los 0,8 s (captura incluida) | < 1.500 ms |
+| Desplazamiento, 30 gestos, fotogramas lentos | 13,8 % → 5,8 % → 4,5 % (tandas 1–3) | 1,4 % / 0,9 % / 1,2 % | <= 5 % |
+| Desplazamiento, p90 de tiempo de fotograma | 34 → 26 → 24 ms | 13 / 12 / 11 ms | <= 16 ms |
+| Desplazamiento, p99 | 61 → 40 → 34 ms | 21 / 17 / 18 ms | (orientativo) |
+| Memoria tras desplazar (heap Java / nativo) | 21 MB / 27 MB | 18,5 MB / 21 MB (PSS total 102 MB) | sin umbral |
+
+Conclusiones: la producción cumple todos los umbrales con 50.000 conversaciones, y el tiempo por
+fotograma **no crece con la profundidad** (la lista cuadrática que corrigió T22 no vuelve). La
+versión de depuración incumple el p90 (24 ms), como cabía esperar sin R8 ni perfil de base. La
+versión de producción también quedó validada en ejecución: R8 no rompe Angus Mail, AppAuth, Room ni
+Hilt (arranca, sincroniza y pinta).
+
+Limitaciones: un solo dispositivo; "contenido visible" se midió con una captura (precisión de unos
+0,3 s), porque la app aún no llama a `reportFullyDrawn()`; no se midió con la sincronización en
+marcha ni con TalkBack, y el volumen de 50.000 son conversaciones de un hilo cada una (el peor caso
+para la lista, no para el cuerpo de los mensajes).
+
+Hallazgo de experiencia, no de rendimiento: una carpeta que no se sincroniza (por ejemplo "Todos los
+mensajes" de Gmail) muestra "Aún sin sincronizar. Desliza hacia abajo para actualizar", cuando
+debería decir que esa carpeta no está activada para sincronizar.
+
+Fuente al 200 % (`settings put system font_scale 2.0`, restaurada a 1.0): el menú lateral escala sin
+cortes. En la lista de correos el remitente y el asunto se truncan con puntos suspensivos y el
+extracto desaparece, porque cada línea queda en una sola; es usable, pero mejoraría permitiendo dos
+líneas a tamaños grandes. La revisión con TalkBack sigue pendiente (ver `docs/accessibility-audit.md`).
+
