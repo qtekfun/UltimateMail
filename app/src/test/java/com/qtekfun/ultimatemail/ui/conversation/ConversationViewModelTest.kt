@@ -366,25 +366,26 @@ class ConversationViewModelTest {
     }
 
     @Test
-    fun `reply says so when the composer cannot be started and stays quiet when it can`() = runTest {
-        val f = start(allRead = true)
-        f.open()
+    fun `reply says so when the composer cannot be started and stays quiet when it can`() =
+        runTest {
+            val f = start(allRead = true)
+            f.open()
 
-        f.vm.compose(ComposeMode.REPLY_ALL)
+            f.vm.compose(ComposeMode.REPLY_ALL)
 
-        val newest = f.messages().last()
-        assertEquals(
-            ComposeRequest(f.h.accountId, "INBOX", newest.id, ComposeMode.REPLY_ALL),
-            composed.single()
-        )
-        assertEquals(NoticeKind.COMPOSE_FAILED, f.vm.notice.value?.kind)
+            val newest = f.messages().last()
+            assertEquals(
+                ComposeRequest(f.h.accountId, "INBOX", newest.id, ComposeMode.REPLY_ALL),
+                composed.single()
+            )
+            assertEquals(NoticeKind.COMPOSE_FAILED, f.vm.notice.value?.kind)
 
-        composeAvailable = true
-        f.vm.noticeShown(f.vm.notice.value!!.id)
-        f.vm.compose(ComposeMode.FORWARD)
-        assertNull(f.vm.notice.value)
-        assertEquals(2, composed.size)
-    }
+            composeAvailable = true
+            f.vm.noticeShown(f.vm.notice.value!!.id)
+            f.vm.compose(ComposeMode.FORWARD)
+            assertNull(f.vm.notice.value)
+            assertEquals(2, composed.size)
+        }
 
     @Test
     fun `details, quoted text and remote images are remembered per message`() = runTest {

@@ -286,7 +286,16 @@ private fun DrawerRow(
             modifier = Modifier.weight(1f)
         )
         if (unread > 0 || expandable) {
-            RowTrailing(label, unread, expanded.takeIf { expandable }, onToggle, content, countDescription)
+            RowTrailing(
+                label,
+                unread,
+                expanded.takeIf {
+                    expandable
+                },
+                onToggle,
+                content,
+                countDescription
+            )
         }
     }
 }

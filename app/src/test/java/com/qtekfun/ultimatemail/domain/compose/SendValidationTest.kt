@@ -20,7 +20,10 @@ class SendValidationTest {
         template: String? = null,
         attachments: Int = 0,
         missing: Boolean = false
-    ) = SendInput(to, cc, RecipientFieldState(), subject, body, kind, template, attachments, missing)
+    ): SendInput {
+        val bcc = RecipientFieldState()
+        return SendInput(to, cc, bcc, subject, body, kind, template, attachments, missing)
+    }
 
     @Test
     fun `a complete message is ready`() {

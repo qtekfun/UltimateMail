@@ -16,8 +16,8 @@ import com.qtekfun.ultimatemail.domain.compose.DraftChange
 import com.qtekfun.ultimatemail.domain.compose.DraftEdit
 import com.qtekfun.ultimatemail.domain.compose.DraftServerSync
 import com.qtekfun.ultimatemail.domain.compose.OutboxFileStorage
-import com.qtekfun.ultimatemail.domain.compose.RecipientFields
 import com.qtekfun.ultimatemail.domain.compose.RecipientFieldState
+import com.qtekfun.ultimatemail.domain.compose.RecipientFields
 import com.qtekfun.ultimatemail.domain.compose.RecipientSuggestions
 import com.qtekfun.ultimatemail.domain.compose.SendCheck
 import com.qtekfun.ultimatemail.domain.compose.SendConfirmations
@@ -276,10 +276,13 @@ class ComposerViewModel @Inject constructor(
             uris.forEach { uri ->
                 val message = when (val result = attachments.add(id, uri)) {
                     is AddAttachmentResult.Added -> null
+
                     is AddAttachmentResult.TooLarge -> ComposerMessage.AttachmentTooLarge(
                         result.limitBytes
                     )
+
                     AddAttachmentResult.Unreadable -> ComposerMessage.AttachmentUnreadable
+
                     AddAttachmentResult.DraftMissing, AddAttachmentResult.NotEditable ->
                         ComposerMessage.DraftGone
                 }

@@ -79,7 +79,10 @@ internal fun Banner(text: String, error: Boolean, onDismiss: (() -> Unit)? = nul
         ) {
             Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             if (onDismiss != null) {
-                TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = MinTouchTarget)) {
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.heightIn(min = MinTouchTarget)
+                ) {
                     Text(stringResource(R.string.composer_dismiss))
                 }
             }

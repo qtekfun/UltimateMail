@@ -71,10 +71,12 @@ object IncomingParser {
     fun parse(intent: IncomingIntent, ownAuthorities: Set<String> = emptySet()): IncomingCompose? =
         when (intent.action) {
             ACTION_SENDTO -> mailto(intent)?.let { withExtras(it, intent, ownAuthorities) }
+
             ACTION_SEND, ACTION_SEND_MULTIPLE -> {
                 withExtras(IncomingCompose(), intent, ownAuthorities)
                     .takeIf { it.hasContent() }
             }
+
             else -> null
         }
 
