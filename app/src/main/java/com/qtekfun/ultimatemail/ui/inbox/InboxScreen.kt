@@ -66,6 +66,9 @@ private val DividerIndent = 68.dp
 /** Items from the end at which the next page starts loading. */
 private const val PREFETCH_DISTANCE = 10
 
+/** Lets the list reuse the composition of a row that scrolled out for the next one. */
+private const val ROW_TYPE = "conversation"
+
 /** What the conversation list screen can do. */
 data class InboxActions(
     val onOpenMenu: () -> Unit,
@@ -251,7 +254,7 @@ private fun InboxContent(state: InboxState, actions: InboxActions) {
             } else if (state.conversations.isEmpty()) {
                 item(key = "loading-more") { Box(Modifier.fillParentMaxSize()) { Loading() } }
             }
-            items(state.conversations, key = { it.key }) { item ->
+            items(state.conversations, key = { it.key }, contentType = { ROW_TYPE }) { item ->
                 InboxRow(
                     item = item,
                     state = state,

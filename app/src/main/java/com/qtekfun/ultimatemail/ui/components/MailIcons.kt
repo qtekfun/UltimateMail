@@ -87,16 +87,19 @@ object MailIcons {
 
     private const val COLLAPSE_PATH = "M12,8l-6,6 1.41,1.41L12,10.83l4.59,4.58L18,14z"
 
-    private fun icon(name: String, path: String): ImageVector = ImageVector.Builder(
-        name = name,
-        defaultWidth = 24.dp,
-        defaultHeight = 24.dp,
-        viewportWidth = SIZE,
-        viewportHeight = SIZE
-    ).addPath(
-        pathData = PathParser().parsePathString(path).toNodes(),
-        fill = SolidColor(Color.Black)
-    ).build()
+    /** [mirrored]: a direction in the drawing (an arrow) flips with a right-to-left layout. */
+    private fun icon(name: String, path: String, mirrored: Boolean = false): ImageVector =
+        ImageVector.Builder(
+            name = name,
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = SIZE,
+            viewportHeight = SIZE,
+            autoMirror = mirrored
+        ).addPath(
+            pathData = PathParser().parsePathString(path).toNodes(),
+            fill = SolidColor(Color.Black)
+        ).build()
 
     /** An inbox tray. */
     val Inbox: ImageVector by lazy { icon("Inbox", INBOX_PATH) }
@@ -105,7 +108,7 @@ object MailIcons {
     val Archive: ImageVector by lazy { icon("Archive", ARCHIVE_PATH) }
 
     /** A folder with an arrow: move to a folder. */
-    val Move: ImageVector by lazy { icon("Move", MOVE_PATH) }
+    val Move: ImageVector by lazy { icon("Move", MOVE_PATH, mirrored = true) }
 
     /** An open envelope: mark as read. */
     val MarkRead: ImageVector by lazy { icon("MarkRead", MARK_READ_PATH) }
@@ -136,11 +139,11 @@ object MailIcons {
     /** An outlined star: not starred. */
     val StarOutline: ImageVector by lazy { icon("StarOutline", STAR_OUTLINE_PATH) }
 
-    val Reply: ImageVector by lazy { icon("Reply", REPLY_PATH) }
+    val Reply: ImageVector by lazy { icon("Reply", REPLY_PATH, mirrored = true) }
 
-    val ReplyAll: ImageVector by lazy { icon("ReplyAll", REPLY_ALL_PATH) }
+    val ReplyAll: ImageVector by lazy { icon("ReplyAll", REPLY_ALL_PATH, mirrored = true) }
 
-    val Forward: ImageVector by lazy { icon("Forward", FORWARD_PATH) }
+    val Forward: ImageVector by lazy { icon("Forward", FORWARD_PATH, mirrored = true) }
 
     /** A page: a file of any kind. */
     val File: ImageVector by lazy { icon("File", FILE_PATH) }

@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -269,7 +268,7 @@ internal fun DrawerRow(
             .padding(horizontal = 12.dp)
             .padding(start = IndentPerLevel * indent)
             .fillMaxWidth()
-            .height(LocalDensityMetrics.current.drawerRowHeight)
+            .heightIn(min = LocalDensityMetrics.current.drawerRowHeight)
             .clip(CircleShape)
             .background(if (selected) colors.secondaryContainer else Color.Transparent)
             .selectable(selected = selected, role = Role.Tab, onClick = onClick)
