@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
@@ -27,13 +28,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -50,6 +57,7 @@ import com.qtekfun.ultimatemail.ui.theme.LocalDensityMetrics
 import com.qtekfun.ultimatemail.ui.theme.StarColor
 
 private val IconSize = 16.dp
+private val CheckSize = 24.dp
 
 /**
  * One row of a conversation list (RF-03): avatar, sender, time, subject, snippet, indicators,
@@ -63,6 +71,9 @@ private val IconSize = 16.dp
  * @param formatter formats the time; get one with [rememberMessageTimeFormatter].
  * @param onClick the row was tapped.
  * @param onLongClick the row was long-pressed (multi-selection); null leaves it out.
+ * @param selected the row is picked in selection mode: it is highlighted, shows a check instead
+ * of the avatar and is announced as selected.
+ * @param customActions what a screen reader offers on the row in place of swiping.
  * @param accountMarker pass it in the unified inbox only.
  * @param hiddenLabels labels not to show as chips, typically the folder being shown.
  */
@@ -74,6 +85,8 @@ fun ConversationRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
+    selected: Boolean = false,
+    customActions: List<CustomAccessibilityAction> = emptyList(),
     accountMarker: AccountMarker? = null,
     hiddenLabels: Set<String> = emptySet()
 ) {
@@ -81,17 +94,25 @@ fun ConversationRow(
         LabelPresentation.summarize(item.labels, hiddenLabels)
     }
     val texts = rememberDescriptionTexts()
+    val selectedText = stringResource(R.string.inbox_state_selected)
     val description = remember(item, formatter, labels, accountMarker, texts) {
         ConversationDescriber(texts)
             .describe(item, formatter.formatSpoken(item.sentAt), labels, accountMarker)
     }
 
+    val background =
+        if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = LocalDensityMetrics.current.listRowMinHeight)
+            .background(background)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .rowSemantics(description, onClick, onLongClick)
+            .rowSemantics(
+                RowSemantics(description, selected, selectedText, customActions),
+                onClick,
+                onLongClick
+            )
             .padding(
                 start = 6.dp,
                 end = 16.dp,
@@ -101,11 +122,15 @@ fun ConversationRow(
         verticalAlignment = Alignment.Top
     ) {
         UnreadDot(item.unread)
-        Avatar(
-            name = item.senderName,
-            address = item.senderAddress,
-            modifier = Modifier.padding(end = 12.dp)
-        )
+        if (selected) {
+            SelectedMark(Modifier.padding(end = 12.dp))
+        } else {
+            Avatar(
+                name = item.senderName,
+                address = item.senderAddress,
+                modifier = Modifier.padding(end = 12.dp)
+            )
+        }
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             SenderLine(item, formatter.format(item.sentAt))
             SubjectLine(item)
@@ -122,6 +147,33 @@ fun ConversationRow(
         }
     }
 }
+
+/** The check that replaces the avatar of a selected row. */
+@Composable
+private fun SelectedMark(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(DefaultAvatarSize)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primary),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            Icons.Filled.Check,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.size(CheckSize)
+        )
+    }
+}
+
+/** What a screen reader gets for a row. */
+private class RowSemantics(
+    val description: String,
+    val selected: Boolean,
+    val selectedText: String,
+    val actions: List<CustomAccessibilityAction>
+)
 
 /** The account marker (unified inbox) and the label chips. */
 @Composable
@@ -141,11 +193,14 @@ private fun MetaLine(labels: LabelSummary, accountMarker: AccountMarker?) {
  * the parts would otherwise drop the actions of the clickable row.
  */
 private fun Modifier.rowSemantics(
-    description: String,
+    row: RowSemantics,
     onTap: () -> Unit,
     onHold: (() -> Unit)?
 ): Modifier = clearAndSetSemantics {
-    contentDescription = description
+    contentDescription = row.description
+    this.selected = row.selected
+    if (row.selected) stateDescription = row.selectedText
+    if (row.actions.isNotEmpty()) customActions = row.actions
     onClick {
         onTap()
         true

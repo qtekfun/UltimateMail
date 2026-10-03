@@ -259,6 +259,12 @@ private fun OfflineSection(state: AccountSettingsState, actions: AccountSettings
             label = { stringResource(it.label()) },
             onSelect = actions.onOfflineWindowChange
         )
+        SwitchRow(
+            title = stringResource(R.string.offline_download),
+            checked = state.downloadForOffline,
+            onCheckedChange = actions.onDownloadForOfflineChange,
+            summary = stringResource(R.string.offline_download_summary)
+        )
         SettingsSummary(stringResource(R.string.offline_note))
     }
 }

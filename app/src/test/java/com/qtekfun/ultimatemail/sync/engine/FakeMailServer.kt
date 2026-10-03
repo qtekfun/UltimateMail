@@ -72,7 +72,8 @@ class FakeMailServer {
         flags: MessageFlags = MessageFlags(),
         inReplyTo: String? = null,
         references: List<String> = emptyList(),
-        gmail: GmailMetadata? = null
+        gmail: GmailMetadata? = null,
+        size: Long = 100
     ): Long {
         val folder = folder(path)
         val uid = folder.nextUid++
@@ -85,7 +86,7 @@ class FakeMailServer {
             cc = emptyList(),
             date = sentAt,
             flags = flags,
-            size = 100,
+            size = size,
             hasAttachments = false,
             inReplyTo = inReplyTo,
             references = references,

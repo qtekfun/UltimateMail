@@ -6,6 +6,7 @@ package com.qtekfun.ultimatemail.domain.conversation
 import com.qtekfun.ultimatemail.data.local.entity.AttachmentEntity
 import com.qtekfun.ultimatemail.data.local.entity.MessageEntity
 import com.qtekfun.ultimatemail.data.local.model.AttachmentState
+import com.qtekfun.ultimatemail.data.settings.RemoteContentPolicy
 import com.qtekfun.ultimatemail.domain.inbox.LabelPresentation
 
 /**
@@ -17,11 +18,12 @@ class ConversationPresenter(private val preparer: BodyPreparer = BodyPreparer())
     fun present(
         data: ConversationData,
         local: ConversationLocal,
-        folderPath: String
+        folderPath: String,
+        remotePolicy: RemoteContentPolicy = RemoteContentPolicy.NEVER
     ): ConversationView {
         val own = setOfNotNull(data.accountEmail)
         val views = data.messages.map { message ->
-            messageView(message, data.attachments[message.id].orEmpty(), local, own)
+            messageView(message, data.attachments[message.id].orEmpty(), local, own, remotePolicy)
         }
         val hiddenLabels = data.folders.filter { it.path == folderPath }
             .flatMap { listOf(it.path, it.name) }.toSet()
@@ -42,7 +44,8 @@ class ConversationPresenter(private val preparer: BodyPreparer = BodyPreparer())
         message: MessageEntity,
         attachments: List<AttachmentEntity>,
         local: ConversationLocal,
-        own: Set<String>
+        own: Set<String>,
+        remotePolicy: RemoteContentPolicy
     ): MessageView {
         val expanded = message.id in local.expanded
         return MessageView(
@@ -59,13 +62,17 @@ class ConversationPresenter(private val preparer: BodyPreparer = BodyPreparer())
             to = message.toAddresses,
             cc = message.ccAddresses,
             detailsShown = message.id in local.detailsShown,
-            body = if (expanded) bodyView(message, local) else null,
+            body = if (expanded) bodyView(message, local, remotePolicy) else null,
             attachments = listedAttachments(message, attachments, local),
             cidFiles = cidFiles(attachments)
         )
     }
 
-    private fun bodyView(message: MessageEntity, local: ConversationLocal): BodyView {
+    private fun bodyView(
+        message: MessageEntity,
+        local: ConversationLocal,
+        remotePolicy: RemoteContentPolicy
+    ): BodyView {
         val cached = message.bodyText != null || message.bodyHtml != null
         val load = local.bodyLoads[message.id]
         return when {
@@ -74,7 +81,9 @@ class ConversationPresenter(private val preparer: BodyPreparer = BodyPreparer())
                 BodyView.Ready(
                     preparer.prepare(message.id, message.bodyText, message.bodyHtml, remote),
                     quotedShown = message.id in local.quotedShown,
-                    remoteAllowed = remote
+                    remoteAllowed = remote,
+                    remotePolicy = remotePolicy,
+                    originalColors = message.id in local.originalColors
                 )
             }
 
