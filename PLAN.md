@@ -27,7 +27,7 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 - [ ] **T12 Tests de sync offline**: caídas de red, UIDVALIDITY cambiada, cambios concurrentes, app cerrada a mitad de sync.
 
 ## Fase 3 — Interfaz del MVP
-- [ ] **T13 Añadir cuenta y lista de carpetas/etiquetas** (offline funcional).
+- [x] **T13 Añadir cuenta y lista de carpetas/etiquetas** (offline funcional). *(Solo contraseña de aplicación; el acceso con Google/Microsoft queda para después.)*
 - [ ] **T14 Bandeja y bandeja unificada**: lista de conversaciones, paginación, indicador "pendiente de sync".
 - [ ] **T15 Lectura de conversación**: mensajes plegables, HTML seguro (según T04), adjuntos bajo demanda.
 - [ ] **T16 Gestos configurables y selección múltiple**, con deshacer.
