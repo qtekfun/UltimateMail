@@ -196,10 +196,35 @@ class MailOperationExecutorTest {
     }
 
     @Test
+    fun `a move the server did removes the row of the old folder`() = runTest {
+        val h = start { server.deliver("INBOX") }
+        assertTrue(h.messages.get(h.accountId, "INBOX", 1) != null)
+
+        h.executor.execute(h.op(OperationType.MOVE, "Archive"))
+
+        assertEquals(null, h.messages.get(h.accountId, "INBOX", 1))
+    }
+
+    @Test
+    fun `a move that failed keeps the row of the old folder`() = runTest {
+        val h = start { server.deliver("INBOX") }
+        h.server.failure = { name -> MailResult.Timeout.takeIf { name.startsWith("move") } }
+
+        val outcome = h.executor.execute(h.op(OperationType.MOVE, "Archive"))
+
+        assertEquals(OperationOutcome.RetryLater("timeout"), outcome)
+        assertTrue(h.messages.get(h.accountId, "INBOX", 1) != null)
+    }
+
+    @Test
     fun `repeating a move whose answer was lost does nothing and tells nobody`() = runTest {
         val h = start { server.deliver("INBOX", messageId = "<one@x>") }
         val move = h.op(OperationType.MOVE, "Archive")
+        val row = h.messages.get(h.accountId, "INBOX", 1)!!
         assertEquals(OperationOutcome.Done, h.executor.execute(move))
+        // The answer was lost, so in real life the queue never heard Done and the row is still
+        // there; bring it back to repeat the attempt.
+        h.messages.upsert(listOf(row.copy(id = 0)))
         h.server.log.clear()
 
         val again = h.executor.execute(move)
