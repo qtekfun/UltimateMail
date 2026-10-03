@@ -30,6 +30,9 @@ class FakeFolder(
     var modSeq = 1L
     val messages = TreeMap<Long, MessageHeader>()
     val bodies = mutableMapOf<Long, MessageBody>()
+
+    /** Attachment bytes by (uid, part id). */
+    val attachments = mutableMapOf<Pair<Long, String>, ByteArray>()
 }
 
 /**
@@ -166,7 +169,10 @@ class FakeSession(private val server: FakeMailServer) : MailSession {
         }
 
     override suspend fun fetchAttachment(folder: String, uid: Long, partId: String) =
-        call<ByteArray>("fetchAttachment") { MailResult.NotFound }
+        inFolder(folder, "fetchAttachment $folder $uid $partId") {
+            it.attachments[uid to partId]?.let { bytes -> MailResult.Success(bytes) }
+                ?: MailResult.NotFound
+        }
 
     override suspend fun setFlags(
         folder: String,
