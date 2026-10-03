@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.qtekfun.ultimatemail.R
+import com.qtekfun.ultimatemail.domain.conversation.RemoteBanner
 import com.qtekfun.ultimatemail.domain.html.HtmlSanitizer
 import com.qtekfun.ultimatemail.domain.html.SanitizedHtml
 import com.qtekfun.ultimatemail.ui.theme.UltimateMailTheme
@@ -87,7 +88,7 @@ private fun DebugScreen() {
         ToggleRow(R.string.debug_allow_remote, allowRemote) { allowRemote = it }
         ToggleRow(R.string.debug_bypass_sanitizer, bypass) { bypass = it }
         if (content.hadBlockedRemoteContent && !allowRemote) {
-            RemoteContentBanner(onShow = { allowRemote = true })
+            RemoteContentBanner(RemoteBanner.BLOCKED, onShow = { allowRemote = true })
         }
         SafeHtmlView(
             content = content,

@@ -12,6 +12,9 @@
     <string name="html_link_cancel">Cancel</string>
     <string name="html_remote_blocked">Images and other remote content are blocked to protect your privacy.</string>
     <string name="html_remote_show">Load images</string>
+    <string name="html_remote_ask">Load the images of this message? Loading them can tell the sender you opened it.</string>
+    <string name="html_colors_original">Original colours</string>
+    <string name="html_colors_adapted">Match dark theme</string>
     <string name="home_empty_body">Add an email account to get started.</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_back">Back</string>

@@ -75,6 +75,7 @@ fun ConversationRoute(
             onToggleDetails = viewModel::toggleDetails,
             onToggleQuoted = viewModel::toggleQuoted,
             onAllowRemote = viewModel::allowRemoteContent,
+            onToggleOriginalColors = viewModel::toggleOriginalColors,
             onRetryBody = viewModel::ensureBody,
             onAttachment = viewModel::attachment
         )
