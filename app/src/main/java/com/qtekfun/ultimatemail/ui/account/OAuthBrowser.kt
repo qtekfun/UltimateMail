@@ -56,18 +56,20 @@ fun OAuthBrowserEffect(
     }
     LaunchedEffect(request) {
         if (request != null) {
-            launcher.launch(service.getAuthorizationRequestIntent(request.config.toAppAuth()))
+            launcher.launch(
+                service.getAuthorizationRequestIntent(request.config.toAppAuth(request.loginHint))
+            )
             onLaunched()
         }
     }
 }
 
-private fun OAuthProviderConfig.toAppAuth() = AuthorizationRequest.Builder(
+private fun OAuthProviderConfig.toAppAuth(loginHint: String?) = AuthorizationRequest.Builder(
     AuthorizationServiceConfiguration(authorizationEndpoint.toUri(), tokenEndpoint.toUri()),
     clientId,
     ResponseTypeValues.CODE,
     redirectUri.toUri()
-).setScopes(scopes).build()
+).setScopes(scopes).apply { loginHint?.let(::setLoginHint) }.build()
 
 private fun TokenResponse.toResult(): OAuthBrowserResult {
     val access = accessToken ?: return OAuthBrowserResult.Failed

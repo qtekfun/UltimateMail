@@ -47,4 +47,20 @@ class SyncLineTest {
             assertEquals(SyncLine.Failed(problem), SyncLine.of(AccountSyncState.Error(problem)))
         }
     }
+
+    @Test
+    fun `only the sign in line is a call to action`() {
+        val states = listOf(
+            null,
+            AccountSyncState.Idle(),
+            AccountSyncState.Syncing,
+            AccountSyncState.DownloadingBodies(1, 2),
+            AccountSyncState.Error(SyncProblem.NETWORK),
+            AccountSyncState.ReauthenticationNeeded
+        )
+
+        val actionable = states.filter { SyncLine.of(it).needsSignIn }
+
+        assertEquals(listOf<AccountSyncState?>(AccountSyncState.ReauthenticationNeeded), actionable)
+    }
 }

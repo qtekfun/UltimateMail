@@ -83,7 +83,8 @@ data class DrawerActions(
     val onRequestRemoval: () -> Unit,
     val onDismissRemoval: () -> Unit,
     val onConfirmRemoval: () -> Unit,
-    val onOpenDestination: (Screen) -> Unit
+    val onOpenDestination: (Screen) -> Unit,
+    val onReauthenticate: (accountId: Long) -> Unit
 )
 
 /**
@@ -127,7 +128,7 @@ fun DrawerContent(
             }
         }
         DrawerDivider()
-        DrawerFooter(state.syncLine, actions, outboxCount)
+        DrawerFooter(state.syncLine, state.selected.id, actions, outboxCount)
     }
     if (state.confirmingRemoval) {
         RemoveAccountDialog(actions.onDismissRemoval, actions.onConfirmRemoval)
@@ -246,7 +247,7 @@ private fun FolderRow(
 }
 
 @Composable
-private fun DrawerRow(
+internal fun DrawerRow(
     label: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     selected: Boolean,
@@ -345,88 +346,6 @@ private fun RowTrailing(
             }
         }
     }
-}
-
-@Composable
-private fun DrawerFooter(syncLine: SyncLine, actions: DrawerActions, outboxCount: Int) {
-    Column(modifier = Modifier.padding(horizontal = 12.dp)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = MinTouchTarget)
-                .padding(start = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = syncLine.text(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(
-                onClick = actions.onRefresh,
-                modifier = Modifier.heightIn(min = MinTouchTarget)
-            ) {
-                Icon(
-                    Icons.Filled.Refresh,
-                    contentDescription = stringResource(R.string.drawer_sync_now)
-                )
-            }
-        }
-        if (outboxCount > 0) {
-            DrawerRow(
-                label = stringResource(R.string.drawer_outbox),
-                icon = Icons.AutoMirrored.Filled.Send,
-                selected = false,
-                onClick = { actions.onOpenDestination(Screen.Outbox) },
-                unread = outboxCount,
-                countDescription = pluralStringResource(
-                    R.plurals.drawer_outbox_count,
-                    outboxCount,
-                    outboxCount
-                )
-            )
-        }
-        DrawerDestinations.footer.forEach { destination ->
-            DrawerRow(
-                label = stringResource(destination.label),
-                icon = destination.icon,
-                selected = false,
-                onClick = { actions.onOpenDestination(destination.screen) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun SyncLine.text(): String = when (this) {
-    SyncLine.NeverSynced -> stringResource(R.string.sync_status_never)
-
-    SyncLine.Syncing -> stringResource(R.string.sync_status_syncing)
-
-    is SyncLine.DownloadingMessages ->
-        stringResource(R.string.sync_status_downloading, done, total)
-
-    is SyncLine.LastSynced -> {
-        val context = LocalContext.current
-        stringResource(
-            R.string.sync_status_last,
-            DateFormat.getTimeFormat(context).format(Date.from(at))
-        )
-    }
-
-    SyncLine.SignInAgain -> stringResource(R.string.sync_status_reauth)
-
-    is SyncLine.Failed -> stringResource(
-        when (problem) {
-            SyncProblem.NETWORK -> R.string.sync_error_network
-            SyncProblem.TIMEOUT -> R.string.sync_error_timeout
-            SyncProblem.CERTIFICATE -> R.string.sync_error_certificate
-            SyncProblem.SERVER, SyncProblem.PROTOCOL -> R.string.sync_error_server
-            SyncProblem.UNKNOWN -> R.string.sync_error_unknown
-        }
-    )
 }
 
 @Composable

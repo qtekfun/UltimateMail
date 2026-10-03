@@ -52,6 +52,15 @@ class AppNavigator @Inject constructor(private val savedState: SavedStateHandle)
         open(Screen.Conversation(accountId, folderPath, threadId))
     }
 
+    /** Opens the sign-in-again screen of [accountId]; Back returns to the screen it came from. */
+    fun openReauth(accountId: Long) {
+        if (current.value !is Screen.Reauth) {
+            cameFrom = current.value
+            savedState[CAME_FROM_KEY] = current.value.route
+        }
+        open(Screen.Reauth(accountId))
+    }
+
     /** Opens the composer on [draftId]; closing it returns to the screen it was opened from. */
     fun openCompose(draftId: Long) {
         if (current.value !is Screen.Compose) {
@@ -99,7 +108,7 @@ class AppNavigator @Inject constructor(private val savedState: SavedStateHandle)
             true
         }
 
-        current.value is Screen.Conversation -> {
+        current.value is Screen.Conversation || current.value is Screen.Reauth -> {
             open(cameFrom ?: Screen.Home)
             true
         }

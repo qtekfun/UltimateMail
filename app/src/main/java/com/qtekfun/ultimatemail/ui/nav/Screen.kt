@@ -88,9 +88,18 @@ sealed interface Screen {
         override val route = SEARCH_PREFIX + initialScope.key
     }
 
+    /**
+     * Signing in again to the account [accountId] after its credentials stopped working (T27):
+     * a password, or the provider's browser sign-in. Back returns to where it was opened from.
+     */
+    data class Reauth(val accountId: Long) : Screen {
+        override val route = REAUTH_PREFIX + accountId
+    }
+
     companion object {
         private const val COMPOSE_PREFIX = "compose:"
         private const val SEARCH_PREFIX = "search:"
+        private const val REAUTH_PREFIX = "reauth:"
         private const val INBOX_PREFIX = "inbox:"
         private const val CONVERSATION_PREFIX = "conversation:"
         private const val CONVERSATION_PARTS = 3
@@ -127,8 +136,13 @@ sealed interface Screen {
             route != null && route.startsWith(INBOX_PREFIX) ->
                 InboxScope.fromKey(route.removePrefix(INBOX_PREFIX))?.let(::Inbox) ?: Home
 
-            else -> Home
+            else -> reauthFromRoute(route)
         }
+
+        /** The sign-in-again screen for a saved [route]; anything else is the start screen. */
+        private fun reauthFromRoute(route: String?): Screen =
+            route?.removePrefix(REAUTH_PREFIX)?.takeIf { route.startsWith(REAUTH_PREFIX) }
+                ?.toLongOrNull()?.let(::Reauth) ?: Home
 
         /** The composer and the outbox (T18b); null for any other route. */
         private fun composeFromRoute(route: String?): Screen? = when {
