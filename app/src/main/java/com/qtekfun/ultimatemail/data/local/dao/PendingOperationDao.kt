@@ -80,4 +80,40 @@ interface PendingOperationDao {
 
     @Query("SELECT COUNT(*) FROM pending_operation WHERE accountId = :accountId AND failed = 1")
     fun observeFailedCount(accountId: Long): Flow<Int>
+
+    /**
+     * First step of a UIDVALIDITY reset: operations whose message is not stored (so it cannot be
+     * found again after the resync) are parked as failed for the user to see.
+     */
+    @Query(
+        "UPDATE pending_operation SET failed = 1, lastError = 'message_gone' " +
+            "WHERE accountId = :accountId AND folderPath = :folderPath AND uid > 0 " +
+            "AND type NOT IN ('SEND', 'SAVE_DRAFT') AND NOT EXISTS (SELECT 1 FROM message m " +
+            "WHERE m.accountId = pending_operation.accountId " +
+            "AND m.folderPath = pending_operation.folderPath AND m.uid = pending_operation.uid)"
+    )
+    suspend fun failOrphansOf(accountId: Long, folderPath: String)
+
+    /**
+     * Second step: operations on a stored message now point at that row by a negative uid, which
+     * no server uses, until [rebase] gives them the new UID.
+     */
+    @Query(
+        "UPDATE pending_operation SET uid = (SELECT -m.id FROM message m " +
+            "WHERE m.accountId = pending_operation.accountId " +
+            "AND m.folderPath = pending_operation.folderPath AND m.uid = pending_operation.uid) " +
+            "WHERE accountId = :accountId AND folderPath = :folderPath AND uid > 0 " +
+            "AND type NOT IN ('SEND', 'SAVE_DRAFT') AND EXISTS (SELECT 1 FROM message m " +
+            "WHERE m.accountId = pending_operation.accountId " +
+            "AND m.folderPath = pending_operation.folderPath AND m.uid = pending_operation.uid)"
+    )
+    suspend fun detachFromServerUids(accountId: Long, folderPath: String)
+
+    /** Points an operation at the message's new UID. */
+    @Query("UPDATE pending_operation SET uid = :uid WHERE id = :id")
+    suspend fun rebase(id: Long, uid: Long)
+
+    @Query("SELECT COUNT(*) FROM pending_operation WHERE accountId = :accountId " +
+        "AND folderPath = :folderPath AND uid = :uid")
+    suspend fun countForMessage(accountId: Long, folderPath: String, uid: Long): Int
 }
