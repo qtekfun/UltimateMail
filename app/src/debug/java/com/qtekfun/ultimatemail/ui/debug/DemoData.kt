@@ -162,6 +162,6 @@ object DemoData {
         return messages
     }
 
-    private const val THREAD_SIZE = 12
+    const val THREAD_SIZE = 12
     private const val SECONDS_PER_STEP = 90L
 }

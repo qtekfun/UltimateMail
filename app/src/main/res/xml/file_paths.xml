@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: 2026 UltimateMail contributors
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+<!-- The folder is files/attachments, where AttachmentModule stores downloaded attachments. -->
+<paths>
+    <files-path name="attachments" path="attachments/" />
+</paths>
