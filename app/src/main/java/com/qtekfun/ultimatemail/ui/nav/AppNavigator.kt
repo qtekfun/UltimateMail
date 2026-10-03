@@ -59,6 +59,11 @@ class AppNavigator @Inject constructor(private val savedState: SavedStateHandle)
 
         current.value == Screen.Home -> false
 
+        current.value is Screen.AccountSettings -> {
+            open(Screen.Settings)
+            true
+        }
+
         else -> {
             open(Screen.Home)
             true

@@ -13,6 +13,7 @@ enum class FormField {
     EMAIL,
     USERNAME,
     PASSWORD,
+    CLIENT_ID,
     IMAP_HOST,
     IMAP_PORT,
     SMTP_HOST,
@@ -21,7 +22,7 @@ enum class FormField {
 
     /** True for the fields that live in the collapsed "advanced" section. */
     val isAdvanced: Boolean
-        get() = this != EMAIL && this != PASSWORD && this != GENERAL
+        get() = this != EMAIL && this != PASSWORD && this != CLIENT_ID && this != GENERAL
 }
 
 /** A validation message for one field. */
@@ -62,6 +63,9 @@ fun AddAccountFailure.toMessage(): Int = when (this) {
     is AddAccountFailure.Connection -> reason.toMessage()
     AddAccountFailure.TestUnavailable -> R.string.error_test_unavailable
     AddAccountFailure.StorageFailed -> R.string.error_storage_failed
+    AddAccountFailure.SignInCancelled -> R.string.error_sign_in_cancelled
+    AddAccountFailure.SignInFailed -> R.string.error_sign_in_failed
+    AddAccountFailure.SignInNoAddress -> R.string.error_sign_in_no_address
 }
 
 @StringRes

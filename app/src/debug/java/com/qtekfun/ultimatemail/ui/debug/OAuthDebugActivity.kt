@@ -27,9 +27,11 @@ import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import com.qtekfun.ultimatemail.BuildConfig
 import com.qtekfun.ultimatemail.R
+import com.qtekfun.ultimatemail.data.local.model.AuthType
 import com.qtekfun.ultimatemail.data.oauth.ClientIdPreferences
 import com.qtekfun.ultimatemail.domain.oauth.GoogleClientId
 import com.qtekfun.ultimatemail.domain.oauth.IdTokenEmail
+import com.qtekfun.ultimatemail.domain.oauth.MicrosoftClientId
 import com.qtekfun.ultimatemail.domain.oauth.OAuthLookup
 import com.qtekfun.ultimatemail.domain.oauth.OAuthProviderConfig
 import com.qtekfun.ultimatemail.domain.oauth.OAuthProviders
@@ -46,13 +48,15 @@ import net.openid.appauth.ResponseTypeValues
 import org.eclipse.angus.mail.imap.IMAPStore
 
 /**
- * Debug-only check of the whole Google sign-in (T02): the browser flow with PKCE through AppAuth,
+ * Debug-only check of the whole Google or Microsoft sign-in (T02): the browser flow with PKCE through AppAuth,
  * then a real IMAP login with XOAUTH2. Nothing is stored and no token or address is logged.
  */
 class OAuthDebugActivity : ComponentActivity() {
     private lateinit var authService: AuthorizationService
     private lateinit var clientIds: ClientIdPreferences
     private var clientIdText by mutableStateOf("")
+    private var microsoftClientIdText by mutableStateOf("")
+    private var imapHost = GMAIL_IMAP_HOST
     private var status by mutableStateOf<StatusText>(StatusText.Res(R.string.oauth_debug_idle))
 
     private val authorization =
@@ -85,6 +89,7 @@ class OAuthDebugActivity : ComponentActivity() {
         authService = AuthorizationService(this)
         clientIds = ClientIdPreferences(this)
         clientIdText = clientIds.google() ?: BuildConfig.GOOGLE_CLIENT_ID
+        microsoftClientIdText = clientIds.microsoft().orEmpty()
         setContent {
             UltimateMailTheme {
                 Surface(
@@ -107,8 +112,21 @@ class OAuthDebugActivity : ComponentActivity() {
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        Button(onClick = ::signIn) {
+                        Button(onClick = { signIn(AuthType.OAUTH_GOOGLE) }) {
                             Text(stringResource(R.string.oauth_debug_button))
+                        }
+                        OutlinedTextField(
+                            value = microsoftClientIdText,
+                            onValueChange = { microsoftClientIdText = it },
+                            label = {
+                                Text(stringResource(R.string.oauth_debug_microsoft_client_id))
+                            },
+                            isError = !MicrosoftClientId.isValid(microsoftClientIdText),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Button(onClick = { signIn(AuthType.OAUTH_MICROSOFT) }) {
+                            Text(stringResource(R.string.oauth_debug_microsoft_button))
                         }
                         Text(status.resolve())
                     }
@@ -122,15 +140,32 @@ class OAuthDebugActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    private fun signIn() {
-        if (!GoogleClientId.isValid(clientIdText)) {
-            status = StatusText.Res(R.string.oauth_debug_client_id_invalid)
+    private fun signIn(authType: AuthType) {
+        val google = authType == AuthType.OAUTH_GOOGLE
+        val valid = if (google) {
+            GoogleClientId.isValid(clientIdText)
+        } else {
+            MicrosoftClientId.isValid(microsoftClientIdText)
+        }
+        if (!valid) {
+            status = StatusText.Res(
+                if (google) {
+                    R.string.oauth_debug_client_id_invalid
+                } else {
+                    R.string.oauth_debug_microsoft_client_id_invalid
+                }
+            )
             return
         }
         clientIds.setGoogle(clientIdText)
-        val providers =
-            OAuthProviders(GoogleClientId.normalize(clientIdText), BuildConfig.APPLICATION_ID)
-        when (val lookup = providers.forHost(GMAIL_IMAP_HOST)) {
+        clientIds.setMicrosoft(microsoftClientIdText)
+        val providers = OAuthProviders(
+            GoogleClientId.normalize(clientIdText),
+            BuildConfig.APPLICATION_ID,
+            MicrosoftClientId.normalize(microsoftClientIdText)
+        )
+        imapHost = if (google) GMAIL_IMAP_HOST else OUTLOOK_IMAP_HOST
+        when (val lookup = providers.forAuthType(authType)) {
             is OAuthLookup.Available -> {
                 status = StatusText.Res(R.string.oauth_debug_authorizing)
                 authorization.launch(
@@ -181,7 +216,7 @@ class OAuthDebugActivity : ComponentActivity() {
         }
         val store = jakarta.mail.Session.getInstance(properties).getStore("imap") as IMAPStore
         return store.use {
-            it.connect(GMAIL_IMAP_HOST, email, accessToken)
+            it.connect(imapHost, email, accessToken)
             it.defaultFolder.list("*").size
         }
     }
@@ -197,5 +232,6 @@ class OAuthDebugActivity : ComponentActivity() {
 
     private companion object {
         const val GMAIL_IMAP_HOST = "imap.gmail.com"
+        const val OUTLOOK_IMAP_HOST = "outlook.office365.com"
     }
 }

@@ -11,6 +11,7 @@ import com.qtekfun.ultimatemail.domain.account.AccountInputError
 import com.qtekfun.ultimatemail.domain.account.ConnectionFailure
 import com.qtekfun.ultimatemail.domain.account.ServerEndpoint
 import com.qtekfun.ultimatemail.domain.account.ServerSuggestion
+import com.qtekfun.ultimatemail.domain.oauth.OAuthProviderConfig
 
 /** Extra help shown under the form for providers that need more than a password. */
 enum class ProviderHint { NONE, GMAIL, MICROSOFT }
@@ -24,11 +25,15 @@ enum class FormInput {
     IMAP_HOST,
     IMAP_PORT,
     SMTP_HOST,
-    SMTP_PORT
+    SMTP_PORT,
+    CLIENT_ID
 }
 
 /** Where the add-account flow is: waiting for input or busy. */
-enum class AddAccountProgress { IDLE, TESTING, SAVING }
+enum class AddAccountProgress { IDLE, SIGNING_IN, TESTING, SAVING }
+
+/** A browser sign-in the screen has to open with AppAuth, then report back with its result. */
+data class OAuthRequest(val authType: AuthType, val config: OAuthProviderConfig)
 
 /** Why the last attempt to add the account did not work, apart from invalid fields. */
 sealed interface AddAccountFailure {
@@ -38,6 +43,15 @@ sealed interface AddAccountFailure {
     data object TestUnavailable : AddAccountFailure
 
     data object StorageFailed : AddAccountFailure
+
+    /** The user closed the browser or the provider refused the sign-in. */
+    data object SignInCancelled : AddAccountFailure
+
+    /** The browser part worked but no tokens came back. */
+    data object SignInFailed : AddAccountFailure
+
+    /** Signed in, but the ID token does not say which address the account has. */
+    data object SignInNoAddress : AddAccountFailure
 }
 
 /** Everything the add-account screen shows; the form fields are kept as typed. */
@@ -63,11 +77,21 @@ data class AddAccountState(
      */
     val availableAuthTypes: List<AuthType> = listOf(AuthType.PASSWORD),
     val hint: ProviderHint = ProviderHint.NONE,
+    /** The OAuth sign-in this incoming server supports, or null when it only takes passwords. */
+    val oauthType: AuthType? = null,
+    val googleClientId: String = "",
+    val microsoftClientId: String = "",
+    /** Set while the screen should open the browser; the screen reports it with onOAuthLaunched. */
+    val oauthRequest: OAuthRequest? = null,
     val fieldErrors: List<FieldError> = emptyList(),
     val progress: AddAccountProgress = AddAccountProgress.IDLE,
     val failure: AddAccountFailure? = null
 ) {
     val busy: Boolean get() = progress != AddAccountProgress.IDLE
+
+    /** The client ID field of the provider that [oauthType] names. */
+    val clientIdText: String
+        get() = if (oauthType == AuthType.OAUTH_MICROSOFT) microsoftClientId else googleClientId
 
     fun errorFor(field: FormField): FieldError? = fieldErrors.firstOrNull { it.field == field }
 
@@ -88,13 +112,26 @@ data class AddAccountState(
     /** Typing in a server field stops the autodetection from overwriting the servers. */
     fun withText(input: FormInput, value: String): AddAccountState = when (input) {
         FormInput.EMAIL -> copy(email = value)
+
         FormInput.PASSWORD -> copy(password = value)
+
         FormInput.DISPLAY_NAME -> copy(displayName = value)
+
         FormInput.USERNAME -> copy(username = value)
+
         FormInput.IMAP_HOST -> copy(imapHost = value, serversEdited = true)
+
         FormInput.IMAP_PORT -> copy(imapPort = value, serversEdited = true)
+
         FormInput.SMTP_HOST -> copy(smtpHost = value, serversEdited = true)
+
         FormInput.SMTP_PORT -> copy(smtpPort = value, serversEdited = true)
+
+        FormInput.CLIENT_ID -> if (oauthType == AuthType.OAUTH_MICROSOFT) {
+            copy(microsoftClientId = value)
+        } else {
+            copy(googleClientId = value)
+        }
     }
 
     fun withSecurity(server: AccountInputError.Server, value: ConnectionSecurity) = when (server) {
