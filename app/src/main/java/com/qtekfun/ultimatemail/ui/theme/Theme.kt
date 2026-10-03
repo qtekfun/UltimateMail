@@ -12,6 +12,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.qtekfun.ultimatemail.data.settings.AppSettings
@@ -65,5 +66,11 @@ fun UltimateMailTheme(settings: AppSettings = AppSettings(), content: @Composabl
         dynamicLight = if (dynamic) dynamicLightColorScheme(context) else null,
         dynamicDark = if (dynamic) dynamicDarkColorScheme(context) else null
     )
-    MaterialTheme(colorScheme = colorScheme, typography = UltimateMailTypography, content = content)
+    CompositionLocalProvider(LocalDensityMetrics provides settings.density.metrics()) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = UltimateMailTypography,
+            content = content
+        )
+    }
 }
