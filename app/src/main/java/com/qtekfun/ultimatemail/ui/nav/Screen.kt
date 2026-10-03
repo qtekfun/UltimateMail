@@ -3,13 +3,16 @@
 
 package com.qtekfun.ultimatemail.ui.nav
 
+import com.qtekfun.ultimatemail.domain.conversation.ConversationRef
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
+import java.net.URLDecoder
+import java.net.URLEncoder
 
 /**
  * The screens of the app. Navigation is a plain state (see [AppNavigator]) instead of a
  * navigation library: there are only a few screens and no new dependency is worth that.
  *
- * Adding a destination (reading a conversation T15, search T20, settings T21): add an object or
+ * Adding a destination (search T20, settings T21): add an object or
  * data class here with a stable [route], teach [fromRoute] about it, handle it in the `when` of
  * `AppRoot`, and, if the side menu should link to it, add an entry to `DrawerDestinations`.
  */
@@ -34,6 +37,18 @@ sealed interface Screen {
         override val route = INBOX_PREFIX + scope.key
     }
 
+    /**
+     * Reading one conversation (T15): the thread [threadId] of [folderPath] of the account
+     * [accountId], full screen. Back returns to the screen it was opened from.
+     */
+    data class Conversation(val accountId: Long, val folderPath: String, val threadId: String) :
+        Screen {
+        override val route = CONVERSATION_PREFIX + accountId + ":" + encode(folderPath) + ":" +
+            encode(threadId)
+
+        val ref: ConversationRef get() = ConversationRef(accountId, folderPath, threadId)
+    }
+
     /** Settings (T21), reached from the side menu. */
     data object Settings : Screen {
         override val route = "settings"
@@ -46,6 +61,8 @@ sealed interface Screen {
 
     companion object {
         private const val INBOX_PREFIX = "inbox:"
+        private const val CONVERSATION_PREFIX = "conversation:"
+        private const val CONVERSATION_PARTS = 3
         private const val ACCOUNT_SETTINGS_PREFIX = "account-settings:"
 
         /** The screen for a saved [route]; anything unknown goes back to the start screen. */
@@ -53,6 +70,9 @@ sealed interface Screen {
             route == AddAccount.route -> AddAccount
 
             route == Settings.route -> Settings
+
+            route != null && route.startsWith(CONVERSATION_PREFIX) ->
+                conversationFromRoute(route.removePrefix(CONVERSATION_PREFIX)) ?: Home
 
             route != null && route.startsWith(ACCOUNT_SETTINGS_PREFIX) ->
                 route.removePrefix(ACCOUNT_SETTINGS_PREFIX).toLongOrNull()
@@ -63,5 +83,23 @@ sealed interface Screen {
 
             else -> Home
         }
+
+        private fun conversationFromRoute(text: String): Conversation? {
+            val parts = text.split(':')
+            if (parts.size != CONVERSATION_PARTS) return null
+            val accountId = parts[0].toLongOrNull()
+            val path = decode(parts[1])
+            val thread = decode(parts[2])
+            return if (accountId != null && path.isNotEmpty() && thread.isNotEmpty()) {
+                Conversation(accountId, path, thread)
+            } else {
+                null
+            }
+        }
+
+        /** Folder paths and thread ids may hold any character, the route separator included. */
+        private fun encode(text: String) = URLEncoder.encode(text, "UTF-8")
+
+        private fun decode(text: String) = URLDecoder.decode(text, "UTF-8")
     }
 }

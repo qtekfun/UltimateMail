@@ -11,7 +11,7 @@ import com.qtekfun.ultimatemail.domain.picker.GmailLabels
 import kotlinx.coroutines.flow.Flow
 
 /**
- * A message with a queued move, or a queued removal of the label of the folder it is listed in
+ * A message with a queued move or delete, or a queued removal of the label of the folder it is listed in
  * (Gmail's Inbox label for the Inbox), has already left the folder as far as the user is
  * concerned (RF-06): the lists drop it at once and the sync engine deletes the row when the
  * server confirms. The queue is the single source of truth, so undoing the move (the queue
@@ -22,9 +22,19 @@ import kotlinx.coroutines.flow.Flow
  */
 private const val VISIBLE_T = "NOT EXISTS (SELECT 1 FROM pending_operation p " +
     "WHERE p.accountId = t.accountId AND p.folderPath = t.folderPath AND p.uid = t.uid " +
-    "AND p.failed = 0 AND (p.type = 'MOVE' OR (p.type = 'REMOVE_LABEL' AND " +
+    "AND p.failed = 0 AND (p.type IN ('MOVE', 'DELETE') OR (p.type = 'REMOVE_LABEL' AND " +
     "(p.payload = t.folderPath OR (p.payload = '${GmailLabels.INBOX}' AND EXISTS " +
     "(SELECT 1 FROM folder f WHERE f.accountId = t.accountId AND f.path = t.folderPath " +
+    "AND f.role = 'INBOX'))) AND NOT EXISTS (SELECT 1 FROM pending_operation a " +
+    "WHERE a.accountId = p.accountId AND a.folderPath = p.folderPath AND a.uid = p.uid " +
+    "AND a.type = 'ADD_LABEL' AND a.payload = p.payload AND a.id > p.id))))"
+
+/** [VISIBLE_T] for the alias `m`. Room needs constant strings, so there is one per alias. */
+private const val VISIBLE_M = "NOT EXISTS (SELECT 1 FROM pending_operation p " +
+    "WHERE p.accountId = m.accountId AND p.folderPath = m.folderPath AND p.uid = m.uid " +
+    "AND p.failed = 0 AND (p.type IN ('MOVE', 'DELETE') OR (p.type = 'REMOVE_LABEL' AND " +
+    "(p.payload = m.folderPath OR (p.payload = '${GmailLabels.INBOX}' AND EXISTS " +
+    "(SELECT 1 FROM folder f WHERE f.accountId = m.accountId AND f.path = m.folderPath " +
     "AND f.role = 'INBOX'))) AND NOT EXISTS (SELECT 1 FROM pending_operation a " +
     "WHERE a.accountId = p.accountId AND a.folderPath = p.folderPath AND a.uid = p.uid " +
     "AND a.type = 'ADD_LABEL' AND a.payload = p.payload AND a.id > p.id))))"
@@ -49,6 +59,7 @@ interface ConversationDao {
             "AND t.folderPath = m.folderPath AND t.threadId = m.threadId AND t.seen = 0 " +
             "AND $VISIBLE_T) AS unreadCount " +
             "FROM message m WHERE m.accountId = :accountId AND m.folderPath = :folderPath " +
+            "AND " + VISIBLE_M + " " +
             "AND m.id = (SELECT t.id FROM message t WHERE t.accountId = m.accountId " +
             "AND t.folderPath = m.folderPath AND t.threadId = m.threadId AND $VISIBLE_T " +
             "ORDER BY t.sentAt DESC, t.id DESC LIMIT 1) " +
@@ -70,7 +81,7 @@ interface ConversationDao {
             "AND t.folderPath = m.folderPath AND t.threadId = m.threadId AND t.seen = 0 " +
             "AND $VISIBLE_T) AS unreadCount " +
             "FROM message m JOIN folder f ON f.accountId = m.accountId AND f.path = m.folderPath " +
-            "WHERE f.role = 'INBOX' " +
+            "WHERE f.role = 'INBOX' AND " + VISIBLE_M + " " +
             "AND m.id = (SELECT t.id FROM message t WHERE t.accountId = m.accountId " +
             "AND t.folderPath = m.folderPath AND t.threadId = m.threadId AND $VISIBLE_T " +
             "ORDER BY t.sentAt DESC, t.id DESC LIMIT 1) " +

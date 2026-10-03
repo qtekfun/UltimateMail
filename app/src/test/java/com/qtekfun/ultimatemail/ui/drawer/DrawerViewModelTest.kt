@@ -6,6 +6,7 @@ package com.qtekfun.ultimatemail.ui.drawer
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
+import com.qtekfun.ultimatemail.data.local.FakeAttachmentStorage
 import com.qtekfun.ultimatemail.data.local.UltimateMailDatabase
 import com.qtekfun.ultimatemail.data.local.account
 import com.qtekfun.ultimatemail.data.local.folder
@@ -72,7 +73,7 @@ class DrawerViewModelTest {
     private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) = DrawerViewModel(
         AccountListing(db),
         FolderListing(db),
-        AccountRemoval(db, vault, Dispatchers.Unconfined),
+        AccountRemoval(db, vault, FakeAttachmentStorage(), Dispatchers.Unconfined),
         status,
         scheduler,
         saved

@@ -40,6 +40,37 @@ object MailIcons {
         "M17.63,5.84C17.27,5.33 16.67,5 16,5L5,5.01C3.9,5.01 3,5.9 3,7v10c0,1.1 0.9,1.99 2,1.99" +
             "L16,19c0.67,0 1.27,-0.33 1.63,-0.84L22,12l-4.37,-6.16z"
 
+    private const val STAR_OUTLINE_PATH =
+        "M22,9.24l-7.19,-0.62L12,2 9.19,8.63 2,9.24l5.46,4.73L5.82,21 12,17.27 18.18,21l-1.63," +
+            "-7.03L22,9.24zM12,15.4l-3.76,2.27 1,-4.28 -3.32,-2.88 4.38,-0.38L12,6.1l1.71,4.04 " +
+            "4.38,0.38 -3.32,2.88 1,4.28L12,15.4z"
+
+    private const val REPLY_PATH = "M10,9V5l-7,7 7,7v-4.1c5,0 8.5,1.6 11,5.1 -1,-5 -4,-10 -11,-11z"
+
+    private const val REPLY_ALL_PATH =
+        "M7,8V5l-7,7 7,7v-3l-4,-4 4,-4zM13,9V5l-7,7 7,7v-4.1c5,0 8.5,1.6 11,5.1 -1,-5 -4,-10 " +
+            "-11,-11z"
+
+    private const val FORWARD_PATH = "M12,8V4l8,8 -8,8v-4H4V8z"
+
+    private const val FILE_PATH =
+        "M6,2c-1.1,0 -1.99,0.9 -1.99,2L4,20c0,1.1 0.89,2 1.99,2H18c1.1,0 2,-0.9 2,-2V8l-6,-6H6z" +
+            "M13,9V3.5L18.5,9H13z"
+
+    private const val DOCUMENT_PATH =
+        "M14,2H6c-1.1,0 -1.99,0.9 -1.99,2L4,20c0,1.1 0.89,2 1.99,2H18c1.1,0 2,-0.9 2,-2V8l-6,-6z" +
+            "M16,18H8v-2h8v2zM16,14H8v-2h8v2zM13,9V3.5L18.5,9H13z"
+
+    private const val IMAGE_PATH =
+        "M21,19V5c0,-1.1 -0.9,-2 -2,-2H5c-1.1,0 -2,0.9 -2,2v14c0,1.1 0.9,2 2,2h14c1.1,0 2,-0.9 " +
+            "2,-2zM8.5,13.5l2.5,3.01L14.5,12l4.5,6H5l3.5,-4.5z"
+
+    private const val DOWNLOAD_PATH = "M19,9h-4V3H9v6H5l7,7 7,-7zM5,18v2h14v-2H5z"
+
+    private const val EXPAND_PATH = "M16.59,8.59L12,13.17 7.41,8.59 6,10l6,6 6,-6z"
+
+    private const val COLLAPSE_PATH = "M12,8l-6,6 1.41,1.41L12,10.83l4.59,4.58L18,14z"
+
     private fun icon(name: String, path: String): ImageVector = ImageVector.Builder(
         name = name,
         defaultWidth = 24.dp,
@@ -76,4 +107,30 @@ object MailIcons {
             fill = SolidColor(Color.Black)
         ).build()
     }
+
+    /** An outlined star: not starred. */
+    val StarOutline: ImageVector by lazy { icon("StarOutline", STAR_OUTLINE_PATH) }
+
+    val Reply: ImageVector by lazy { icon("Reply", REPLY_PATH) }
+
+    val ReplyAll: ImageVector by lazy { icon("ReplyAll", REPLY_ALL_PATH) }
+
+    val Forward: ImageVector by lazy { icon("Forward", FORWARD_PATH) }
+
+    /** A page: a file of any kind. */
+    val File: ImageVector by lazy { icon("File", FILE_PATH) }
+
+    /** A page with lines: a text document, a PDF. */
+    val Document: ImageVector by lazy { icon("Document", DOCUMENT_PATH) }
+
+    val Image: ImageVector by lazy { icon("Image", IMAGE_PATH) }
+
+    /** An arrow into a tray: save to the device. */
+    val Download: ImageVector by lazy { icon("Download", DOWNLOAD_PATH) }
+
+    /** A chevron pointing down: more to show. */
+    val ExpandMore: ImageVector by lazy { icon("ExpandMore", EXPAND_PATH) }
+
+    /** A chevron pointing up: show less. */
+    val ExpandLess: ImageVector by lazy { icon("ExpandLess", COLLAPSE_PATH) }
 }
