@@ -98,6 +98,19 @@ android {
         unitTests.all { it.useJUnitPlatform() }
     }
 
+    packaging {
+        resources {
+            pickFirsts += listOf("META-INF/LICENSE.md", "META-INF/NOTICE.md")
+            // Each protocol provider registers itself in this file; keep them all.
+            merges += listOf(
+                "META-INF/jakarta.providers",
+                "META-INF/javamail.providers",
+                "META-INF/jakarta.address.map",
+                "META-INF/javamail.address.map"
+            )
+        }
+    }
+
     lint {
         warningsAsErrors = true
         abortOnError = true
@@ -227,6 +240,14 @@ tasks.named("check") {
 // ISC...) only when a dependency needs them; licensee warns about unused ones.
 licensee {
     allow("Apache-2.0")
+    // Angus Mail is dual licensed EPL-2.0 or GPL-2.0 with the Classpath Exception; the second
+    // option is GPL-3.0 compatible.
+    allow("GPL-2.0-with-classpath-exception")
+    allow("EPL-2.0")
+    // jakarta.activation declares the Eclipse Distribution License 1.0, which is BSD-3-Clause.
+    allowUrl("http://www.eclipse.org/org/documents/edl-v10.php") {
+        because("Eclipse Distribution License 1.0 is the BSD-3-Clause license")
+    }
 }
 
 // Google Play Services, Firebase and Crashlytics are banned outright (F-Droid
@@ -288,6 +309,11 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.core)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
+    implementation(libs.angus.mail)
+    implementation(libs.angus.gimap)
+    implementation(libs.angus.activation)
+    implementation(libs.jakarta.activation.api)
+
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
@@ -297,4 +323,5 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
     testImplementation(libs.mockk)
+    testImplementation(libs.greenmail)
 }
