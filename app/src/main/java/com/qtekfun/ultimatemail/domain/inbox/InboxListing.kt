@@ -59,6 +59,22 @@ class InboxListing @Inject constructor(database: UltimateMailDatabase) {
         }
     }
 
+    /** The folders of the accounts of [scope], to tell what archive and delete do to its rows. */
+    fun observeTargets(scope: InboxScope): Flow<RowTargets> = when (scope) {
+        is InboxScope.Folder -> folders.observeAll(scope.accountId)
+            .map { RowTargets(mapOf(scope.accountId to it)) }
+
+        InboxScope.Unified -> accounts.observeAll().flatMapLatest { list ->
+            if (list.isEmpty()) {
+                flowOf(RowTargets())
+            } else {
+                combine(list.map { folders.observeAll(it.id) }) { perAccount ->
+                    RowTargets(list.indices.associate { list[it].id to perAccount[it] })
+                }
+            }
+        }
+    }
+
     private fun ConversationSummary.toItem() = ConversationItem(
         accountId = latest.accountId,
         folderPath = latest.folderPath,

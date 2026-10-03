@@ -4,6 +4,7 @@
 package com.qtekfun.ultimatemail.domain.conversation
 
 import com.qtekfun.ultimatemail.data.local.dao.MessageDao
+import com.qtekfun.ultimatemail.data.local.entity.MessageEntity
 import com.qtekfun.ultimatemail.data.local.model.OperationType
 import com.qtekfun.ultimatemail.sync.engine.PendingSyncMarker
 import com.qtekfun.ultimatemail.sync.engine.SyncScheduler
@@ -17,6 +18,12 @@ import javax.inject.Inject
  * cancels a move that was never handed to the server when the move back is queued.
  */
 data class MoveUndo(val inverse: List<NewOperation>)
+
+/** What a flag change took away: the values of the flags it changed, null for the others. */
+data class PriorFlags(val messageId: Long, val seen: Boolean?, val flagged: Boolean?)
+
+/** What flag changes of several messages can be taken back with. */
+data class FlagUndo(val prior: List<PriorFlags>)
 
 /**
  * The changes the reader makes to messages (RF-05): every one is applied to Room at once, so the
@@ -41,17 +48,44 @@ class ConversationActions @Inject constructor(
     suspend fun setStarred(messageId: Long, starred: Boolean) =
         changeFlags(messageId, flagged = starred)
 
+    /**
+     * Sets the flags of several messages at once (the list's swipe and selection, RF-05) and
+     * returns how to undo it, or null when nothing changed. The sync is left to the caller
+     * ([sync]), once the undo window is over, so that an undo finds the change in the queue.
+     */
+    suspend fun setFlags(
+        messageIds: List<Long>,
+        seen: Boolean? = null,
+        flagged: Boolean? = null
+    ): FlagUndo? {
+        val prior = messageIds.mapNotNull { changeFlags(it, seen, flagged, sync = false) }
+        return FlagUndo(prior).takeIf { prior.isNotEmpty() }
+    }
+
+    /** Takes a [setFlags] back; the queue merges the inverse into what it has not sent yet. */
+    suspend fun undo(undo: FlagUndo) {
+        undo.prior.forEach { changeFlags(it.messageId, it.seen, it.flagged, sync = false) }
+    }
+
     private suspend fun changeFlags(
         messageId: Long,
         seen: Boolean? = null,
-        flagged: Boolean? = null
-    ) {
-        val row = messages.getById(messageId) ?: return
+        flagged: Boolean? = null,
+        sync: Boolean = true
+    ): PriorFlags? {
+        val row = messages.getById(messageId) ?: return null
         val change = FlagChange(
             seen = seen?.takeIf { it != row.seen },
             flagged = flagged?.takeIf { it != row.flagged }
         )
-        if (change.seen == null && change.flagged == null) return
+        return if (change.seen == null && change.flagged == null) {
+            null
+        } else {
+            apply(row, change, sync)
+        }
+    }
+
+    private suspend fun apply(row: MessageEntity, change: FlagChange, sync: Boolean): PriorFlags {
         val onServer = row.uid > 0
         messages.setFlags(
             row.id,
@@ -71,8 +105,13 @@ class ConversationActions @Inject constructor(
                 )
             )
             marker.mark(row.accountId, row.folderPath, row.uid)
-            scheduler.requestSync(row.accountId)
+            if (sync) scheduler.requestSync(row.accountId)
         }
+        return PriorFlags(
+            row.id,
+            seen = row.seen.takeIf { change.seen != null },
+            flagged = row.flagged.takeIf { change.flagged != null }
+        )
     }
 
     /**

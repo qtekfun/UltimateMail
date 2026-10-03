@@ -7,17 +7,31 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.qtekfun.ultimatemail.data.local.model.FolderRole
+import com.qtekfun.ultimatemail.data.settings.SettingsRepository
+import com.qtekfun.ultimatemail.data.settings.SwipeActions
 import com.qtekfun.ultimatemail.domain.account.AccountListing
 import com.qtekfun.ultimatemail.domain.account.AccountSummary
 import com.qtekfun.ultimatemail.domain.inbox.AccountMarker
+import com.qtekfun.ultimatemail.domain.inbox.BulkAvailability
 import com.qtekfun.ultimatemail.domain.inbox.ConversationItem
 import com.qtekfun.ultimatemail.domain.inbox.InboxListing
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
 import com.qtekfun.ultimatemail.domain.inbox.InboxStatus
 import com.qtekfun.ultimatemail.domain.inbox.RefreshTrigger
+import com.qtekfun.ultimatemail.domain.inbox.RowChange
+import com.qtekfun.ultimatemail.domain.inbox.RowTargets
+import com.qtekfun.ultimatemail.domain.inbox.Selection
+import com.qtekfun.ultimatemail.domain.inbox.SwipeBlock
+import com.qtekfun.ultimatemail.domain.inbox.SwipeDecision
+import com.qtekfun.ultimatemail.domain.inbox.SwipeDirection
+import com.qtekfun.ultimatemail.domain.inbox.SwipePlanner
+import com.qtekfun.ultimatemail.ui.conversation.NoticeKind
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -66,8 +80,18 @@ data class InboxState(
     val filter: InboxFilter = InboxFilter.ALL,
     val refreshing: Boolean = false,
     /** Markers by account id; only filled when the unified inbox mixes several accounts. */
-    val markers: Map<Long, AccountMarker> = emptyMap()
+    val markers: Map<Long, AccountMarker> = emptyMap(),
+    /** Where "archive" and "delete" send each row, and whether they apply. */
+    val targets: RowTargets = RowTargets(),
+    val swipe: SwipeActions = SwipeActions(),
+    val selection: Selection = Selection()
 ) {
+    /** The selected conversations, in list order. */
+    val selected: List<ConversationItem> get() = selection.pick(conversations)
+
+    /** What the selection bar offers for [selected]. */
+    val bulk: BulkAvailability get() = BulkAvailability.of(selected, targets)
+
     /** The empty state to show, or null while there is a list or more is still being loaded. */
     val empty: InboxEmpty?
         get() = when {
@@ -83,13 +107,17 @@ data class InboxState(
  * grows its limit page by page, and it remembers the scope, the loaded pages and the scroll
  * position in saved state so they survive rotation and coming back to the screen.
  */
+// One function per thing the list can do; they share the list, selection and swipe state.
+@Suppress("TooManyFunctions")
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class InboxViewModel @Inject constructor(
     private val listing: InboxListing,
     accountListing: AccountListing,
     private val refreshTrigger: RefreshTrigger,
-    private val savedState: SavedStateHandle
+    private val savedState: SavedStateHandle,
+    settings: SettingsRepository,
+    private val runner: RowActionRunner
 ) : ViewModel() {
     private val scope = MutableStateFlow(InboxScope.fromKey(savedState.get<String>(SCOPE_KEY)))
     private val limit = MutableStateFlow(savedState.get<Int>(LIMIT_KEY) ?: PAGE_SIZE)
@@ -99,6 +127,19 @@ class InboxViewModel @Inject constructor(
         } ?: InboxFilter.ALL
     )
     private val refreshing = MutableStateFlow(false)
+    private val selection = MutableStateFlow(
+        Selection(
+            savedState.get<String>(SELECTION_SCOPE_KEY),
+            savedState.get<ArrayList<String>>(SELECTION_KEYS_KEY).orEmpty().toSet()
+        )
+    )
+    private val restores = MutableSharedFlow<String>(
+        extraBufferCapacity = RESTORE_BUFFER,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+
+    /** Rows (by key) that were swiped away but are still in the list: bring them back. */
+    val restoreRequests: Flow<String> = restores
 
     private data class Page(
         val scope: InboxScope,
@@ -114,25 +155,48 @@ class InboxViewModel @Inject constructor(
         }
     }
 
+    private data class Status(
+        val scope: InboxScope,
+        val status: InboxStatus,
+        val targets: RowTargets
+    )
+
     private val statuses = scope.flatMapLatest { s ->
-        if (s == null) flowOf(null) else listing.observeStatus(s).map { s to it }
+        if (s == null) {
+            flowOf(null)
+        } else {
+            combine(listing.observeStatus(s), listing.observeTargets(s)) { status, targets ->
+                Status(s, status, targets)
+            }
+        }
     }
 
     private val accounts = accountListing.observe()
 
-    val state: StateFlow<InboxState> = combine(
+    private val list = combine(
         pages,
         statuses,
         filter,
         refreshing,
         accounts
     ) { page, status, currentFilter, isRefreshing, allAccounts ->
-        if (page == null || status == null || status.first != page.scope) {
+        if (page == null || status == null || status.scope != page.scope) {
             InboxState(scope = scope.value, filter = currentFilter, refreshing = isRefreshing)
         } else {
-            build(page, status.second, currentFilter, isRefreshing, allAccounts)
+            build(page, status, currentFilter, isRefreshing, allAccounts)
         }
-    }.onEach(::growWhileFilteredListIsShort).stateIn(
+    }
+
+    val state: StateFlow<InboxState> = combine(
+        list,
+        selection,
+        settings.swipeActions
+    ) { current, picked, swipe ->
+        current.copy(
+            swipe = swipe,
+            selection = picked.takeIf { it.scopeKey == current.scope?.key } ?: Selection()
+        )
+    }.onEach(::growWhileFilteredListIsShort).onEach(::dropVanished).stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
         InboxState()
@@ -140,7 +204,7 @@ class InboxViewModel @Inject constructor(
 
     private fun build(
         page: Page,
-        status: InboxStatus,
+        found: Status,
         currentFilter: InboxFilter,
         isRefreshing: Boolean,
         allAccounts: List<AccountSummary>
@@ -150,6 +214,7 @@ class InboxViewModel @Inject constructor(
             InboxFilter.UNREAD -> page.items.filter { it.unread }
         }
         val folder = page.scope as? InboxScope.Folder
+        val status = found.status
         return InboxState(
             scope = page.scope,
             loaded = true,
@@ -169,7 +234,8 @@ class InboxViewModel @Inject constructor(
                 allAccounts.associate { it.id to AccountMarker.of(it) }
             } else {
                 emptyMap()
-            }
+            },
+            targets = found.targets
         )
     }
 
@@ -181,6 +247,7 @@ class InboxViewModel @Inject constructor(
         if (scope.value == newScope) return
         limit.value = PAGE_SIZE
         filter.value = InboxFilter.ALL
+        setSelection(Selection(newScope.key))
         scope.value = newScope
         savedState[SCOPE_KEY] = newScope.key
         savedState[LIMIT_KEY] = PAGE_SIZE
@@ -228,6 +295,95 @@ class InboxViewModel @Inject constructor(
         }
     }
 
+    private fun setSelection(value: Selection) {
+        selection.value = value
+        savedState[SELECTION_SCOPE_KEY] = value.scopeKey
+        savedState[SELECTION_KEYS_KEY] = ArrayList(value.keys)
+    }
+
+    /** Conversations that left the list (archived, filtered out...) are no longer selected. */
+    private fun dropVanished(current: InboxState) {
+        if (!current.loaded || current.scope?.key != selection.value.scopeKey) return
+        val kept = selection.value.retain(current.conversations.mapTo(hashSetOf()) { it.key })
+        if (kept !== selection.value) setSelection(kept)
+    }
+
+    /** Long-press, or a tap while selecting: picks the row, or takes it off. */
+    fun toggleSelection(item: ConversationItem) {
+        val key = scope.value?.key ?: return
+        setSelection(selection.value.forScope(key).toggle(item.key))
+    }
+
+    fun selectAll() {
+        val current = state.value
+        if (!current.loaded) return
+        setSelection(selection.value.selectAll(current.conversations.map { it.key }))
+    }
+
+    fun clearSelection() = setSelection(selection.value.clear())
+
+    /**
+     * A row was swiped to [direction]. Returns whether it leaves the list (the row slides out and
+     * Room drops it); false springs it back. What the action does runs in the background.
+     */
+    fun onSwipe(item: ConversationItem, direction: SwipeDirection): Boolean {
+        val current = state.value
+        if (current.selection.active) return false
+        val action = direction.action(current.swipe)
+        return when (val decision = SwipePlanner.decide(action, item, current.targets)) {
+            is SwipeDecision.Apply -> {
+                run(decision.change, listOf(item), current.targets)
+                decision.change.leavesList
+            }
+
+            SwipeDecision.PickFolder -> {
+                pickFolder(listOf(item))
+                false
+            }
+
+            is SwipeDecision.Blocked -> {
+                runner.report(
+                    if (decision.reason == SwipeBlock.NO_ARCHIVE_FOLDER) {
+                        NoticeKind.NO_ARCHIVE_FOLDER
+                    } else {
+                        NoticeKind.NO_TRASH_FOLDER
+                    }
+                )
+                false
+            }
+
+            SwipeDecision.Inactive -> false
+        }
+    }
+
+    /** A button of the selection bar: [change] for every selected conversation. */
+    fun applyToSelection(change: RowChange) {
+        val current = state.value
+        val items = current.selected
+        if (items.isEmpty()) return
+        clearSelection()
+        run(change, items, current.targets)
+    }
+
+    /** The selection bar's "Move": opens the picker for the selected conversations. */
+    fun moveSelection() {
+        val items = state.value.selected
+        if (items.isEmpty() || !state.value.bulk.canMove) return
+        clearSelection()
+        pickFolder(items)
+    }
+
+    private fun pickFolder(items: List<ConversationItem>) {
+        viewModelScope.launch { runner.pickFolder(items) }
+    }
+
+    private fun run(change: RowChange, items: List<ConversationItem>, targets: RowTargets) {
+        viewModelScope.launch {
+            // Nothing changed (say, messages the server does not have): bring the rows back.
+            if (!runner.run(change, items, targets)) items.forEach { restores.emit(it.key) }
+        }
+    }
+
     private fun setLimit(value: Int) {
         limit.value = value
         savedState[LIMIT_KEY] = value
@@ -256,5 +412,8 @@ class InboxViewModel @Inject constructor(
         private const val FILTER_KEY = "inbox.filter"
         private const val SCROLL_INDEX_KEY = "inbox.scrollIndex"
         private const val SCROLL_OFFSET_KEY = "inbox.scrollOffset"
+        private const val SELECTION_SCOPE_KEY = "inbox.selectionScope"
+        private const val SELECTION_KEYS_KEY = "inbox.selectionKeys"
+        private const val RESTORE_BUFFER = 16
     }
 }
