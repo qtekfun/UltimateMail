@@ -155,6 +155,13 @@ interface MessageDao {
     )
     suspend fun setPendingSync(accountId: Long, folderPath: String, uid: Long, pending: Boolean)
 
+    /** The labels a message shows right after the user changed them, before the server agrees. */
+    @Query(
+        "UPDATE message SET labels = :labels WHERE accountId = :accountId " +
+            "AND folderPath = :folderPath AND uid = :uid"
+    )
+    suspend fun setLabels(accountId: Long, folderPath: String, uid: Long, labels: List<String>)
+
     @Query(
         "SELECT uid FROM message WHERE accountId = :accountId AND folderPath = :folderPath " +
             "AND pendingSync = 1"
