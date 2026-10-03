@@ -73,4 +73,8 @@ Decisiones tomadas por mí (a confirmar):
 21. **Búsqueda (T20) lanzada.** Decidido por Claude: operadores al estilo Gmail (`from:`, `to:`, `subject:`, `label:`,
     `has:attachment`, `is:unread`, `before:`, `after:`), ámbito carpeta / cuenta / todas, historial de búsquedas
     reciente solo en el dispositivo (máx. 10) y búsqueda en servidor bajo demanda (IMAP SEARCH; `X-GM-RAW` en Gmail).
+22. **Fallo anotado por el usuario: reloj y batería invisibles** con el sistema en claro y la app en oscuro/AMOLED.
+    Causa: `enableEdgeToEdge()` elige el color de los iconos de las barras según el tema del sistema. Corregido en la
+    PR de `fix/status-bar-icons` (el tema de la app fija el aspecto de los iconos). No se verificó en el móvil porque
+    exige cambiar el tema del sistema del teléfono, y no quise tocar sus ajustes sin que lo pidiera.
 
