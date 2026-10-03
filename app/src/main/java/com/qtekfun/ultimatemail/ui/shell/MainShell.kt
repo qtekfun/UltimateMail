@@ -8,9 +8,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
@@ -50,7 +54,8 @@ fun MainShell(
     menuOpen: Boolean,
     inboxState: InboxState,
     actions: ShellActions,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    compose: ShellCompose = ShellCompose()
 ) {
     val drawerState = rememberDrawerState(if (menuOpen) DrawerValue.Open else DrawerValue.Closed)
     LaunchedEffect(menuOpen) {
@@ -64,10 +69,33 @@ fun MainShell(
     ModalNavigationDrawer(
         modifier = modifier,
         drawerState = drawerState,
-        drawerContent = { DrawerContent(menu, scope, actions.drawer) }
+        drawerContent = {
+            DrawerContent(menu, scope, actions.drawer, outboxCount = compose.outboxCount)
+        }
     ) {
-        InboxScreen(scope = scope, state = inboxState, actions = actions.inbox)
+        val drafts = compose.drafts
+        if (drafts != null) {
+            drafts()
+        } else {
+            InboxScreen(
+                scope = scope,
+                state = inboxState,
+                actions = actions.inbox,
+                floatingActionButton = { ComposeButton(compose.onCompose) }
+            )
+        }
     }
+}
+
+/** The "Compose" floating button: an icon and its name, so it is clear without a long press. */
+@Composable
+private fun ComposeButton(onClick: () -> Unit) {
+    ExtendedFloatingActionButton(
+        onClick = onClick,
+        icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+        text = { Text(stringResource(R.string.compose_fab)) },
+        modifier = Modifier.heightIn(min = 56.dp)
+    )
 }
 
 /** Shown instead of the shell when there is no account: there is nothing to put in the menu. */

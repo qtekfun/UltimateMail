@@ -3,8 +3,6 @@
 
 package com.qtekfun.ultimatemail.domain.conversation
 
-import javax.inject.Inject
-
 /** How a new message relates to the one being read. */
 enum class ComposeMode { REPLY, REPLY_ALL, FORWARD }
 
@@ -18,18 +16,9 @@ data class ComposeRequest(
 
 /**
  * The seam between reading and the composer (T18). The conversation screen only asks for a
- * compose; whatever is bound to this interface opens the composer.
- *
- * TODO(T18): bind the real implementation (open the composer with the quoted message, the
- * recipients for [ComposeMode.REPLY_ALL] and the signature) in `ComposeModule` instead of
- * [ComposeUnavailable], and navigate to the composer screen.
+ * compose; whatever is bound to this interface opens the composer (`ui.compose`).
  */
 fun interface ComposeLauncher {
-    /** Starts composing. Returns false when composing is not available (yet). */
+    /** Starts composing. Returns false when the request cannot be taken. */
     fun start(request: ComposeRequest): Boolean
-}
-
-/** The placeholder until T18: composing is not available, so the screen says "coming soon". */
-class ComposeUnavailable @Inject constructor() : ComposeLauncher {
-    override fun start(request: ComposeRequest): Boolean = false
 }

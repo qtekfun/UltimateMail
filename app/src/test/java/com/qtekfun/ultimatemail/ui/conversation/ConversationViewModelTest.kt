@@ -366,7 +366,7 @@ class ConversationViewModelTest {
     }
 
     @Test
-    fun `reply is a placeholder that says coming soon until the composer exists`() = runTest {
+    fun `reply says so when the composer cannot be started and stays quiet when it can`() = runTest {
         val f = start(allRead = true)
         f.open()
 
@@ -377,7 +377,7 @@ class ConversationViewModelTest {
             ComposeRequest(f.h.accountId, "INBOX", newest.id, ComposeMode.REPLY_ALL),
             composed.single()
         )
-        assertEquals(NoticeKind.COMPOSE_SOON, f.vm.notice.value?.kind)
+        assertEquals(NoticeKind.COMPOSE_FAILED, f.vm.notice.value?.kind)
 
         composeAvailable = true
         f.vm.noticeShown(f.vm.notice.value!!.id)
