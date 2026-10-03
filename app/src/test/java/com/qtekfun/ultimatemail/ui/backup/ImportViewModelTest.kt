@@ -144,7 +144,7 @@ class ImportViewModelTest {
     @Test
     fun `importing sends the ticked accounts and the settings choice`() {
         val summary = ImportSummary(
-            listOf(ImportedAccount("user0@example.test", needsSignIn = true)),
+            listOf(ImportedAccount(7, "user0@example.test", needsSignIn = true)),
             skipped = 1,
             failed = 0,
             settingsApplied = true

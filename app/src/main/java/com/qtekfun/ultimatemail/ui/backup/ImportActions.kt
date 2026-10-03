@@ -10,5 +10,7 @@ data class ImportActions(
     val onOpen: (CharArray) -> Unit,
     val onToggle: (Int) -> Unit,
     val onImportSettingsChange: (Boolean) -> Unit,
-    val onImport: () -> Unit
+    val onImport: () -> Unit,
+    /** Opens the sign-in-again screen of an imported account that came without credentials. */
+    val onSignIn: (Long) -> Unit = {}
 )
