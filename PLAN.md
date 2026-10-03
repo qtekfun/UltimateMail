@@ -23,7 +23,7 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 - [x] **T08 Cola de operaciones pendientes**: idempotente, backoff exponencial, persistida. **100% de cobertura.**
 - [ ] **T09 Resolutor de consistencia**: reglas de la sección 5 de `SPEC.md`. **100% de cobertura**, un test por regla más fallos a mitad de operación.
 - [ ] **T10 Motor de sincronización**: UIDVALIDITY/UIDNEXT/CONDSTORE/QRESYNC, ventana offline por cuenta, WorkManager periódico (~15 min), sync al abrir y pull-to-refresh.
-- [ ] **T11 Hilos**: `X-GM-THRID`, `THREAD` y algoritmo References/asunto, con tests.
+- [x] **T11 Hilos**: `X-GM-THRID`, `THREAD` y algoritmo References/asunto, con tests.
 - [ ] **T12 Tests de sync offline**: caídas de red, UIDVALIDITY cambiada, cambios concurrentes, app cerrada a mitad de sync.
 
 ## Fase 3 — Interfaz del MVP
