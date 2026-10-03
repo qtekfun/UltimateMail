@@ -59,7 +59,21 @@ sealed interface Screen {
         override val route = ACCOUNT_SETTINGS_PREFIX + accountId
     }
 
+    /**
+     * The composer (T18b) on the draft [draftId]. The draft lives in Room, so this id is all that
+     * has to survive process death.
+     */
+    data class Compose(val draftId: Long) : Screen {
+        override val route = COMPOSE_PREFIX + draftId
+    }
+
+    /** The messages waiting to be sent or failed (T18b), reached from the side menu. */
+    data object Outbox : Screen {
+        override val route = "outbox"
+    }
+
     companion object {
+        private const val COMPOSE_PREFIX = "compose:"
         private const val INBOX_PREFIX = "inbox:"
         private const val CONVERSATION_PREFIX = "conversation:"
         private const val CONVERSATION_PARTS = 3
@@ -70,6 +84,11 @@ sealed interface Screen {
             route == AddAccount.route -> AddAccount
 
             route == Settings.route -> Settings
+
+            route == Outbox.route -> Outbox
+
+            route != null && route.startsWith(COMPOSE_PREFIX) ->
+                route.removePrefix(COMPOSE_PREFIX).toLongOrNull()?.let(::Compose) ?: Home
 
             route != null && route.startsWith(CONVERSATION_PREFIX) ->
                 conversationFromRoute(route.removePrefix(CONVERSATION_PREFIX)) ?: Home

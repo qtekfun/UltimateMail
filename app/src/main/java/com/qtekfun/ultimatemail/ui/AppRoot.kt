@@ -23,12 +23,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qtekfun.ultimatemail.R
+import com.qtekfun.ultimatemail.data.local.model.FolderRole
 import com.qtekfun.ultimatemail.domain.folder.ShellScope
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
 import com.qtekfun.ultimatemail.ui.account.AddAccountActions
 import com.qtekfun.ultimatemail.ui.account.AddAccountEvent
 import com.qtekfun.ultimatemail.ui.account.AddAccountScreen
 import com.qtekfun.ultimatemail.ui.account.AddAccountViewModel
+import com.qtekfun.ultimatemail.ui.compose.ComposeEntryEffects
+import com.qtekfun.ultimatemail.ui.compose.ComposeScreens
+import com.qtekfun.ultimatemail.ui.compose.ComposeStart
+import com.qtekfun.ultimatemail.ui.compose.ComposerRoute
+import com.qtekfun.ultimatemail.ui.compose.DraftsRoute
+import com.qtekfun.ultimatemail.ui.compose.OutboxRoute
 import com.qtekfun.ultimatemail.ui.conversation.ConversationRoute
 import com.qtekfun.ultimatemail.ui.conversation.ConversationViewModel
 import com.qtekfun.ultimatemail.ui.conversation.noticeText
@@ -49,6 +56,7 @@ import com.qtekfun.ultimatemail.ui.settings.SettingsViewModel
 import com.qtekfun.ultimatemail.ui.shell.MainShell
 import com.qtekfun.ultimatemail.ui.shell.NoAccountsScreen
 import com.qtekfun.ultimatemail.ui.shell.ShellActions
+import com.qtekfun.ultimatemail.ui.shell.ShellCompose
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -62,7 +70,8 @@ fun AppRoot(
     inbox: InboxViewModel,
     conversation: ConversationViewModel,
     settings: SettingsViewModel,
-    accountSettings: AccountSettingsViewModel
+    accountSettings: AccountSettingsViewModel,
+    compose: ComposeScreens
 ) {
     val screen by navigator.screen.collectAsStateWithLifecycle()
     val menuOpen by navigator.drawerOpen.collectAsStateWithLifecycle()
@@ -77,6 +86,7 @@ fun AppRoot(
         }
     }
     BackNavigation(screen, menuOpen, navigator, addAccount, inbox)
+    ComposeEntryEffects(compose, navigator)
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         when (val current = screen) {
@@ -87,7 +97,12 @@ fun AppRoot(
             // One call site for every screen with the side menu, so the menu keeps its state
             // (and its closing animation) while the folder changes.
             Screen.Home, is Screen.Inbox ->
-                ShellRoute((current as? Screen.Inbox)?.scope, navigator, drawer, inbox)
+                ShellRoute((current as? Screen.Inbox)?.scope, navigator, drawer, inbox, compose)
+
+            is Screen.Compose ->
+                ComposerRoute(current.draftId, compose.composer, navigator::closeCompose)
+
+            Screen.Outbox -> OutboxRoute(compose.outbox, navigator)
 
             Screen.Settings -> SettingsRoute(settings, navigator)
 
@@ -112,7 +127,9 @@ private fun BackNavigation(
     val selecting by remember { inbox.state.map { it.selection.active } }
         .collectAsStateWithLifecycle(false)
     val onList = screen == Screen.Home || screen is Screen.Inbox
-    BackHandler(enabled = screen != Screen.Home || menuOpen || (onList && selecting)) {
+    // The composer handles Back itself: it saves the draft first.
+    val enabled = screen != Screen.Home || menuOpen || (onList && selecting)
+    BackHandler(enabled = enabled && screen !is Screen.Compose) {
         when {
             menuOpen -> navigator.back()
 
@@ -137,7 +154,11 @@ private fun NoticeHost(conversation: ConversationViewModel) {
         val result = host.showSnackbar(
             message = resources.noticeText(current),
             actionLabel = if (current.undoable) resources.getString(R.string.notice_undo) else null,
-            duration = if (current.undoable) SnackbarDuration.Long else SnackbarDuration.Short
+            duration = when {
+                current.holdUntilCleared -> SnackbarDuration.Indefinite
+                current.undoable -> SnackbarDuration.Long
+                else -> SnackbarDuration.Short
+            }
         )
         when {
             !current.undoable -> conversation.noticeShown(current.id)
@@ -155,7 +176,8 @@ private fun ShellRoute(
     requested: InboxScope?,
     navigator: AppNavigator,
     drawer: DrawerViewModel,
-    inbox: InboxViewModel
+    inbox: InboxViewModel,
+    compose: ComposeScreens
 ) {
     val menu by drawer.state.collectAsStateWithLifecycle()
     val menuOpen by navigator.drawerOpen.collectAsStateWithLifecycle()
@@ -175,7 +197,12 @@ private fun ShellRoute(
     LaunchedEffect(scope) {
         inbox.show(scope)
         drawer.onScopeShown(scope)
+        // A message started from another app is written from the account on screen.
+        compose.entry.setShownAccount((scope as? InboxScope.Folder)?.accountId)
     }
+    val outboxCount by compose.entry.outboxCount.collectAsStateWithLifecycle()
+    val showsDrafts = scope is InboxScope.Folder && inboxState.scope == scope &&
+        inboxState.folderRole == FolderRole.DRAFTS
     val show = { target: InboxScope -> navigator.showScope(target, menu.defaultScope) }
     MainShell(
         scope = scope,
@@ -197,6 +224,16 @@ private fun ShellRoute(
                 onOpenDestination = navigator::open
             ),
             inbox = inboxActions(inbox, navigator)
+        ),
+        compose = ShellCompose(
+            outboxCount = outboxCount,
+            onCompose = {
+                val account = (scope as? InboxScope.Folder)?.accountId ?: menu.selected?.id
+                if (account != null) compose.entry.start(ComposeStart.New(account))
+            },
+            drafts = (scope as? InboxScope.Folder)?.takeIf { showsDrafts }?.let { folder ->
+                { DraftsRoute(folder.accountId, compose.drafts, navigator) }
+            }
         )
     )
 }
