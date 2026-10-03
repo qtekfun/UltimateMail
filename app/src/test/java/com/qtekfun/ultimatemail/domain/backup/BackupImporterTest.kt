@@ -15,6 +15,7 @@ import com.qtekfun.ultimatemail.domain.account.AccountRemoval
 import com.qtekfun.ultimatemail.domain.account.AccountSetup
 import com.qtekfun.ultimatemail.domain.account.AccountValidator
 import com.qtekfun.ultimatemail.domain.account.ServerAutodetector
+import com.qtekfun.ultimatemail.domain.compose.FakeOutboxStorage
 import com.qtekfun.ultimatemail.domain.oauth.MemoryClientIds
 import com.qtekfun.ultimatemail.domain.settings.AccountSettingsStore
 import com.qtekfun.ultimatemail.domain.settings.MemoryOfflineDownloads
@@ -54,7 +55,13 @@ class BackupImporterTest {
     private val importer = BackupImporter(
         db,
         setup,
-        AccountRemoval(db, vault, FakeAttachmentStorage(), Dispatchers.Unconfined),
+        AccountRemoval(
+            db,
+            vault,
+            FakeAttachmentStorage(),
+            FakeOutboxStorage(),
+            Dispatchers.Unconfined
+        ),
         AccountSettingsStore(db, scheduler, downloads, Dispatchers.Unconfined),
         settings,
         downloads,
