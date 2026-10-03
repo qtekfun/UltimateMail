@@ -7,6 +7,10 @@ import android.content.Context
 import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import com.qtekfun.ultimatemail.data.local.UltimateMailDatabase
+import com.qtekfun.ultimatemail.data.local.dao.AccountDao
+import com.qtekfun.ultimatemail.data.local.dao.AttachmentDao
+import com.qtekfun.ultimatemail.data.local.dao.FolderDao
+import com.qtekfun.ultimatemail.data.local.dao.MessageDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -34,4 +38,16 @@ object DatabaseModule {
         .setQueryCoroutineContext(ioDispatcher)
         .addMigrations(*UltimateMailDatabase.MIGRATIONS)
         .build()
+
+    @Provides
+    fun accountDao(database: UltimateMailDatabase): AccountDao = database.accountDao()
+
+    @Provides
+    fun folderDao(database: UltimateMailDatabase): FolderDao = database.folderDao()
+
+    @Provides
+    fun messageDao(database: UltimateMailDatabase): MessageDao = database.messageDao()
+
+    @Provides
+    fun attachmentDao(database: UltimateMailDatabase): AttachmentDao = database.attachmentDao()
 }

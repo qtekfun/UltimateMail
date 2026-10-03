@@ -10,6 +10,8 @@ import androidx.room3.Query
 import com.qtekfun.ultimatemail.data.local.entity.MessageEntity
 import kotlinx.coroutines.flow.Flow
 
+// A DAO is a flat list of queries, one function each; splitting it would only scatter them.
+@Suppress("TooManyFunctions")
 @Dao
 interface MessageDao {
     /** Inserts new messages and replaces the ones already stored with the same server identity. */
@@ -65,10 +67,160 @@ interface MessageDao {
     )
     suspend fun delete(accountId: Long, folderPath: String, uid: Long)
 
-    /** Drops headers older than the offline window (RF-10). */
+    /**
+     * Drops server headers older than the offline window (RF-10). Messages with a change still
+     * waiting for the server, and local-only rows (uid 0 or below), are kept.
+     */
     @Query(
         "DELETE FROM message WHERE accountId = :accountId AND sentAt < :cutoffMillis " +
-            "AND pendingSync = 0"
+            "AND pendingSync = 0 AND uid > 0"
     )
     suspend fun deleteOlderThan(accountId: Long, cutoffMillis: Long)
+
+    /** Inserts headers not stored yet and leaves the stored ones (and their bodies) alone. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertNew(messages: List<MessageEntity>)
+
+    @Query("SELECT * FROM message WHERE id = :id")
+    suspend fun getById(id: Long): MessageEntity?
+
+    /** UIDs of the messages the server has, ascending. Rows with uid 0 or below are local-only. */
+    @Query(
+        "SELECT uid FROM message WHERE accountId = :accountId AND folderPath = :folderPath " +
+            "AND uid > 0 ORDER BY uid"
+    )
+    suspend fun serverUids(accountId: Long, folderPath: String): List<Long>
+
+    @Query(
+        "SELECT id, uid, seen, flagged, answered, draft, labels FROM message " +
+            "WHERE accountId = :accountId AND folderPath = :folderPath " +
+            "AND uid BETWEEN :firstUid AND :lastUid"
+    )
+    suspend fun syncRows(
+        accountId: Long,
+        folderPath: String,
+        firstUid: Long,
+        lastUid: Long
+    ): List<MessageSyncRow>
+
+    /** Takes over what the server says about a message; bodies and local fields stay. */
+    // One column per parameter, matching the query.
+    @Suppress("LongParameterList")
+    @Query(
+        "UPDATE message SET seen = :seen, flagged = :flagged, answered = :answered, " +
+            "draft = :draft, labels = :labels WHERE id = :id"
+    )
+    suspend fun updateServerState(
+        id: Long,
+        seen: Boolean,
+        flagged: Boolean,
+        answered: Boolean,
+        draft: Boolean,
+        labels: List<String>
+    )
+
+    @Query(
+        "DELETE FROM message WHERE accountId = :accountId AND folderPath = :folderPath " +
+            "AND uid IN (:uids)"
+    )
+    suspend fun deleteUids(accountId: Long, folderPath: String, uids: List<Long>)
+
+    /**
+     * Second step of a UIDVALIDITY reset: the messages that operations wait on move to the
+     * negative uid those operations carry, so the rows survive [deleteServerRows].
+     */
+    @Query(
+        "UPDATE message SET uid = -id WHERE accountId = :accountId AND folderPath = :folderPath " +
+            "AND uid > 0 AND -id IN (SELECT uid FROM pending_operation " +
+            "WHERE accountId = :accountId AND folderPath = :folderPath AND uid < 0)"
+    )
+    suspend fun parkReferencedByOperations(accountId: Long, folderPath: String)
+
+    @Query("UPDATE message SET threadId = :to WHERE accountId = :accountId AND threadId = :from")
+    suspend fun renameThread(accountId: Long, from: String, to: String)
+
+    @Query("UPDATE message SET threadId = :threadId WHERE id = :id")
+    suspend fun setThreadId(id: Long, threadId: String)
+
+    /** What the conversation algorithm needs from every message of the account. */
+    @Query(
+        "SELECT id, folderPath, uid, messageId, inReplyTo, referenceIds, subject, sentAt, " +
+            "threadId FROM message WHERE accountId = :accountId"
+    )
+    suspend fun threadSeeds(accountId: Long): List<ThreadSeed>
+
+    @Query(
+        "UPDATE message SET pendingSync = :pending WHERE accountId = :accountId " +
+            "AND folderPath = :folderPath AND uid = :uid"
+    )
+    suspend fun setPendingSync(accountId: Long, folderPath: String, uid: Long, pending: Boolean)
+
+    @Query(
+        "SELECT uid FROM message WHERE accountId = :accountId AND folderPath = :folderPath " +
+            "AND pendingSync = 1"
+    )
+    suspend fun pendingUids(accountId: Long, folderPath: String): List<Long>
+
+    /** The rows of a folder with what identifies each message, for a UIDVALIDITY check. */
+    @Query(
+        "SELECT id, uid, messageId, gmailMessageId FROM message " +
+            "WHERE accountId = :accountId AND folderPath = :folderPath"
+    )
+    suspend fun identities(accountId: Long, folderPath: String): List<MessageIdentityRow>
+
+    /** Deletes server rows by id; rows already moved to a local uid (0 or below) are spared. */
+    @Query("DELETE FROM message WHERE id IN (:ids) AND uid > 0")
+    suspend fun deleteServerRows(ids: List<Long>)
+
+    /** Server messages, in any folder, that are the message with this identity (SPEC section 5). */
+    @Query(
+        "SELECT folderPath, uid, messageId, gmailMessageId, labels FROM message " +
+            "WHERE accountId = :accountId AND uid > 0 AND " +
+            "((:messageId IS NOT NULL AND messageId = :messageId) OR " +
+            "(:gmailMessageId IS NOT NULL AND gmailMessageId = :gmailMessageId))"
+    )
+    suspend fun withIdentity(
+        accountId: Long,
+        messageId: String?,
+        gmailMessageId: Long?
+    ): List<IdentifiedMessage>
 }
+
+/** The state of a stored message that a sync compares with the server. */
+data class MessageSyncRow(
+    val id: Long,
+    val uid: Long,
+    val seen: Boolean,
+    val flagged: Boolean,
+    val answered: Boolean,
+    val draft: Boolean,
+    val labels: List<String>
+)
+
+/** A stored message as input for rebuilding conversations. */
+data class ThreadSeed(
+    val id: Long,
+    val folderPath: String,
+    val uid: Long,
+    val messageId: String?,
+    val inReplyTo: String?,
+    val referenceIds: List<String>,
+    val subject: String,
+    val sentAt: java.time.Instant,
+    val threadId: String
+)
+
+data class MessageIdentityRow(
+    val id: Long,
+    val uid: Long,
+    val messageId: String?,
+    val gmailMessageId: Long?
+)
+
+data class IdentifiedMessage(
+    val folderPath: String,
+    val uid: Long,
+    val messageId: String?,
+    val gmailMessageId: Long?,
+    val labels: List<String>
+)
