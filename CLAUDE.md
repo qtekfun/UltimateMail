@@ -51,7 +51,7 @@ Lee siempre `PRD.md` (por qué y para quién), `SPEC.md` (qué construir) y `PLA
 - Trabaja **una tarea de `PLAN.md` cada vez**, en una rama `feat/<tarea>`.
 - Empieza en modo plan: propón el enfoque y espera confirmación antes de tocar código.
 - Commits siguiendo **Conventional Commits** (`feat:`, `fix:`, `test:`, `chore:`, `docs:`...), pequeños y atómicos.
-- No hagas `git push --force`, no reescribas historia compartida, no toques `main` directamente.
+- No hagas `git push --force`, no reescribas historia compartida, no toques `master` directamente.
 - Al terminar cada tarea: resume en 2-3 líneas qué se hizo y qué queda; marca la tarea en `PLAN.md`.
 - Si la spec es ambigua o falta información: **pregunta**, no inventes.
 
