@@ -82,7 +82,7 @@ sealed interface ConversationEvent {
  */
 // One function per thing the reader can do on the screen; splitting the class would only scatter
 // the state they share.
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LongParameterList") // One collaborator per thing the reader does.
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ConversationViewModel @Inject constructor(

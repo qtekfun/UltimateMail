@@ -115,6 +115,7 @@ class ConversationViewModelTest {
             LoadMessageBody(h.messages, h.db.attachmentDao(), h.sessions),
             DownloadAttachment(h.db.attachmentDao(), h.messages, h.sessions, storage),
             launcher,
+            NoticeCenter(scheduler),
             Dispatchers.Unconfined
         )
         backgroundScope.launch { vm.state.collect {} }
