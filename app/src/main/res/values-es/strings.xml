@@ -341,4 +341,12 @@
     <string name="search_server_auth">Inicia sesión de nuevo para buscar en esta cuenta en el servidor.</string>
     <string name="search_server_failed">El servidor no pudo hacer la búsqueda. Inténtalo más tarde.</string>
     <string name="search_server_nothing">Aquí no hay nada que buscar en el servidor.</string>
+    <!-- Texto que se escribe en el cuerpo de una respuesta o un reenvío; el redactor rellena la fecha y el remitente. -->
+    <string name="compose_attribution">El %1$s, %2$s escribió:</string>
+    <string name="compose_forward_marker">---------- Mensaje reenviado ---------</string>
+    <string name="compose_header_from">De:</string>
+    <string name="compose_header_date">Fecha:</string>
+    <string name="compose_header_subject">Asunto:</string>
+    <string name="compose_header_to">Para:</string>
+    <string name="compose_header_cc">Cc:</string>
 </resources>

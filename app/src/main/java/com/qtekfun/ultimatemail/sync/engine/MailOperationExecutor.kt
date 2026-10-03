@@ -6,6 +6,7 @@ package com.qtekfun.ultimatemail.sync.engine
 import com.qtekfun.ultimatemail.data.local.dao.AccountDao
 import com.qtekfun.ultimatemail.data.local.dao.FolderDao
 import com.qtekfun.ultimatemail.data.local.dao.MessageDao
+import com.qtekfun.ultimatemail.data.local.entity.AccountEntity
 import com.qtekfun.ultimatemail.data.local.entity.PendingOperationEntity
 import com.qtekfun.ultimatemail.data.local.model.FolderRole
 import com.qtekfun.ultimatemail.data.local.model.OperationType
@@ -58,12 +59,13 @@ class MailOperationExecutor @Inject constructor(
     private val sender: MailSender,
     private val marker: PendingSyncMarker,
     private val status: SyncStatusStore,
-    private val notices: SyncNotices
+    private val notices: SyncNotices,
+    private val outbox: OutboxOperations
 ) : OperationExecutor {
     override suspend fun execute(operation: PendingOperationEntity): OperationOutcome {
         val outcome = if (operation.uid <= 0 && operation.type.refersToServerMessage) {
             // The message still waits for the resync after a UIDVALIDITY reset to get a new UID.
-            OperationOutcome.RetryLater(NOT_SYNCED)
+            OperationOutcome.RetryLater(Reasons.NOT_SYNCED)
         } else {
             onServer(operation)
         }
@@ -75,9 +77,9 @@ class MailOperationExecutor @Inject constructor(
         val leased = sessions.withSession(operation.accountId) { run(operation, it) }
         return when (leased) {
             is Leased.Ok -> leased.value
-            Leased.AuthRequired -> OperationOutcome.RetryLater(AUTH_REQUIRED)
+            Leased.AuthRequired -> OperationOutcome.RetryLater(Reasons.AUTH_REQUIRED)
             is Leased.Failed -> failure(leased.failure)
-            Leased.NoAccount -> OperationOutcome.Rejected(NO_ACCOUNT)
+            Leased.NoAccount -> OperationOutcome.Rejected(Reasons.NO_ACCOUNT)
         }
     }
 
@@ -200,7 +202,7 @@ class MailOperationExecutor @Inject constructor(
         }
         val top = status.uidNext - 1
         if (top < 1) return MailResult.Success(emptyList())
-        return serverMessages(session, folder, maxOf(1, top - RECENT + 1)..top)
+        return serverMessages(session, folder, maxOf(1, top - RECENT_MESSAGES + 1)..top)
     }
 
     private fun MessageHeader.toServerMessage(folder: String) = ServerMessage(
@@ -218,14 +220,14 @@ class MailOperationExecutor @Inject constructor(
     ): OperationOutcome {
         // A payload this version cannot read will not become readable by waiting.
         val change = runCatching { FlagChange.decode(operation.payload) }.getOrNull()
-            ?: return OperationOutcome.Rejected(BAD_PAYLOAD)
+            ?: return OperationOutcome.Rejected(Reasons.BAD_PAYLOAD)
         // A changed UIDVALIDITY means this UID may be another message now: the pull sorts it out.
         val stored = folders.get(operation.accountId, operation.folderPath)?.uidValidity
         if (stored != null) {
             when (val current = session.folderStatus(operation.folderPath)) {
                 is MailResult.Success ->
                     if (current.value.uidValidity != stored) {
-                        return OperationOutcome.RetryLater(FOLDER_RESET)
+                        return OperationOutcome.RetryLater(Reasons.FOLDER_RESET)
                     }
 
                 is MailResult.Failure -> return failure(current)
@@ -247,8 +249,11 @@ class MailOperationExecutor @Inject constructor(
         operation: PendingOperationEntity,
         session: MailSession
     ): OperationOutcome {
-        val message = OutgoingPayload.decode(operation.payload)
-            ?: return OperationOutcome.Rejected(BAD_PAYLOAD)
+        val queued = OutgoingPayload.decodeQueued(operation.payload)
+            ?: return OperationOutcome.Rejected(Reasons.BAD_PAYLOAD)
+        // A payload made from a draft is saved by the outbox, which also keeps versions apart.
+        if (queued.draftId != null) return outbox.saveDraft(operation, queued, session)
+        val message = queued.message
         // An earlier attempt may have stored it without us hearing back.
         when (val exists = holds(session, operation.folderPath, message)) {
             is MailResult.Success -> if (exists.value) return OperationOutcome.Done
@@ -268,9 +273,26 @@ class MailOperationExecutor @Inject constructor(
         session: MailSession
     ): OperationOutcome {
         val account =
-            accounts.get(operation.accountId) ?: return OperationOutcome.Rejected(NO_ACCOUNT)
-        val message = OutgoingPayload.decode(operation.payload)
-            ?: return OperationOutcome.Rejected(BAD_PAYLOAD)
+            accounts.get(operation.accountId)
+                ?: return OperationOutcome.Rejected(Reasons.NO_ACCOUNT)
+        val queued = OutgoingPayload.decodeQueued(operation.payload)
+            ?: return OperationOutcome.Rejected(Reasons.BAD_PAYLOAD)
+        // A message that comes from a draft lives only as long as its draft: with the draft gone
+        // (sent, or the user discarded it) there is nothing left to send.
+        val draft = queued.draftId?.let { outbox.draft(it) }
+        if (queued.draftId != null && draft == null) return OperationOutcome.Done
+        val message = outbox.withAttachments(queued)
+            ?: return OperationOutcome.Rejected(Reasons.ATTACHMENT_MISSING)
+        val delivered = suspend {
+            // A plain message (no draft behind it) has nothing to tidy up.
+            if (queued.draftId == null) {
+                OperationOutcome.Done
+            } else {
+                outbox.afterAccepted(session, account, queued, message, operation.attempts)
+            }
+        }
+        // The server took it on an earlier attempt: only the tidying up is left.
+        if (draft?.smtpAcceptedAt != null) return delivered()
         // Never send blind: an earlier attempt may have been accepted without us hearing back, so
         // Sent is checked first, and if it cannot be read the message waits (SPEC section 5.5).
         val beforeSending = SendResolver.resolve(
@@ -278,23 +300,36 @@ class MailOperationExecutor @Inject constructor(
             sentLookup(session, account.id, message)
         )
         when (beforeSending) {
-            SendDecision.Done -> return OperationOutcome.Done
-            SendDecision.ConfirmFirst -> return OperationOutcome.RetryLater(CONFIRM_SENT)
+            SendDecision.Done -> return delivered()
+            SendDecision.ConfirmFirst -> return OperationOutcome.RetryLater(Reasons.CONFIRM_SENT)
             SendDecision.Retry -> Unit
         }
+        return transmit(session, account, message, delivered)
+    }
+
+    /** Hands [message] to the SMTP server of [account] and settles what comes back. */
+    // Each failure leaves early; guard clauses keep the normal path flat.
+    @Suppress("ReturnCount")
+    private suspend fun transmit(
+        session: MailSession,
+        account: AccountEntity,
+        message: OutgoingMessage,
+        delivered: suspend () -> OperationOutcome
+    ): OperationOutcome {
         val login = when (val result = credentials.forAccount(account)) {
             is CredentialsResult.Ready -> result.credentials
 
             CredentialsResult.ReauthenticationNeeded -> {
                 status.set(account.id, AccountSyncState.ReauthenticationNeeded)
-                return OperationOutcome.RetryLater(AUTH_REQUIRED)
+                return OperationOutcome.RetryLater(Reasons.AUTH_REQUIRED)
             }
 
-            CredentialsResult.TemporarilyUnavailable -> return OperationOutcome.RetryLater(NETWORK)
+            CredentialsResult.TemporarilyUnavailable ->
+                return OperationOutcome.RetryLater(Reasons.NETWORK)
         }
         return when (val sent = sender.send(account.smtpServer(), login, message)) {
-            is MailResult.Success -> OperationOutcome.Done
-            is MailResult.Failure -> afterFailedSend(session, account.id, message, sent)
+            is MailResult.Success -> delivered()
+            is MailResult.Failure -> afterFailedSend(session, account.id, message, sent, delivered)
         }
     }
 
@@ -303,7 +338,8 @@ class MailOperationExecutor @Inject constructor(
         session: MailSession,
         accountId: Long,
         message: OutgoingMessage,
-        failed: MailResult.Failure
+        failed: MailResult.Failure,
+        delivered: suspend () -> OperationOutcome
     ): OperationOutcome {
         val ambiguous = failed == MailResult.NetworkUnavailable || failed == MailResult.Timeout ||
             failed == MailResult.Unknown || failed == MailResult.Protocol
@@ -314,8 +350,8 @@ class MailOperationExecutor @Inject constructor(
                 sentLookup(session, accountId, message)
             )
         ) {
-            SendDecision.Done -> OperationOutcome.Done
-            SendDecision.ConfirmFirst -> OperationOutcome.RetryLater(CONFIRM_SENT)
+            SendDecision.Done -> delivered()
+            SendDecision.ConfirmFirst -> OperationOutcome.RetryLater(Reasons.CONFIRM_SENT)
             SendDecision.Retry -> failure(failed)
         }
     }
@@ -338,34 +374,14 @@ class MailOperationExecutor @Inject constructor(
     }
 
     /** Whether [folder] holds a message with the Message-ID of [message] among its newest ones. */
-    // Each failure leaves early; guard clauses keep the normal path flat.
-    @Suppress("ReturnCount")
     private suspend fun holds(
         session: MailSession,
         folder: String,
         message: OutgoingMessage
-    ): MailResult<Boolean> {
-        val status = when (val result = session.folderStatus(folder)) {
-            is MailResult.Success -> result.value
-            is MailResult.Failure -> return result
-        }
-        val top = status.uidNext - 1
-        if (top < 1) return MailResult.Success(false)
-        val range = UidRange(maxOf(1, top - RECENT + 1), top)
-        return when (val headers = session.fetchHeaders(folder, range)) {
-            is MailResult.Success -> MailResult.Success(
-                headers.value.any { it.messageId.sameId(message.messageId) }
-            )
-
-            is MailResult.Failure -> headers
-        }
-    }
+    ): MailResult<Boolean> = session.holdsMessageId(folder, message.messageId)
 
     private val OperationType.refersToServerMessage: Boolean
         get() = this != OperationType.SAVE_DRAFT && this != OperationType.SEND
-
-    private fun String?.sameId(other: String?) =
-        this != null && other != null && trim().trim('<', '>') == other.trim().trim('<', '>')
 
     /** Applying to a message that is no longer there is success: see the class comment. */
     private fun done(result: MailResult<UidOperationResult>): OperationOutcome = when (result) {
@@ -373,47 +389,5 @@ class MailOperationExecutor @Inject constructor(
         is MailResult.Failure -> failure(result)
     }
 
-    private fun failure(failure: MailResult.Failure): OperationOutcome = when (failure) {
-        MailResult.NetworkUnavailable -> OperationOutcome.RetryLater(NETWORK)
-
-        MailResult.Timeout -> OperationOutcome.RetryLater(TIMEOUT)
-
-        // The login may only need the user; the operation waits and the account says so.
-        MailResult.AuthenticationFailed -> OperationOutcome.RetryLater(AUTH_REQUIRED)
-
-        MailResult.CertificateRejected -> OperationOutcome.Rejected(CERTIFICATE)
-
-        is MailResult.ServerRejected ->
-            if (failure.permanent) {
-                OperationOutcome.Rejected(SERVER_REJECTED)
-            } else {
-                OperationOutcome.RetryLater(SERVER_BUSY)
-            }
-
-        MailResult.NotFound -> OperationOutcome.Rejected(NOT_FOUND)
-
-        is MailResult.Unsupported -> OperationOutcome.Rejected(UNSUPPORTED)
-
-        MailResult.Protocol, MailResult.Unknown -> OperationOutcome.RetryLater(UNEXPECTED)
-    }
-
-    private companion object {
-        /** How many of the newest messages of Sent or Drafts are searched for a Message-ID. */
-        const val RECENT = 50L
-
-        const val NETWORK = "network"
-        const val TIMEOUT = "timeout"
-        const val AUTH_REQUIRED = "auth_required"
-        const val CERTIFICATE = "certificate"
-        const val SERVER_REJECTED = "server_rejected"
-        const val SERVER_BUSY = "server_busy"
-        const val NOT_FOUND = "not_found"
-        const val UNSUPPORTED = "unsupported"
-        const val UNEXPECTED = "unexpected"
-        const val FOLDER_RESET = "folder_reset"
-        const val CONFIRM_SENT = "confirm_sent"
-        const val NOT_SYNCED = "not_synced"
-        const val BAD_PAYLOAD = "bad_payload"
-        const val NO_ACCOUNT = "no_account"
-    }
+    private fun failure(failure: MailResult.Failure): OperationOutcome = failureOutcome(failure)
 }

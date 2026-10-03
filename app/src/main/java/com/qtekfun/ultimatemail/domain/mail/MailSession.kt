@@ -81,5 +81,12 @@ interface MailSession {
     /** Stores a draft; returns its new UID when the server reports it (UIDPLUS), else null. */
     suspend fun appendDraft(folder: String, message: OutgoingMessage): MailResult<Long?>
 
+    /**
+     * Stores a copy of a message that was just sent, flagged as read, in [folder] (the Sent
+     * folder), for servers that do not file sent mail themselves. Returns its new UID when the
+     * server reports it (UIDPLUS), else null.
+     */
+    suspend fun appendSent(folder: String, message: OutgoingMessage): MailResult<Long?>
+
     suspend fun close()
 }
