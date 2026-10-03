@@ -9,9 +9,9 @@ object EmailDocument {
      * The viewport is the screen width, so a normal message wraps to it. Wide fixed layouts are
      * shrunk by their own `max-width`, words that cannot break are broken, and images and tables
      * never outgrow the page (tables are limited in viewport units, since a percentage of a table
-     * nested in a cell is circular and ignored when the cell is sized). A blocked remote image (its address parked in `data-blocked-src`)
-     * becomes a quiet bordered box with its alt text instead of the browser's broken-image icon;
-     * a blocked tracking pixel takes no room at all.
+     * nested in a cell is circular and ignored when the cell is sized). A blocked remote image
+     * (its address parked in `data-blocked-src`) becomes a quiet bordered box with its alt text
+     * instead of the browser's broken-image icon; a blocked tracking pixel takes no room at all.
      */
     private const val BASE_STYLE =
         "html{-webkit-text-size-adjust:100%}" +

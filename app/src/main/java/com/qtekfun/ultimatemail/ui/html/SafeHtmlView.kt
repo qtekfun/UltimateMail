@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.viewinterop.AndroidView
 import com.qtekfun.ultimatemail.domain.html.EmailDocument
@@ -56,8 +57,11 @@ fun SafeHtmlView(
             // The view is as tall as the message, so the thread around it does the scrolling:
             // drags that start on it scroll the thread (AndroidView forwards nested scrolls), and
             // it never takes focus (which would make the thread scroll to it, past the header).
+            // It is clipped to its bounds: otherwise its surface painted over the header of the
+            // message (seen on a device when a message was opened a second time).
             modifier = modifier
                 .fillMaxWidth()
+                .clipToBounds()
                 .focusProperties { canFocus = false },
             factory = { context -> lockedDownWebView(context, colors.algorithmicDarkening) },
             update = { webView ->
