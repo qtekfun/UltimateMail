@@ -4,97 +4,128 @@
 package com.qtekfun.ultimatemail.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.qtekfun.ultimatemail.domain.folder.ShellScope
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
 import com.qtekfun.ultimatemail.ui.account.AddAccountActions
 import com.qtekfun.ultimatemail.ui.account.AddAccountEvent
 import com.qtekfun.ultimatemail.ui.account.AddAccountScreen
 import com.qtekfun.ultimatemail.ui.account.AddAccountViewModel
-import com.qtekfun.ultimatemail.ui.folders.FolderListActions
-import com.qtekfun.ultimatemail.ui.folders.FolderListScreen
-import com.qtekfun.ultimatemail.ui.folders.FolderListViewModel
+import com.qtekfun.ultimatemail.ui.drawer.DrawerActions
+import com.qtekfun.ultimatemail.ui.drawer.DrawerViewModel
 import com.qtekfun.ultimatemail.ui.inbox.InboxActions
-import com.qtekfun.ultimatemail.ui.inbox.InboxScreen
 import com.qtekfun.ultimatemail.ui.inbox.InboxViewModel
 import com.qtekfun.ultimatemail.ui.nav.AppNavigator
 import com.qtekfun.ultimatemail.ui.nav.Screen
+import com.qtekfun.ultimatemail.ui.shell.MainShell
+import com.qtekfun.ultimatemail.ui.shell.NoAccountsScreen
+import com.qtekfun.ultimatemail.ui.shell.ShellActions
+import kotlinx.coroutines.launch
 
 /** Shows the current [Screen] and connects each screen to its view model. */
 @Composable
 fun AppRoot(
     navigator: AppNavigator,
-    folders: FolderListViewModel,
+    drawer: DrawerViewModel,
     addAccount: AddAccountViewModel,
     inbox: InboxViewModel
 ) {
     val screen by navigator.screen.collectAsStateWithLifecycle()
+    val menuOpen by navigator.drawerOpen.collectAsStateWithLifecycle()
 
-    LaunchedEffect(addAccount, folders, navigator) {
+    LaunchedEffect(addAccount, drawer, navigator) {
         addAccount.events.collect { event ->
             when (event) {
                 is AddAccountEvent.Created -> {
-                    folders.select(event.accountId)
-                    navigator.open(Screen.Folders)
+                    navigator.open(Screen.Inbox(drawer.switchAccount(event.accountId)))
                 }
             }
         }
     }
-    BackHandler(enabled = screen != Screen.Folders) {
-        addAccount.reset()
+    // Back closes the menu first, then returns to the start screen, then leaves the app.
+    BackHandler(enabled = screen != Screen.Home || menuOpen) {
+        if (screen == Screen.AddAccount) addAccount.reset()
         navigator.back()
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         when (val current = screen) {
-            Screen.Folders -> FoldersRoute(folders, navigator)
-            is Screen.Inbox -> InboxRoute(current.scope, inbox, navigator)
             Screen.AddAccount -> AddAccountRoute(addAccount, navigator)
+
+            // One call site for every screen with the side menu, so the menu keeps its state
+            // (and its closing animation) while the folder changes.
+            Screen.Home, is Screen.Inbox, Screen.Settings ->
+                // T21: Settings is not reachable yet; it will get its own branch.
+                ShellRoute((current as? Screen.Inbox)?.scope, navigator, drawer, inbox)
         }
     }
 }
 
 @Composable
-private fun FoldersRoute(folders: FolderListViewModel, navigator: AppNavigator) {
-    val state by folders.state.collectAsStateWithLifecycle()
-    FolderListScreen(
-        state = state,
-        actions = FolderListActions(
-            onSelectAccount = folders::select,
-            onAddAccount = { navigator.open(Screen.AddAccount) },
-            onOpenFolder = { accountId, path ->
-                navigator.open(Screen.Inbox(InboxScope.Folder(accountId, path)))
-            },
-            onOpenUnified = { navigator.open(Screen.Inbox(InboxScope.Unified)) },
-            onRequestRemoval = folders::requestRemoval,
-            onDismissRemoval = folders::dismissRemoval,
-            onConfirmRemoval = folders::confirmRemoval
-        )
-    )
-}
+private fun ShellRoute(
+    requested: InboxScope?,
+    navigator: AppNavigator,
+    drawer: DrawerViewModel,
+    inbox: InboxViewModel
+) {
+    val menu by drawer.state.collectAsStateWithLifecycle()
+    val menuOpen by navigator.drawerOpen.collectAsStateWithLifecycle()
+    val inboxState by inbox.state.collectAsStateWithLifecycle()
+    val coroutines = rememberCoroutineScope()
 
-@Composable
-private fun InboxRoute(scope: InboxScope, inbox: InboxViewModel, navigator: AppNavigator) {
-    val state by inbox.state.collectAsStateWithLifecycle()
-    LaunchedEffect(scope) { inbox.show(scope) }
-    InboxScreen(
+    // Nothing is drawn until Room answered, so the empty state does not flash on start.
+    if (!menu.loaded) {
+        Box(modifier = Modifier.fillMaxSize())
+        return
+    }
+    val scope = ShellScope.resolve(requested, menu.accounts, menu.defaultScope)
+    if (scope == null) {
+        NoAccountsScreen(onAddAccount = { navigator.open(Screen.AddAccount) })
+        return
+    }
+    LaunchedEffect(scope) {
+        inbox.show(scope)
+        drawer.onScopeShown(scope)
+    }
+    val show = { target: InboxScope -> navigator.showScope(target, menu.defaultScope) }
+    MainShell(
         scope = scope,
-        state = state,
-        actions = InboxActions(
-            onBack = { navigator.back() },
-            onRefresh = inbox::refresh,
-            onLoadMore = inbox::loadMore,
-            onFilterChange = inbox::setFilter,
-            // Reading a conversation arrives with T15.
-            onOpenConversation = {},
-            onScrolled = inbox::onScrolled,
-            savedScroll = inbox::savedScroll
+        menu = menu,
+        menuOpen = menuOpen,
+        inboxState = inboxState,
+        actions = ShellActions(
+            onMenuOpenChange = navigator::setDrawerOpen,
+            drawer = DrawerActions(
+                onSelectAccount = { id -> coroutines.launch { show(drawer.switchAccount(id)) } },
+                onAddAccount = { navigator.open(Screen.AddAccount) },
+                onOpenUnified = { show(InboxScope.Unified) },
+                onOpenFolder = { accountId, path -> show(InboxScope.Folder(accountId, path)) },
+                onToggleFolder = drawer::toggleFolder,
+                onRefresh = drawer::refresh,
+                onRequestRemoval = drawer::requestRemoval,
+                onDismissRemoval = drawer::dismissRemoval,
+                onConfirmRemoval = drawer::confirmRemoval,
+                onOpenDestination = navigator::open
+            ),
+            inbox = InboxActions(
+                onOpenMenu = { navigator.setDrawerOpen(true) },
+                onRefresh = inbox::refresh,
+                onLoadMore = inbox::loadMore,
+                onFilterChange = inbox::setFilter,
+                // Reading a conversation arrives with T15.
+                onOpenConversation = {},
+                onScrolled = inbox::onScrolled,
+                savedScroll = inbox::savedScroll
+            )
         )
     )
 }
