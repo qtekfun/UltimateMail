@@ -6,4 +6,10 @@
 <resources>
     <string name="app_name" translatable="false">UltimateMail</string>
     <string name="home_empty">No accounts yet</string>
+    <string name="html_link_title">Open this link?</string>
+    <string name="html_link_deceptive_warning">The text of this link shows a different address from where it really goes. Check the address before opening it.</string>
+    <string name="html_link_open">Open</string>
+    <string name="html_link_cancel">Cancel</string>
+    <string name="html_remote_blocked">Images and other remote content are blocked to protect your privacy.</string>
+    <string name="html_remote_show">Show</string>
 </resources>

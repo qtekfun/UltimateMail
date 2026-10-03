@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: 2026 UltimateMail contributors
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+<resources>
+    <string name="debug_safe_html_title">Safe HTML (debug)</string>
+    <string name="debug_sample_hostile">Hostile</string>
+    <string name="debug_sample_newsletter">Newsletter</string>
+    <string name="debug_sample_links">Links</string>
+    <string name="debug_bypass_sanitizer">Skip the sanitizer (test only the WebView)</string>
+    <string name="debug_allow_remote">Allow remote content</string>
+</resources>
