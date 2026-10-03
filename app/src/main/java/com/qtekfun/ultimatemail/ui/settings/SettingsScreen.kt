@@ -135,7 +135,6 @@ private fun LanguageChoice() {
 @Composable
 private fun GesturesSection(state: SettingsState, actions: SettingsActions) {
     SectionHeader(stringResource(R.string.settings_section_gestures))
-    SettingsSummary(stringResource(R.string.settings_gestures_pending))
     ChoiceRow(
         title = stringResource(R.string.settings_swipe_right),
         options = SwipeAction.entries,
