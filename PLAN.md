@@ -16,14 +16,14 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 
 ## Fase 1 — Datos y cuentas
 - [x] **T05 Modelo Room**: cuenta (incluye firma y política offline), carpeta/etiqueta, mensaje, hilo, adjunto, cola de operaciones, FTS; migraciones y tests.
-- [ ] **T06 Cuentas y credenciales**: alta con autodetección, contraseña de app y OAuth2, cifrado Keystore, refresco de tokens, eliminación que limpia datos.
+- [x] **T06 Cuentas y credenciales**: alta con autodetección, contraseña de app y OAuth2, cifrado Keystore, refresco de tokens, eliminación que limpia datos.
 - [ ] **T07 Cliente IMAP/SMTP (capa `data`)**: envoltorio de la librería elegida en T03 detrás de interfaces de `domain`; tests con servidor falso (NO/BAD, timeouts, caídas).
 
 ## Fase 2 — Sincronización (lo más crítico)
-- [ ] **T08 Cola de operaciones pendientes**: idempotente, backoff exponencial, persistida. **100% de cobertura.**
+- [x] **T08 Cola de operaciones pendientes**: idempotente, backoff exponencial, persistida. **100% de cobertura.**
 - [ ] **T09 Resolutor de consistencia**: reglas de la sección 5 de `SPEC.md`. **100% de cobertura**, un test por regla más fallos a mitad de operación.
 - [ ] **T10 Motor de sincronización**: UIDVALIDITY/UIDNEXT/CONDSTORE/QRESYNC, ventana offline por cuenta, WorkManager periódico (~15 min), sync al abrir y pull-to-refresh.
-- [ ] **T11 Hilos**: `X-GM-THRID`, `THREAD` y algoritmo References/asunto, con tests.
+- [x] **T11 Hilos**: `X-GM-THRID`, `THREAD` y algoritmo References/asunto, con tests.
 - [ ] **T12 Tests de sync offline**: caídas de red, UIDVALIDITY cambiada, cambios concurrentes, app cerrada a mitad de sync.
 
 ## Fase 3 — Interfaz del MVP
@@ -33,7 +33,7 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 - [ ] **T16 Gestos configurables y selección múltiple**, con deshacer.
 - [ ] **T17 Selector mover/etiquetar con búsqueda**: diálogo con filtro en vivo, recientes, etiquetas múltiples en Gmail.
 - [ ] **T18 Redactar y cola de envío**: responder/reenviar, borradores, adjuntos, autocompletado, texto enriquecido básico.
-- [ ] **T19 Firmas por cuenta**: editor en ajustes de cuenta, inserción automática con `-- `, posición en respuestas, cambio de remitente, sin duplicados.
+- [ ] **T19 Firmas por cuenta**: editor en ajustes de cuenta, inserción automática con `-- `, posición en respuestas, cambio de remitente, sin duplicados. *(lógica de dominio; editor y UI pendientes)*
   - *Verificación:* tests unitarios de la lógica de firma (`domain`) y test de UI con dos cuentas.
 - [ ] **T20 Búsqueda**: local (FTS) y en servidor.
 - [ ] **T21 Ajustes**: tema, colores dinámicos, idioma, gestos, política offline por cuenta.
