@@ -29,6 +29,8 @@ import com.qtekfun.ultimatemail.ui.account.AddAccountActions
 import com.qtekfun.ultimatemail.ui.account.AddAccountEvent
 import com.qtekfun.ultimatemail.ui.account.AddAccountScreen
 import com.qtekfun.ultimatemail.ui.account.AddAccountViewModel
+import com.qtekfun.ultimatemail.ui.backup.ExportRoute
+import com.qtekfun.ultimatemail.ui.backup.ImportRoute
 import com.qtekfun.ultimatemail.ui.conversation.ConversationRoute
 import com.qtekfun.ultimatemail.ui.conversation.ConversationViewModel
 import com.qtekfun.ultimatemail.ui.conversation.noticeText
@@ -90,6 +92,10 @@ fun AppRoot(
                 ShellRoute((current as? Screen.Inbox)?.scope, navigator, drawer, inbox)
 
             Screen.Settings -> SettingsRoute(settings, navigator)
+
+            Screen.ExportAccounts -> ExportRoute(onBack = { navigator.back() })
+
+            Screen.ImportAccounts -> ImportRoute(onBack = { navigator.back() })
 
             is Screen.AccountSettings ->
                 AccountSettingsRoute(current.accountId, accountSettings, navigator)
@@ -215,7 +221,9 @@ private fun SettingsRoute(settings: SettingsViewModel, navigator: AppNavigator) 
             onSwipeRightChange = settings::setSwipeRight,
             onSwipeLeftChange = settings::setSwipeLeft,
             onRemoteContentChange = settings::setRemoteContent,
-            onOpenAccount = { navigator.open(Screen.AccountSettings(it)) }
+            onOpenAccount = { navigator.open(Screen.AccountSettings(it)) },
+            onExportAccounts = { navigator.open(Screen.ExportAccounts) },
+            onImportAccounts = { navigator.open(Screen.ImportAccounts) }
         )
     )
 }
