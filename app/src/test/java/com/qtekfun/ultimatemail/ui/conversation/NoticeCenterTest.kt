@@ -88,4 +88,28 @@ class NoticeCenterTest {
         assertEquals(NoticeKind.MOVE_SOON, center.notice.value!!.kind)
         assertEquals(listOf<Long?>(1), scheduler.requests)
     }
+
+    @Test
+    fun `the end of the window runs onCommit once and an undo never does`() = runTest {
+        var committed = 0
+        val sending = center.post(
+            NoticeKind.SENDING,
+            undo = PendingUndo(emptySet(), onCommit = { committed++ }) { reverted++ },
+            holdUntilCleared = true
+        )
+        assertTrue(center.notice.value!!.holdUntilCleared)
+
+        center.commit(sending)
+        center.commit(sending)
+        assertEquals(1, committed)
+
+        val undone = center.post(
+            NoticeKind.SENDING,
+            undo = PendingUndo(emptySet(), onCommit = { committed++ }) { reverted++ }
+        )
+        center.takeUndo(undone)!!.revert()
+        center.commit(undone)
+        assertEquals(1, committed)
+        assertEquals(1, reverted)
+    }
 }

@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
@@ -95,7 +96,9 @@ fun DrawerContent(
     state: FolderMenuState,
     shown: InboxScope?,
     actions: DrawerActions,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Messages waiting in the outbox; the entry is only there while there are some. */
+    outboxCount: Int = 0
 ) {
     val account = state.selected ?: return
     ModalDrawerSheet(modifier = modifier) {
@@ -124,7 +127,7 @@ fun DrawerContent(
             }
         }
         DrawerDivider()
-        DrawerFooter(state.syncLine, actions)
+        DrawerFooter(state.syncLine, actions, outboxCount)
     }
     if (state.confirmingRemoval) {
         RemoveAccountDialog(actions.onDismissRemoval, actions.onConfirmRemoval)
@@ -252,7 +255,9 @@ private fun DrawerRow(
     unread: Int = 0,
     expandable: Boolean = false,
     expanded: Boolean = false,
-    onToggle: () -> Unit = {}
+    onToggle: () -> Unit = {},
+    /** What a screen reader says for the count when it is not an unread count. */
+    countDescription: String? = null
 ) {
     val colors = MaterialTheme.colorScheme
     val content = if (selected) colors.onSecondaryContainer else colors.onSurfaceVariant
@@ -281,7 +286,16 @@ private fun DrawerRow(
             modifier = Modifier.weight(1f)
         )
         if (unread > 0 || expandable) {
-            RowTrailing(label, unread, expanded.takeIf { expandable }, onToggle, content)
+            RowTrailing(
+                label,
+                unread,
+                expanded.takeIf {
+                    expandable
+                },
+                onToggle,
+                content,
+                countDescription
+            )
         }
     }
 }
@@ -293,11 +307,13 @@ private fun RowTrailing(
     /** Null when the row has no children; otherwise whether they are showing. */
     expanded: Boolean?,
     onToggle: () -> Unit,
-    content: Color
+    content: Color,
+    countDescription: String? = null
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (unread > 0) {
-            val description = pluralStringResource(R.plurals.drawer_unread_count, unread, unread)
+            val description = countDescription
+                ?: pluralStringResource(R.plurals.drawer_unread_count, unread, unread)
             Text(
                 text = unread.toString(),
                 style = MaterialTheme.typography.labelLarge,
@@ -332,7 +348,7 @@ private fun RowTrailing(
 }
 
 @Composable
-private fun DrawerFooter(syncLine: SyncLine, actions: DrawerActions) {
+private fun DrawerFooter(syncLine: SyncLine, actions: DrawerActions, outboxCount: Int) {
     Column(modifier = Modifier.padding(horizontal = 12.dp)) {
         Row(
             modifier = Modifier
@@ -357,6 +373,20 @@ private fun DrawerFooter(syncLine: SyncLine, actions: DrawerActions) {
                     contentDescription = stringResource(R.string.drawer_sync_now)
                 )
             }
+        }
+        if (outboxCount > 0) {
+            DrawerRow(
+                label = stringResource(R.string.drawer_outbox),
+                icon = Icons.AutoMirrored.Filled.Send,
+                selected = false,
+                onClick = { actions.onOpenDestination(Screen.Outbox) },
+                unread = outboxCount,
+                countDescription = pluralStringResource(
+                    R.plurals.drawer_outbox_count,
+                    outboxCount,
+                    outboxCount
+                )
+            )
         }
         DrawerDestinations.footer.forEach { destination ->
             DrawerRow(

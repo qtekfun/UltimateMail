@@ -3,6 +3,7 @@
 
 package com.qtekfun.ultimatemail.ui
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,6 +12,13 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qtekfun.ultimatemail.ui.account.AddAccountViewModel
+import com.qtekfun.ultimatemail.ui.compose.ComposeEntryViewModel
+import com.qtekfun.ultimatemail.ui.compose.ComposeScreens
+import com.qtekfun.ultimatemail.ui.compose.ComposeStart
+import com.qtekfun.ultimatemail.ui.compose.ComposerViewModel
+import com.qtekfun.ultimatemail.ui.compose.DraftsViewModel
+import com.qtekfun.ultimatemail.ui.compose.OutboxViewModel
+import com.qtekfun.ultimatemail.ui.compose.toIncomingCompose
 import com.qtekfun.ultimatemail.ui.conversation.ConversationViewModel
 import com.qtekfun.ultimatemail.ui.drawer.DrawerViewModel
 import com.qtekfun.ultimatemail.ui.inbox.InboxViewModel
@@ -31,11 +39,17 @@ class MainActivity : ComponentActivity() {
     private val conversation: ConversationViewModel by viewModels()
     private val settings: SettingsViewModel by viewModels()
     private val accountSettings: AccountSettingsViewModel by viewModels()
+    private val composeEntry: ComposeEntryViewModel by viewModels()
+    private val composer: ComposerViewModel by viewModels()
+    private val drafts: DraftsViewModel by viewModels()
+    private val outbox: OutboxViewModel by viewModels()
     private val search: SearchViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // A rotation recreates the activity with the same intent: handle it only the first time.
+        if (savedInstanceState == null) handleIncoming(intent)
         setContent {
             val appSettings by settings.state.collectAsStateWithLifecycle()
             UltimateMailTheme(appSettings.settings) {
@@ -47,9 +61,22 @@ class MainActivity : ComponentActivity() {
                     conversation,
                     settings,
                     accountSettings,
+                    ComposeScreens(composeEntry, composer, drafts, outbox),
                     search
                 )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIncoming(intent)
+    }
+
+    /** A mailto link or a share from another app opens the composer; anything else is ignored. */
+    private fun handleIncoming(intent: Intent?) {
+        val incoming = intent?.toIncomingCompose("$packageName.files") ?: return
+        composeEntry.start(ComposeStart.Incoming(incoming))
     }
 }

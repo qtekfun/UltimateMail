@@ -21,7 +21,20 @@ enum class NoticeKind {
     NO_ARCHIVE_FOLDER,
     NO_TRASH_FOLDER,
     MOVE_SOON,
-    COMPOSE_SOON,
+
+    /** The composer could not be started (the message is gone, the account was removed). */
+    COMPOSE_FAILED,
+
+    /** "Sending..." with Undo, held until its window ends (T18b). */
+    SENDING,
+    DRAFT_SAVED,
+    SEND_FAILED,
+
+    /** A message could not be queued when its undo window ended; it stays in Drafts. */
+    SEND_PROBLEM,
+
+    /** Some of the files shared with the app could not be attached. */
+    ATTACHMENTS_SKIPPED,
 
     /** A message that comes ready-made in [ConversationNotice.text]. */
     CUSTOM,
@@ -42,14 +55,24 @@ data class ConversationNotice(
     val undoable: Boolean,
     val count: Int = 1,
     /** A ready-made message (the move picker's), shown instead of the text of [kind]. */
-    val text: String? = null
+    val text: String? = null,
+    /**
+     * The snackbar stays until the notice is cleared (by [NoticeCenter.commit] or an undo)
+     * instead of timing out on its own: whoever posted it owns the clock (undo send).
+     */
+    val holdUntilCleared: Boolean = false
 )
 
 /**
  * What an undoable notice can take back: [revert] undoes the change, and [accountIds] are the
  * accounts to sync when the window to undo is over.
  */
-class PendingUndo(val accountIds: Set<Long>, val revert: suspend () -> Unit)
+class PendingUndo(
+    val accountIds: Set<Long>,
+    /** Runs when the window to undo ends (not when it is undone): the change is final. */
+    val onCommit: () -> Unit = {},
+    val revert: suspend () -> Unit
+)
 
 /**
  * The one snackbar of the app (RF-05): what the reading screen and the list did, with Undo.
@@ -70,12 +93,13 @@ class NoticeCenter @Inject constructor(private val scheduler: SyncScheduler) {
         kind: NoticeKind,
         count: Int = 1,
         undo: PendingUndo? = null,
-        text: String? = null
+        text: String? = null,
+        holdUntilCleared: Boolean = false
     ): Long {
         current.value?.takeIf { it.undoable }?.let { commit(it.id) }
         val id = ++nextId
         if (undo != null) pending[id] = undo
-        current.value = ConversationNotice(id, kind, undo != null, count, text)
+        current.value = ConversationNotice(id, kind, undo != null, count, text, holdUntilCleared)
         return id
     }
 
@@ -88,7 +112,9 @@ class NoticeCenter @Inject constructor(private val scheduler: SyncScheduler) {
 
     /** The undo window of [id] is over: what it changed is sent to the server. */
     fun commit(id: Long) {
-        pending.remove(id)?.accountIds?.forEach { scheduler.requestSync(it) }
+        val undo = pending.remove(id)
+        undo?.accountIds?.forEach { scheduler.requestSync(it) }
+        undo?.onCommit?.invoke()
         clear(id)
     }
 
