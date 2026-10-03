@@ -141,8 +141,10 @@ Cliente Android de correo IMAP/SMTP con UI inspirada en Mail de iOS y Gmail, off
 5. **Hilos** en servidores sin soporte nativo.
 6. **Rendimiento** de listas grandes e hilos con FTS en Room.
 
-## 9. Decisiones abiertas
-- Librería IMAP/SMTP (T03).
+## 9. Decisiones tomadas
+- **Librería IMAP/SMTP (T03): Angus Mail 2.0.5** (`org.eclipse.angus:jakarta.mail`) más `gimap` para extensiones de Gmail. Licencia doble EPL-2.0 / GPL-2.0 con Classpath Exception (compatible con GPLv3); `jakarta.activation` es BSD-3-Clause (EDL 1.0). Soporta XOAUTH2, IDLE y CONDSTORE parcial; **no** QRESYNC. Es una API bloqueante: se envuelve en `data` con dispatchers de IO. Se descartó K-9/Thunderbird por no publicarse como artefacto Maven y un cliente propio por riesgo. Validado con GreenMail (carpetas, cabeceras con UID, mover, flags, SMTP autenticado). Pendiente de comprobar contra Gmail y M365 reales cuando haya credenciales (T02).
+
+## 10. Decisiones abiertas
 - Firma rica (HTML) en versión posterior; colocación por defecto de la firma en respuestas.
 - Cliente OAuth propio de Google/Microsoft y gestión de sus credenciales públicas en el repo.
 - Ventana offline por defecto (90 días propuesta).
