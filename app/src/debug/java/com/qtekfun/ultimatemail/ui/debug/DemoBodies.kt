@@ -36,6 +36,7 @@ object DemoBodies {
     )
 
     private const val LONG_PARAGRAPHS = 12
+    private const val LONG_HTML_BLOCKS = 400
     private const val SPREADSHEET_TYPE =
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     private const val LONG_NAME =
@@ -51,6 +52,10 @@ object DemoBodies {
         5 -> inlineImage()
         6 -> longText()
         7 -> outlookReply()
+        8 -> notification()
+        9 -> wideNewsletter()
+        10 -> darkMail()
+        11 -> longHtml()
         else -> null
     }
 
@@ -156,5 +161,48 @@ object DemoBodies {
         text = "Thanks, I will have a look.\n\n________________________________\n" +
             "From: Bob <bob@example.test>\nSent: Monday, January 1, 2024 10:00 AM\n" +
             "To: Ana <ana@example.test>\nSubject: Report\n\nPlease review the attached report."
+    )
+
+    /** A typical notification mail: a 600px layout table, white card, remote logo and button. */
+    private fun notification() = DemoBody(
+        html = "<table width=\"100%\" bgcolor=\"#f4f4f4\" cellpadding=\"0\" cellspacing=\"0\">" +
+            "<tr><td align=\"center\"><table width=\"600\" bgcolor=\"#ffffff\" " +
+            "cellpadding=\"24\" cellspacing=\"0\" style=\"font-family:Arial;color:#222\">" +
+            "<tr><td><img src=\"https://images.example.test/logo.png\" width=\"180\" " +
+            "height=\"40\" alt=\"Example Cloud\"></td></tr>" +
+            "<tr><td><h1 style=\"font-size:22px\">A new sign-in to your account</h1>" +
+            "<p>We noticed a new sign-in from a device we do not recognise. If this was you, " +
+            "there is nothing else to do.</p>" +
+            "<p><a href=\"https://example.test/review\" style=\"background:#1a73e8;" +
+            "color:#fff;padding:12px 24px;text-decoration:none\">Review activity</a></p>" +
+            "<p style=\"font-size:12px;color:#777\">Example Cloud, 1 Example Street.</p>" +
+            "</td></tr></table></td></tr></table>"
+    )
+
+    /** A fixed 900px newsletter with a wide image and an unbreakable long URL. */
+    private fun wideNewsletter() = DemoBody(
+        html = "<table width=\"900\" cellpadding=\"8\" style=\"font-family:Georgia\">" +
+            "<tr><td colspan=\"2\"><img src=\"https://images.example.test/hero.jpg\" " +
+            "width=\"884\" height=\"300\" alt=\"Autumn sale hero banner\"></td></tr>" +
+            "<tr><td width=\"450\"><h2>Autumn sale</h2><p>Everything must go. " +
+            "https://example.test/a/very/long/path/that/never/breaks/and/keeps/going/on/and/on/" +
+            "forever/and/ever</p></td><td width=\"450\"><p>Second column with more text " +
+            "to look at while the layout is wider than the screen.</p></td></tr></table>"
+    )
+
+    /** A mail that already is dark: it must not be inverted again. */
+    private fun darkMail() = DemoBody(
+        html = "<html><head><meta name=\"color-scheme\" content=\"dark\">" +
+            "<style>:root{color-scheme:dark}body{background:#101418;color:#e6e6e6}</style>" +
+            "</head><body><h2>Already dark</h2><p>This message ships its own dark colours.</p>" +
+            "<p><a href=\"https://example.test/x\" style=\"color:#8ab4f8\">A link</a></p>" +
+            "</body></html>"
+    )
+
+    private fun longHtml() = DemoBody(
+        html = (1..LONG_HTML_BLOCKS).joinToString("") { n ->
+            "<p>Section $n. " + "A long html message to check height and scrolling. ".repeat(6) +
+                "</p>"
+        }
     )
 }

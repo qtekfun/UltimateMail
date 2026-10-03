@@ -29,6 +29,14 @@ class SyncLineTest {
     }
 
     @Test
+    fun `downloading bodies shows how many are on the device`() {
+        assertEquals(
+            SyncLine.DownloadingMessages(120, 800),
+            SyncLine.of(AccountSyncState.DownloadingBodies(120, 800))
+        )
+    }
+
+    @Test
     fun `refused credentials ask to sign in again`() {
         assertEquals(SyncLine.SignInAgain, SyncLine.of(AccountSyncState.ReauthenticationNeeded))
     }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -18,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.qtekfun.ultimatemail.R
+import com.qtekfun.ultimatemail.domain.conversation.RemoteBanner
 
 /** Asks the reader to confirm [link] before it is opened; the real address is always shown. */
 @Composable
@@ -45,21 +47,56 @@ fun LinkConfirmationDialog(link: PendingLink, onConfirm: () -> Unit, onDismiss: 
     )
 }
 
-/** Tells the reader remote content was blocked and lets them load it for this message. */
+/**
+ * Tells the reader remote content was blocked and lets them load it for this message only. The
+ * wording follows the [banner] kind: a plain notice under the "never" policy, a question under
+ * "ask"; neither loads anything on its own.
+ */
 @Composable
-fun RemoteContentBanner(onShow: () -> Unit, modifier: Modifier = Modifier) {
+fun RemoteContentBanner(banner: RemoteBanner, onShow: () -> Unit, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = stringResource(R.string.html_remote_blocked),
+            text = stringResource(
+                if (banner ==
+                    RemoteBanner.ASK
+                ) {
+                    R.string.html_remote_ask
+                } else {
+                    R.string.html_remote_blocked
+                }
+            ),
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.weight(1f)
         )
-        TextButton(onClick = onShow) { Text(stringResource(R.string.html_remote_show)) }
+        TextButton(onClick = onShow, modifier = Modifier.heightIn(min = 48.dp)) {
+            Text(stringResource(R.string.html_remote_show))
+        }
+    }
+}
+
+/** Switches a message between the dark theme's colours and the ones the sender chose. */
+@Composable
+fun OriginalColorsToggle(
+    viewOriginal: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    TextButton(
+        onClick = onToggle,
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .padding(horizontal = 8.dp)
+    ) {
+        Text(
+            stringResource(
+                if (viewOriginal) R.string.html_colors_adapted else R.string.html_colors_original
+            )
+        )
     }
 }

@@ -20,6 +20,12 @@ sealed interface AccountSyncState {
 
     data object Syncing : AccountSyncState
 
+    /**
+     * The headers are in; the bodies of the messages inside the offline window are being
+     * downloaded: [done] of [total] have theirs (RF-10).
+     */
+    data class DownloadingBodies(val done: Int, val total: Int) : AccountSyncState
+
     /** The last attempt failed for [problem]; local data is untouched. */
     data class Error(val problem: SyncProblem) : AccountSyncState
 
