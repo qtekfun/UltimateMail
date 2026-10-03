@@ -5,4 +5,10 @@
 -->
 <resources>
     <string name="home_empty">Aún no hay cuentas</string>
+    <string name="html_link_title">¿Abrir este enlace?</string>
+    <string name="html_link_deceptive_warning">El texto de este enlace muestra una dirección distinta de la que realmente abre. Comprueba la dirección antes de abrirlo.</string>
+    <string name="html_link_open">Abrir</string>
+    <string name="html_link_cancel">Cancelar</string>
+    <string name="html_remote_blocked">Las imágenes y otro contenido remoto están bloqueados para proteger tu privacidad.</string>
+    <string name="html_remote_show">Mostrar</string>
 </resources>
