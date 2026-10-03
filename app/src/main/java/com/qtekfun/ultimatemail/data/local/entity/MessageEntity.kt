@@ -55,6 +55,11 @@ data class MessageEntity(
     val draft: Boolean = false,
     val hasAttachments: Boolean = false,
     val size: Long = 0,
+    /** In-Reply-To header, kept so conversations can be rebuilt between syncs (T10, T11). */
+    val inReplyTo: String? = null,
+    /** References header ids, same purpose as [inReplyTo]. */
+    @ColumnInfo(defaultValue = "")
+    val referenceIds: List<String> = emptyList(),
     /** Gmail labels of the message; empty for other providers. */
     val labels: List<String> = emptyList(),
     /** Bodies are fetched on demand, so both are null until the message is opened. */
