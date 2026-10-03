@@ -6,6 +6,7 @@ package com.qtekfun.ultimatemail.data.local
 import com.qtekfun.ultimatemail.data.local.entity.AttachmentEntity
 import com.qtekfun.ultimatemail.domain.conversation.AttachmentFileNames
 import com.qtekfun.ultimatemail.sync.engine.AttachmentStorage
+import com.qtekfun.ultimatemail.sync.engine.StoredAttachment
 import java.io.File
 
 /**
@@ -21,7 +22,7 @@ class FileAttachmentStorage(private val root: File) : AttachmentStorage {
         val safeName = AttachmentFileNames.safe(attachment.fileName, "attachment")
         val name = "${attachment.id}-$safeName"
         val target = File(folder, name)
-        val partial = File(folder, "$name.part")
+        val partial = File(folder, "$name$PARTIAL")
         partial.writeBytes(bytes)
         check(partial.renameTo(target)) { "Could not store the attachment" }
         return target.absolutePath
@@ -33,5 +34,28 @@ class FileAttachmentStorage(private val root: File) : AttachmentStorage {
 
     override fun exists(path: String): Boolean = File(path).let { it.isFile && isInsideRoot(it) }
 
+    override fun stored(accountId: Long): List<StoredAttachment> {
+        val folders = File(root, accountId.toString()).listFiles { it.isDirectory }.orEmpty()
+        return folders.flatMap { folder ->
+            folder.listFiles { it.isFile && !it.name.endsWith(PARTIAL) }.orEmpty().mapNotNull {
+                // Files are named "<attachment id>-<name>"; anything else is not ours.
+                it.name.substringBefore('-').toLongOrNull()
+                    ?.let { id -> StoredAttachment(id, it.absolutePath) }
+            }
+        }
+    }
+
+    override fun delete(path: String) {
+        val file = File(path)
+        if (!file.isFile || !isInsideRoot(file)) return
+        file.delete()
+        // Only succeeds when the message folder is empty, which is what we want.
+        file.parentFile?.delete()
+    }
+
     private fun isInsideRoot(file: File) = file.canonicalFile.startsWith(root.canonicalFile)
+
+    private companion object {
+        const val PARTIAL = ".part"
+    }
 }
