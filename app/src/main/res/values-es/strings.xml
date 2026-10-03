@@ -406,7 +406,11 @@
     <string name="outbox_empty_title">Nada pendiente de enviar</string>
     <string name="outbox_empty_body">Los mensajes que envíes esperan aquí hasta que el servidor los acepte.</string>
     <string name="outbox_to">Para %1$s</string>
-    <string name="outbox_to_more">Para %1$s y %2$d más</string>
+    <plurals name="outbox_to_more">
+        <item quantity="one">Para %1$s y %2$d más</item>
+        <item quantity="many">Para %1$s y %2$d de más</item>
+        <item quantity="other">Para %1$s y %2$d más</item>
+    </plurals>
     <string name="outbox_status_waiting">Esperando para enviarse</string>
     <string name="outbox_status_sending">Enviando…</string>
     <string name="outbox_status_failed">No enviado</string>
@@ -430,6 +434,7 @@
     <string name="outbox_discard_body">No se enviará y no se podrá recuperar.</string>
     <plurals name="drawer_outbox_count">
         <item quantity="one">%1$d mensaje esperando para enviarse</item>
+        <item quantity="many">%1$d de mensajes esperando para enviarse</item>
         <item quantity="other">%1$d mensajes esperando para enviarse</item>
     </plurals>
 </resources>

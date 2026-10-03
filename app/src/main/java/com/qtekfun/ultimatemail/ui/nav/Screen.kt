@@ -80,15 +80,10 @@ sealed interface Screen {
         private const val ACCOUNT_SETTINGS_PREFIX = "account-settings:"
 
         /** The screen for a saved [route]; anything unknown goes back to the start screen. */
-        fun fromRoute(route: String?): Screen = when {
+        fun fromRoute(route: String?): Screen = composeFromRoute(route) ?: when {
             route == AddAccount.route -> AddAccount
 
             route == Settings.route -> Settings
-
-            route == Outbox.route -> Outbox
-
-            route != null && route.startsWith(COMPOSE_PREFIX) ->
-                route.removePrefix(COMPOSE_PREFIX).toLongOrNull()?.let(::Compose) ?: Home
 
             route != null && route.startsWith(CONVERSATION_PREFIX) ->
                 conversationFromRoute(route.removePrefix(CONVERSATION_PREFIX)) ?: Home
@@ -101,6 +96,16 @@ sealed interface Screen {
                 InboxScope.fromKey(route.removePrefix(INBOX_PREFIX))?.let(::Inbox) ?: Home
 
             else -> Home
+        }
+
+        /** The composer and the outbox (T18b); null for any other route. */
+        private fun composeFromRoute(route: String?): Screen? = when {
+            route == Outbox.route -> Outbox
+
+            route != null && route.startsWith(COMPOSE_PREFIX) ->
+                route.removePrefix(COMPOSE_PREFIX).toLongOrNull()?.let(::Compose) ?: Home
+
+            else -> null
         }
 
         private fun conversationFromRoute(text: String): Conversation? {

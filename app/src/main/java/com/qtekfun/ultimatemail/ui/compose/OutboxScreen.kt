@@ -29,6 +29,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -123,16 +124,8 @@ fun OutboxScreen(
 @Composable
 private fun OutboxItem(row: OutboxRow, actions: OutboxScreenActions) {
     val failed = row.status is OutboxRowStatus.Failed
-    val statusText = when (row.status) {
-        is OutboxRowStatus.Waiting -> stringResource(R.string.outbox_status_waiting)
-        OutboxRowStatus.Sending -> stringResource(R.string.outbox_status_sending)
-        is OutboxRowStatus.Failed -> stringResource(R.string.outbox_status_failed)
-    }
-    val reasonText = when (val status = row.status) {
-        is OutboxRowStatus.Waiting -> status.reason?.let { stringResource(it.textRes(false)) }
-        OutboxRowStatus.Sending -> null
-        is OutboxRowStatus.Failed -> stringResource(status.reason.textRes(true))
-    }
+    val statusText = row.status.statusText()
+    val reasonText = row.status.reasonText()
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -146,20 +139,7 @@ private fun OutboxItem(row: OutboxRow, actions: OutboxScreenActions) {
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-        val first = row.recipient
-        if (first != null) {
-            Text(
-                if (row.recipientCount > 1) {
-                    stringResource(R.string.outbox_to_more, first, row.recipientCount - 1)
-                } else {
-                    stringResource(R.string.outbox_to, first)
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
+        RecipientLine(row)
         Text(
             statusText,
             style = MaterialTheme.typography.labelLarge,
@@ -183,6 +163,37 @@ private fun OutboxItem(row: OutboxRow, actions: OutboxScreenActions) {
             ActionButton(R.string.outbox_discard) { actions.onRequestDiscard(row.draftId) }
         }
     }
+}
+
+@Composable
+private fun RecipientLine(row: OutboxRow) {
+    val first = row.recipient ?: return
+    val others = row.recipientCount - 1
+    Text(
+        if (others > 0) {
+            pluralStringResource(R.plurals.outbox_to_more, others, first, others)
+        } else {
+            stringResource(R.string.outbox_to, first)
+        },
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+    )
+}
+
+@Composable
+private fun OutboxRowStatus.statusText(): String = when (this) {
+    is OutboxRowStatus.Waiting -> stringResource(R.string.outbox_status_waiting)
+    OutboxRowStatus.Sending -> stringResource(R.string.outbox_status_sending)
+    is OutboxRowStatus.Failed -> stringResource(R.string.outbox_status_failed)
+}
+
+@Composable
+private fun OutboxRowStatus.reasonText(): String? = when (this) {
+    is OutboxRowStatus.Waiting -> reason?.let { stringResource(it.textRes(false)) }
+    OutboxRowStatus.Sending -> null
+    is OutboxRowStatus.Failed -> stringResource(reason.textRes(true))
 }
 
 @Composable

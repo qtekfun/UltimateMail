@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -144,7 +145,7 @@ internal fun recipientsLine(count: Int, first: MailAddress?): String {
     if (first == null) return stringResource(R.string.drafts_no_recipient)
     val name = first.name?.takeIf { it.isNotBlank() } ?: first.address
     return if (count > 1) {
-        stringResource(R.string.outbox_to_more, name, count - 1)
+        pluralStringResource(R.plurals.outbox_to_more, count - 1, name, count - 1)
     } else {
         stringResource(R.string.outbox_to, name)
     }
