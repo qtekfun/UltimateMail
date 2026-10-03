@@ -73,4 +73,51 @@ Decisiones tomadas por mí (a confirmar):
 21. **Búsqueda (T20) lanzada.** Decidido por Claude: operadores al estilo Gmail (`from:`, `to:`, `subject:`, `label:`,
     `has:attachment`, `is:unread`, `before:`, `after:`), ámbito carpeta / cuenta / todas, historial de búsquedas
     reciente solo en el dispositivo (máx. 10) y búsqueda en servidor bajo demanda (IMAP SEARCH; `X-GM-RAW` en Gmail).
+22. **Fallo anotado por el usuario: reloj y batería invisibles** con el sistema en claro y la app en oscuro/AMOLED.
+    Causa: `enableEdgeToEdge()` elige el color de los iconos de las barras según el tema del sistema. Corregido en la
+    PR de `fix/status-bar-icons` (el tema de la app fija el aspecto de los iconos). No se verificó en el móvil porque
+    exige cambiar el tema del sistema del teléfono, y no quise tocar sus ajustes sin que lo pidiera.
+23. **Motor de redactar y enviar (T18a, PR #33).** Decididas por el agente: Microsoft/Outlook se trata como los que ya guardan
+    el enviado ellos mismos (como Gmail), así que no se añade copia a Enviados: **lo cree pero no lo verificó**, y si fuera
+    falso habría correo enviado sin copia; el tope de 25 MiB se mide sobre bytes sin codificar (la base64 añade un tercio,
+    así que Gmail puede rechazar totales cercanos al tope); los borradores del servidor no llevan adjuntos; las respuestas
+    van a From porque la sincronización aún no guarda Reply-To (la regla ya lo respeta cuando exista); los reenvíos no
+    incluyen los adjuntos originales; `AcceptServer`/`DiscardLocal` del resolutor de borradores no están conectados (solo
+    la subida con conflicto); los textos de la cita usan el idioma de los recursos de la app; la operación SEND usa
+    `folderPath ""` y `uid = draftId`; tras aceptar el SMTP el borrador recuerda que ya se envió y nunca se reenvía, y la
+    limpieza posterior (copia a Enviados, flag, borrador del servidor) se reintenta hasta 6 veces. Esquema Room v4.
+24. **Redactar, pantallas (T18b) lanzadas.** Decididas por Claude: **deshacer envío de 5 segundos** (el mensaje solo entra en
+    la cola cuando acaba el aviso), guardar el borrador automáticamente al salir (se descarta solo con una orden
+    explícita y confirmación), botón flotante "Redactar" en la bandeja, vista de Salida en el menú con insignia y
+    reintentar/editar/descartar, y filtros de intención para `mailto:` y compartir desde otras apps.
+25. **Búsqueda (T20, PR #34).** Decididas por el agente: soporta `from:`, `to:`, `subject:`, `label:`/`in:`, `has:attachment`,
+    `is:unread`/`is:read`/`is:starred`, `before:`/`after:`, frases entre comillas y exclusión con `-`; todo término llega a
+    FTS4 como frase entrecomillada (lo que escribas nunca se convierte en sintaxis de consulta; probado con cadenas
+    hostiles en SQLite real); el índice de texto pasa al tokenizador `unicode61` para ignorar mayúsculas y acentos
+    (requiere migración); un mensaje de Gmail en varias carpetas sale una sola vez; Papelera y Spam solo se buscan al
+    pedirlo; la búsqueda en servidor solo se ejecuta al tocar (se ofrece más destacada con menos de 5 resultados locales)
+    y los resultados solo del servidor se guardan como mensajes normales de su carpeta (solo cabeceras) sin tocar
+    UIDNEXT ni HIGHESTMODSEQ, así que la siguiente sincronización los respeta; los roles de `in:` se reconocen solo en
+    inglés (los nombres de carpeta, en cualquier idioma); los resultados de carpetas no sincronizadas conservan sus flags
+    hasta volver a buscarse. **Conflicto de esquema:** T20 y T18a subían ambos Room a v4; T20 se renumera a v5 apilada
+    sobre la #33. X-GM-RAW no se ha probado contra Gmail real; GreenMail no prueba subcadenas ni frases con espacios.
+26. **Exportar e importar cuentas (T26, PR #35).** Decididas por el agente: contenedor propio `UMBK` (cabecera con versión,
+    parámetros de la derivación de clave, sal y nonce; cifrado AES-256-GCM con la cabecera entera como datos asociados,
+    así que tocar cualquier byte falla como una contraseña errónea); clave por PBKDF2-HMAC-SHA256 con 600.000 iteraciones
+    (al leer se aceptan entre 100.000 y 5.000.000 para que una cabecera hostil no debilite la clave ni cuelgue el móvil);
+    tope de 1 MiB; JSON escrito a mano porque `org.json` no está en los tests y kotlinx-serialization no es dependencia;
+    siempre hay frase de contraseña (no existe la exportación sin cifrar); credenciales solo si se marca, con frase de
+    8+ caracteres; la misma dirección con otro servidor IMAP se salta como "dirección ocupada" (añadido por el agente);
+    la ventana offline se ajusta a la opción fija más cercana; los ajustes del dispositivo solo se importan si se marca;
+    el idioma nunca se exporta. **Hueco detectado:** no hay pantalla para volver a iniciar sesión en una cuenta ya creada
+    (una cuenta importada sin credenciales o con el token revocado solo muestra "Vuelve a iniciar sesión" en el menú, sin
+    acción). Se añade como tarea **T27** (pantalla de reautenticación), lanzada.
+27. **Redactar, pantallas (T18b, PR #36).** Decididas por el agente: si el proceso muere durante los 5 s de deshacer el envío,
+    el mensaje queda como borrador (ni se pierde ni se envía; hay que volver a enviarlo); el temporizador y el envío final
+    corren en un ámbito de aplicación (`@ApplicationScope`) para que cerrar la pantalla no cancele el envío; el aviso de
+    5 s no sigue el tiempo de accesibilidad del sistema; `NoticeCenter` gana `holdUntilCleared` y `PendingUndo.onCommit`;
+    la carpeta Borradores muestra los borradores locales y los del servidor (los locales se abren en el redactor, los
+    que solo están en el servidor se abren en el lector); un borrador nuevo que no se ha tocado se descarta sin avisar.
+    **No hecho:** ocultar el botón Redactar al hacer scroll, borrar borradores deslizando, importar borradores del servidor
+    al redactor, texto enriquecido y adjuntos al reenviar.
 

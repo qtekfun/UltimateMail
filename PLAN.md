@@ -37,7 +37,7 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 - [x] **T18 Redactar y cola de envío**: responder/reenviar, borradores, adjuntos, autocompletado, texto enriquecido básico.
 - [x] **T19 Firmas por cuenta**: editor en ajustes de cuenta, inserción automática con `-- `, posición en respuestas, cambio de remitente, sin duplicados.
   - *Verificación:* tests unitarios de la lógica de firma (`domain`) y test de UI con dos cuentas.
-- [ ] **T20 Búsqueda**: local (FTS) y en servidor.
+- [x] **T20 Búsqueda**: local (FTS) y en servidor.
 - [x] **T21 Ajustes**: tema, colores dinámicos, idioma, gestos, política offline por cuenta.
 
 ## Fase 4 — Cierre del MVP

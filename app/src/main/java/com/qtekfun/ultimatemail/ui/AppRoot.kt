@@ -26,6 +26,7 @@ import com.qtekfun.ultimatemail.R
 import com.qtekfun.ultimatemail.data.local.model.FolderRole
 import com.qtekfun.ultimatemail.domain.folder.ShellScope
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
+import com.qtekfun.ultimatemail.domain.search.SearchScope
 import com.qtekfun.ultimatemail.ui.account.AddAccountActions
 import com.qtekfun.ultimatemail.ui.account.AddAccountEvent
 import com.qtekfun.ultimatemail.ui.account.AddAccountScreen
@@ -47,6 +48,9 @@ import com.qtekfun.ultimatemail.ui.inbox.SelectionActions
 import com.qtekfun.ultimatemail.ui.nav.AppNavigator
 import com.qtekfun.ultimatemail.ui.nav.Screen
 import com.qtekfun.ultimatemail.ui.picker.MovePickerHost
+import com.qtekfun.ultimatemail.ui.search.SearchActions
+import com.qtekfun.ultimatemail.ui.search.SearchScreen
+import com.qtekfun.ultimatemail.ui.search.SearchViewModel
 import com.qtekfun.ultimatemail.ui.settings.AccountSettingsActions
 import com.qtekfun.ultimatemail.ui.settings.AccountSettingsScreen
 import com.qtekfun.ultimatemail.ui.settings.AccountSettingsViewModel
@@ -57,6 +61,7 @@ import com.qtekfun.ultimatemail.ui.shell.MainShell
 import com.qtekfun.ultimatemail.ui.shell.NoAccountsScreen
 import com.qtekfun.ultimatemail.ui.shell.ShellActions
 import com.qtekfun.ultimatemail.ui.shell.ShellCompose
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -71,7 +76,8 @@ fun AppRoot(
     conversation: ConversationViewModel,
     settings: SettingsViewModel,
     accountSettings: AccountSettingsViewModel,
-    compose: ComposeScreens
+    compose: ComposeScreens,
+    search: SearchViewModel
 ) {
     val screen by navigator.screen.collectAsStateWithLifecycle()
     val menuOpen by navigator.drawerOpen.collectAsStateWithLifecycle()
@@ -97,12 +103,21 @@ fun AppRoot(
             // One call site for every screen with the side menu, so the menu keeps its state
             // (and its closing animation) while the folder changes.
             Screen.Home, is Screen.Inbox ->
-                ShellRoute((current as? Screen.Inbox)?.scope, navigator, drawer, inbox, compose)
+                ShellRoute(
+                    (current as? Screen.Inbox)?.scope,
+                    navigator,
+                    drawer,
+                    inbox,
+                    compose,
+                    search
+                )
 
             is Screen.Compose ->
                 ComposerRoute(current.draftId, compose.composer, navigator::closeCompose)
 
             Screen.Outbox -> OutboxRoute(compose.outbox, navigator)
+
+            is Screen.Search -> SearchRoute(search, navigator)
 
             Screen.Settings -> SettingsRoute(settings, navigator)
 
@@ -171,13 +186,15 @@ private fun NoticeHost(conversation: ConversationViewModel) {
     }
 }
 
+@Suppress("LongParameterList") // One view model per screen, like AppRoot.
 @Composable
 private fun ShellRoute(
     requested: InboxScope?,
     navigator: AppNavigator,
     drawer: DrawerViewModel,
     inbox: InboxViewModel,
-    compose: ComposeScreens
+    compose: ComposeScreens,
+    search: SearchViewModel
 ) {
     val menu by drawer.state.collectAsStateWithLifecycle()
     val menuOpen by navigator.drawerOpen.collectAsStateWithLifecycle()
@@ -211,19 +228,12 @@ private fun ShellRoute(
         inboxState = inboxState,
         actions = ShellActions(
             onMenuOpenChange = navigator::setDrawerOpen,
-            drawer = DrawerActions(
-                onSelectAccount = { id -> coroutines.launch { show(drawer.switchAccount(id)) } },
-                onAddAccount = { navigator.open(Screen.AddAccount) },
-                onOpenUnified = { show(InboxScope.Unified) },
-                onOpenFolder = { accountId, path -> show(InboxScope.Folder(accountId, path)) },
-                onToggleFolder = drawer::toggleFolder,
-                onRefresh = drawer::refresh,
-                onRequestRemoval = drawer::requestRemoval,
-                onDismissRemoval = drawer::dismissRemoval,
-                onConfirmRemoval = drawer::confirmRemoval,
-                onOpenDestination = navigator::open
-            ),
-            inbox = inboxActions(inbox, navigator)
+            drawer = drawerActions(drawer, navigator, coroutines, show),
+            inbox = inboxActions(inbox, navigator) {
+                val from = SearchScope.startingFrom(scope)
+                search.startNew(from)
+                navigator.openSearch(from)
+            }
         ),
         compose = ShellCompose(
             outboxCount = outboxCount,
@@ -234,6 +244,34 @@ private fun ShellRoute(
             drafts = (scope as? InboxScope.Folder)?.takeIf { showsDrafts }?.let { folder ->
                 { DraftsRoute(folder.accountId, compose.drafts, navigator) }
             }
+        )
+    )
+}
+
+@Composable
+private fun SearchRoute(search: SearchViewModel, navigator: AppNavigator) {
+    val state by search.state.collectAsStateWithLifecycle()
+    SearchScreen(
+        state = state,
+        actions = SearchActions(
+            onBack = { navigator.back() },
+            onTextChange = search::onTextChange,
+            onSubmit = search::submit,
+            onScope = search::setScope,
+            onToggleUnread = search::toggleUnread,
+            onToggleStarred = search::toggleStarred,
+            onToggleAttachments = search::toggleAttachments,
+            onDate = search::setDate,
+            onLoadMore = search::loadMore,
+            onOpen = {
+                search.onOpened()
+                navigator.openConversation(it.accountId, it.folderPath, it.threadId)
+            },
+            onServerSearch = search::searchOnServer,
+            onCancelServer = search::cancelServerSearch,
+            onUseRecent = search::useRecent,
+            onRemoveRecent = search::removeRecent,
+            onClearRecent = search::clearRecent
         )
     )
 }
@@ -310,23 +348,43 @@ private fun AddAccountRoute(addAccount: AddAccountViewModel, navigator: AppNavig
     )
 }
 
-private fun inboxActions(inbox: InboxViewModel, navigator: AppNavigator) = InboxActions(
-    onOpenMenu = { navigator.setDrawerOpen(true) },
-    onRefresh = inbox::refresh,
-    onLoadMore = inbox::loadMore,
-    onFilterChange = inbox::setFilter,
-    onOpenConversation = {
-        navigator.openConversation(it.accountId, it.folderPath, it.threadId)
-    },
-    onScrolled = inbox::onScrolled,
-    savedScroll = inbox::savedScroll,
-    selection = SelectionActions(
-        onToggle = inbox::toggleSelection,
-        onSwipe = inbox::onSwipe,
-        onSelectAll = inbox::selectAll,
-        onClear = inbox::clearSelection,
-        onApply = inbox::applyToSelection,
-        onMove = inbox::moveSelection,
-        restoreRequests = inbox.restoreRequests
+private fun inboxActions(inbox: InboxViewModel, navigator: AppNavigator, onOpenSearch: () -> Unit) =
+    InboxActions(
+        onOpenMenu = { navigator.setDrawerOpen(true) },
+        onRefresh = inbox::refresh,
+        onLoadMore = inbox::loadMore,
+        onFilterChange = inbox::setFilter,
+        onOpenConversation = {
+            navigator.openConversation(it.accountId, it.folderPath, it.threadId)
+        },
+        onScrolled = inbox::onScrolled,
+        savedScroll = inbox::savedScroll,
+        selection = SelectionActions(
+            onToggle = inbox::toggleSelection,
+            onSwipe = inbox::onSwipe,
+            onSelectAll = inbox::selectAll,
+            onClear = inbox::clearSelection,
+            onApply = inbox::applyToSelection,
+            onMove = inbox::moveSelection,
+            restoreRequests = inbox.restoreRequests
+        ),
+        onOpenSearch = onOpenSearch
     )
+
+private fun drawerActions(
+    drawer: DrawerViewModel,
+    navigator: AppNavigator,
+    coroutines: CoroutineScope,
+    show: (InboxScope) -> Unit
+) = DrawerActions(
+    onSelectAccount = { id -> coroutines.launch { show(drawer.switchAccount(id)) } },
+    onAddAccount = { navigator.open(Screen.AddAccount) },
+    onOpenUnified = { show(InboxScope.Unified) },
+    onOpenFolder = { accountId, path -> show(InboxScope.Folder(accountId, path)) },
+    onToggleFolder = drawer::toggleFolder,
+    onRefresh = drawer::refresh,
+    onRequestRemoval = drawer::requestRemoval,
+    onDismissRemoval = drawer::dismissRemoval,
+    onConfirmRemoval = drawer::confirmRemoval,
+    onOpenDestination = navigator::open
 )

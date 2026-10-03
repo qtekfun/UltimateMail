@@ -4,10 +4,12 @@
 package com.qtekfun.ultimatemail.data.mail
 
 import com.qtekfun.ultimatemail.domain.mail.FolderStatus
+import com.qtekfun.ultimatemail.domain.mail.GmailRawQuery
 import com.qtekfun.ultimatemail.domain.mail.MailAddress
 import com.qtekfun.ultimatemail.domain.mail.MailFlag
 import com.qtekfun.ultimatemail.domain.mail.MailFolder
 import com.qtekfun.ultimatemail.domain.mail.MailResult
+import com.qtekfun.ultimatemail.domain.mail.MailSearchCriteria
 import com.qtekfun.ultimatemail.domain.mail.MailSession
 import com.qtekfun.ultimatemail.domain.mail.MessageBody
 import com.qtekfun.ultimatemail.domain.mail.MessageFlags
@@ -112,7 +114,21 @@ class AngusMailSession(
     ): MailResult<List<MessageHeader>> = call {
         val imap = open(folder, writable = false)
         val last = range.last ?: UIDFolder.LASTUID
-        val messages = imap.getMessagesByUID(range.first, last).filterNotNull()
+        headersOf(imap, imap.getMessagesByUID(range.first, last).filterNotNull())
+            // "UID FETCH n:*" always returns the last message, even if its UID is below n.
+            .filter { it.uid >= range.first }
+    }
+
+    override suspend fun fetchHeadersByUid(
+        folder: String,
+        uids: Set<Long>
+    ): MailResult<List<MessageHeader>> = call {
+        val imap = open(folder, writable = false)
+        val messages = imap.getMessagesByUID(uids.sorted().toLongArray()).filterNotNull()
+        headersOf(imap, messages)
+    }
+
+    private fun headersOf(imap: IMAPFolder, messages: List<Message>): List<MessageHeader> {
         val profile = FetchProfile().apply {
             add(FetchProfile.Item.ENVELOPE)
             add(FetchProfile.Item.FLAGS)
@@ -125,11 +141,29 @@ class AngusMailSession(
         }
         val gmail = extensions.isAvailable(store)
         if (gmail) extensions.fetchItems().forEach(profile::add)
-        imap.fetch(messages.toTypedArray(), profile)
-        messages
-            .map { toHeader(imap, it, gmail) }
-            // "UID FETCH n:*" always returns the last message, even if its UID is below n.
-            .filter { it.uid >= range.first }
+        if (messages.isNotEmpty()) imap.fetch(messages.toTypedArray(), profile)
+        return messages.map { toHeader(imap, it, gmail) }
+    }
+
+    override suspend fun search(
+        folder: String,
+        criteria: MailSearchCriteria,
+        limit: Int
+    ): MailResult<List<Long>> = call {
+        val imap = open(folder, writable = false)
+        val hits = if (extensions.isAvailable(store)) {
+            extensions.rawSearch(imap, GmailRawQuery.of(criteria))
+        } else {
+            ImapSearchTerms.build(criteria)?.let { imap.search(it).toList() }
+                ?: imap.messages.toList()
+        }
+        // Higher sequence numbers are newer messages: keep the newest, then ask for their UIDs.
+        val newest = hits.sortedBy { it.messageNumber }.takeLast(limit)
+        if (newest.isNotEmpty()) {
+            val uids = FetchProfile().apply { add(UIDFolder.FetchProfileItem.UID) }
+            imap.fetch(newest.toTypedArray(), uids)
+        }
+        newest.map { imap.getUID(it) }.sortedDescending()
     }
 
     private fun toHeader(folder: IMAPFolder, message: Message, gmail: Boolean): MessageHeader {

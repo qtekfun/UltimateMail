@@ -23,6 +23,12 @@ interface ProviderExtensions {
 
     fun metadata(message: Message): GmailMetadata?
 
+    /**
+     * The messages of [folder] matching [query], written in Gmail's search syntax: `X-GM-RAW`
+     * searches the way the Gmail web interface does (RF-09).
+     */
+    fun rawSearch(folder: IMAPFolder, query: String): List<Message>
+
     /** Adds ([add] true) or removes [labels] on [messages], all in [folder]. */
     fun changeLabels(folder: IMAPFolder, messages: List<Message>, labels: Set<String>, add: Boolean)
 }
