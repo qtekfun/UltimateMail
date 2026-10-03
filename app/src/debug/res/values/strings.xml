@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: 2026 UltimateMail contributors
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+<resources>
+    <string name="oauth_debug_label" translatable="false">UM OAuth debug</string>
+    <string name="oauth_debug_title">Google sign-in test</string>
+    <string name="oauth_debug_button">Sign in with Google</string>
+    <string name="oauth_debug_idle">Not signed in</string>
+    <string name="oauth_debug_not_configured">This build has no Google client ID. Build with -PUM_GOOGLE_CLIENT_ID=…</string>
+    <string name="oauth_debug_authorizing">Waiting for the browser…</string>
+    <string name="oauth_debug_cancelled">Sign-in cancelled or refused: %1$s</string>
+    <string name="oauth_debug_token_failed">Token exchange failed: %1$s</string>
+    <string name="oauth_debug_no_email">Signed in, but the token has no e-mail address</string>
+    <string name="oauth_debug_connecting">Signed in. Connecting to IMAP…</string>
+    <string name="oauth_debug_success">IMAP login with XOAUTH2 works (folders: %1$d)</string>
+    <string name="oauth_debug_imap_failed">IMAP login failed: %1$s</string>
+</resources>
