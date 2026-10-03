@@ -65,11 +65,15 @@ class FakeConnector(private val server: FakeMailServer) : MailConnector {
     val connects = mutableListOf<MailCredentials>()
     val sessions = mutableListOf<FakeSession>()
 
+    /** When set, connecting waits for it: holds a sync in the middle of its run. */
+    var gate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
+
     override suspend fun connect(
         server: MailServer,
         credentials: MailCredentials
     ): MailResult<MailSession> {
         connects += credentials
+        gate?.await()
         failure?.let { return it }
         return MailResult.Success(FakeSession(this.server).also { sessions += it })
     }
@@ -101,17 +105,20 @@ class EngineHarness(scope: TestScope, authType: AuthType = AuthType.PASSWORD) {
     val connector = FakeConnector(server)
     val sender = FakeSender()
     val status = SyncStatusStore()
+    val notices = SyncNotices()
     val credentials = MailCredentialsProvider(vault, oauth, clock)
     val sessions = AccountSessions(db.accountDao(), credentials, connector, status)
     val marker = PendingSyncMarker(db.messageDao(), db.pendingOperationDao())
     val executor = MailOperationExecutor(
         db.accountDao(),
         db.folderDao(),
+        db.messageDao(),
         sessions,
         credentials,
         sender,
         marker,
-        status
+        status,
+        notices
     )
     val queue = OperationQueue(
         db.pendingOperationDao(),
@@ -128,7 +135,7 @@ class EngineHarness(scope: TestScope, authType: AuthType = AuthType.PASSWORD) {
         FolderPuller(
             db.messageDao(),
             db.folderDao(),
-            PendingReconciler(db.messageDao(), db.pendingOperationDao()),
+            PendingReconciler(db.messageDao(), db.pendingOperationDao(), notices),
             clock
         ),
         queue,
@@ -142,15 +149,13 @@ class EngineHarness(scope: TestScope, authType: AuthType = AuthType.PASSWORD) {
     val folders get() = db.folderDao()
     val operations get() = db.pendingOperationDao()
 
-    suspend fun addAccount(
-        entity: AccountEntity = account().copy(authType = authTypeOf)
-    ): Long {
+    private val authTypeOf = authType
+
+    suspend fun addAccount(entity: AccountEntity = account().copy(authType = authTypeOf)): Long {
         accountId = db.accountDao().insert(entity)
         vault.save(accountId, AccountCredentials(password = "pw"))
         return accountId
     }
-
-    private val authTypeOf = authType
 
     fun close() = db.close()
 }

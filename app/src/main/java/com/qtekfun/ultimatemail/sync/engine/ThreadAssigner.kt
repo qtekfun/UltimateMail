@@ -56,5 +56,5 @@ internal class ThreadAssigner(private val accountId: Long, private val messages:
     }
 
     private fun gmailThreadId(threadId: String): String? =
-        threadId.removePrefix("gmail::").takeIf { it != threadId }
+        threadId.removePrefix("gmail:$accountId:").takeIf { it != threadId }
 }

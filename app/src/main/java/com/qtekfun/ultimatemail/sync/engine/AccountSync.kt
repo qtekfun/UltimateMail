@@ -19,6 +19,8 @@ import javax.inject.Inject
  * folder push the queue again and pull the folder. Pushing first means a local change is on the
  * server before the pull could overwrite it (SPEC section 5, rule 1).
  */
+// Every collaborator is a distinct part of the run; grouping them would only hide that.
+@Suppress("LongParameterList")
 class AccountSync @Inject internal constructor(
     private val accounts: AccountDao,
     private val folders: FolderDao,
@@ -39,6 +41,8 @@ class AccountSync @Inject internal constructor(
         }
     }
 
+    // Each failure leaves early; guard clauses keep the normal path flat.
+    @Suppress("ReturnCount")
     private suspend fun syncWith(account: AccountEntity, session: MailSession): AccountSyncResult {
         queue.drain(account.id)
         catalog.refresh(account, session)?.let { return failed(it) }

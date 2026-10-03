@@ -183,6 +183,16 @@ class MessageDaoTest {
     }
 
     @Test
+    fun `pruning by age spares local-only drafts`() = runTest {
+        dao.upsert(listOf(message(accountId, 0, sentAt = 1), message(accountId, 5, sentAt = 1)))
+
+        dao.deleteOlderThan(accountId, cutoffMillis = 500)
+
+        assertEquals(0L, dao.get(accountId, "INBOX", 0)!!.uid)
+        assertNull(dao.get(accountId, "INBOX", 5))
+    }
+
+    @Test
     fun `attachments follow their message and track their state`() = runTest {
         dao.upsert(listOf(message(accountId, 1)))
         val messageId = dao.get(accountId, "INBOX", 1)!!.id

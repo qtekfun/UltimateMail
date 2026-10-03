@@ -22,7 +22,9 @@ object OutgoingPayload {
      * message is found again in Sent, so it must be the same on every attempt.
      */
     fun encode(message: OutgoingMessage): String {
-        val id = message.messageId ?: "<${UUID.randomUUID()}@${message.from.address.substringAfter('@', "localhost")}>"
+        val id =
+            message.messageId
+                ?: "<${UUID.randomUUID()}@${message.from.address.substringAfter('@', "localhost")}>"
         return buildList {
             add("version:$VERSION")
             add(line("from", address(message.from)))

@@ -22,7 +22,9 @@ internal fun MailResult.Failure.toProblem(): SyncProblem = when (this) {
 
     MailResult.CertificateRejected -> SyncProblem.CERTIFICATE
 
-    is MailResult.ServerRejected, MailResult.NotFound, is MailResult.Unsupported -> SyncProblem.SERVER
+    is MailResult.ServerRejected,
+    MailResult.NotFound,
+    is MailResult.Unsupported -> SyncProblem.SERVER
 
     MailResult.Protocol -> SyncProblem.PROTOCOL
 
