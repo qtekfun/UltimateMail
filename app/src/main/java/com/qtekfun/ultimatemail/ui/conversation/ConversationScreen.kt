@@ -48,7 +48,7 @@ import com.qtekfun.ultimatemail.domain.conversation.ConversationView
 import com.qtekfun.ultimatemail.ui.components.LabelChipRow
 import com.qtekfun.ultimatemail.ui.components.MailIcons
 import com.qtekfun.ultimatemail.ui.components.rememberMessageTimeFormatter
-import com.qtekfun.ultimatemail.ui.theme.StarColor
+import com.qtekfun.ultimatemail.ui.theme.starColor
 
 private val MinTouchTarget = 48.dp
 
@@ -122,7 +122,7 @@ private fun ToolbarActions(view: ConversationView, actions: ConversationScreenAc
             contentDescription = stringResource(
                 if (starred) R.string.conversation_unstar else R.string.conversation_star
             ),
-            tint = if (starred) StarColor else MaterialTheme.colorScheme.onSurfaceVariant
+            tint = if (starred) starColor() else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
     IconButton(onClick = actions.onMarkUnread, modifier = Modifier.heightIn(min = MinTouchTarget)) {
