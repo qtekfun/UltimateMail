@@ -25,9 +25,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.qtekfun.ultimatemail.R
+import com.qtekfun.ultimatemail.data.local.FileAttachmentStorage
 import com.qtekfun.ultimatemail.data.local.UltimateMailDatabase
+import com.qtekfun.ultimatemail.data.local.entity.AttachmentEntity
+import com.qtekfun.ultimatemail.data.local.model.AttachmentState
+import com.qtekfun.ultimatemail.di.AttachmentModule
 import com.qtekfun.ultimatemail.ui.theme.UltimateMailTheme
 import dagger.hilt.android.AndroidEntryPoint
+import java.io.File
 import java.time.Instant
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -75,28 +80,69 @@ class InboxDemoActivity : ComponentActivity() {
         DemoData.accounts().forEachIndexed { index, account ->
             val id = database.accountDao().insert(account)
             database.folderDao().upsert(DemoData.folders(id))
-            database.messageDao()
-                .upsert(
-                    DemoData.inboxMessages(
-                        id,
-                        now,
-                        if (index ==
-                            0
-                        ) {
-                            FIRST_COUNT
-                        } else {
-                            SECOND_COUNT
-                        },
-                        index
-                    )
+            val count = if (index == 0) FIRST_COUNT else SECOND_COUNT
+            database.messageDao().upsert(DemoData.inboxMessages(id, now, count, index))
+            seedBodies(id, count)
+        }
+    }
+
+    /**
+     * Gives the first conversations and the 12-message thread a body (and attachments), so the
+     * reading screen can be tried. Downloaded demo attachments are written like real ones.
+     */
+    private suspend fun seedBodies(accountId: Long, count: Int) {
+        val storage = FileAttachmentStorage(File(filesDir, AttachmentModule.FOLDER))
+        for (index in 0 until count) {
+            DemoBodies.forListMessage(index)?.let { saveBody(accountId, index + 1L, it, storage) }
+        }
+        for (k in 0 until DemoData.THREAD_SIZE) {
+            val body = DemoBodies.forThreadMessage(k, last = k == DemoData.THREAD_SIZE - 1)
+            saveBody(accountId, count + 1L + k, body, storage)
+        }
+    }
+
+    private suspend fun saveBody(
+        accountId: Long,
+        uid: Long,
+        body: DemoBody,
+        storage: FileAttachmentStorage
+    ) {
+        val messages = database.messageDao()
+        messages.setBody(accountId, "INBOX", uid, body.text, body.html)
+        val messageId = messages.get(accountId, "INBOX", uid)?.id ?: return
+        val attachments = database.attachmentDao()
+        attachments.insert(
+            body.attachments.mapIndexed { position, file ->
+                AttachmentEntity(
+                    messageId = messageId,
+                    partId = "${position + 2}",
+                    fileName = file.name,
+                    mimeType = file.mimeType,
+                    size = file.size,
+                    contentId = file.contentId,
+                    inline = file.inline
                 )
+            }
+        )
+        attachments.listFor(messageId).zip(body.attachments).forEach { (row, file) ->
+            file.bytes?.let {
+                attachments.setState(
+                    row.id,
+                    AttachmentState.DOWNLOADED,
+                    storage.write(accountId, row, it)
+                )
+            }
         }
     }
 
     private suspend fun remove() {
+        val storage = FileAttachmentStorage(File(filesDir, AttachmentModule.FOLDER))
         database.accountDao().observeAll().first()
             .filter { DemoData.isDemo(it.email) }
-            .forEach { database.accountDao().delete(it.id) }
+            .forEach {
+                database.accountDao().delete(it.id)
+                storage.deleteAccount(it.id)
+            }
     }
 
     companion object {
