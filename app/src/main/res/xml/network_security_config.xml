@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: 2026 UltimateMail contributors
+  SPDX-License-Identifier: GPL-3.0-or-later
+
+  HTTPS only (SPEC §6). Besides the system CAs, user-installed CAs are trusted so self-hosted
+  mail servers with their own CA work; certificate validation is never disabled.
+-->
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+            <!-- Required by SPEC §6: users of self-hosted servers install their own CA. -->
+            <certificates
+                src="user"
+                tools:ignore="AcceptsUserCertificates" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
