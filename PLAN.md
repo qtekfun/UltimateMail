@@ -29,6 +29,7 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 ## Fase 3 — Interfaz del MVP
 - [x] **T13 Añadir cuenta y lista de carpetas/etiquetas** (offline funcional). *(Solo contraseña de aplicación; el acceso con Google/Microsoft queda para después.)*
 - [x] **T14 Bandeja y bandeja unificada**: lista de conversaciones, paginación, indicador "pendiente de sync".
+- [ ] **T14b Menú lateral de carpetas**: navigation drawer estilo Gmail con la bandeja unificada arriba, el selector de cuenta en la cabecera y todas las carpetas y etiquetas de la cuenta (especiales primero, jerarquía, contadores de no leídos); la pantalla de carpetas de T13 pasa a ser el contenido del menú. Debe ser la base de navegación de T15–T21.
 - [ ] **T15 Lectura de conversación**: mensajes plegables, HTML seguro (según T04), adjuntos bajo demanda.
 - [ ] **T16 Gestos configurables y selección múltiple**, con deshacer.
 - [ ] **T17 Selector mover/etiquetar con búsqueda**: diálogo con filtro en vivo, recientes, etiquetas múltiples en Gmail.
