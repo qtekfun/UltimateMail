@@ -15,6 +15,7 @@ import com.qtekfun.ultimatemail.ui.conversation.ConversationViewModel
 import com.qtekfun.ultimatemail.ui.drawer.DrawerViewModel
 import com.qtekfun.ultimatemail.ui.inbox.InboxViewModel
 import com.qtekfun.ultimatemail.ui.nav.AppNavigator
+import com.qtekfun.ultimatemail.ui.search.SearchViewModel
 import com.qtekfun.ultimatemail.ui.settings.AccountSettingsViewModel
 import com.qtekfun.ultimatemail.ui.settings.SettingsViewModel
 import com.qtekfun.ultimatemail.ui.theme.UltimateMailTheme
@@ -30,6 +31,7 @@ class MainActivity : ComponentActivity() {
     private val conversation: ConversationViewModel by viewModels()
     private val settings: SettingsViewModel by viewModels()
     private val accountSettings: AccountSettingsViewModel by viewModels()
+    private val search: SearchViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,7 +46,8 @@ class MainActivity : ComponentActivity() {
                     inbox,
                     conversation,
                     settings,
-                    accountSettings
+                    accountSettings,
+                    search
                 )
             }
         }
