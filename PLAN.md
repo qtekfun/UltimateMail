@@ -45,6 +45,8 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 - [ ] **T24 Metadatos F-Droid** *(metadatos y receta listos; faltan capturas; el icono 512 se generó del vector adaptativo)*: `fastlane/metadata/android/{en-US,es-ES}/`, iconos, capturas; revisar builds reproducibles y ausencia de dependencias no libres.
 - [x] **T25 Documentación**: `README.md`, `CONTRIBUTING.md`, política de privacidad, `CHANGELOG.md`.
 
+- [ ] **T26 Exportar e importar cuentas y ajustes**: fichero cifrado con la configuración (sin correo); credenciales solo si el usuario lo pide, con frase de contraseña; selector de ficheros del sistema; importar valida el fichero y recrea las cuentas pidiendo iniciar sesión de nuevo.
+
 ## Después del MVP (backlog, no implementar aún)
 - v1.1: notificaciones push con IMAP IDLE, snooze.
 - v2: PGP y S/MIME.

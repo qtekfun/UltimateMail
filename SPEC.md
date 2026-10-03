@@ -100,6 +100,12 @@ Cliente Android de correo IMAP/SMTP con UI inspirada en Mail de iOS y Gmail, off
 - Inglés y español siguiendo el sistema; tema claro/oscuro/sistema y colores dinámicos.
 - Ajustes globales: gestos, densidad, imágenes remotas. Por cuenta: nombre, firma, política offline, carpetas a sincronizar.
 
+### RF-12 Exportar e importar cuentas
+- Ajustes → "Exportar cuentas": un fichero de configuración (JSON cifrado) con, por cuenta, servidores, firma, política offline, carpetas sincronizadas y client ID de OAuth, más los ajustes de la app. **Nunca incluye correo.**
+- Las credenciales no se exportan salvo que el usuario lo pida, y entonces van cifradas con una frase de contraseña (PBKDF2-HMAC-SHA256 + AES-GCM del JDK).
+- "Importar cuentas" valida el fichero (versión, integridad, tamaño), recrea las cuentas y, si no traía credenciales, pide iniciar sesión de nuevo. Nada se sobrescribe sin confirmar; los duplicados se saltan.
+- El fichero se crea y se abre con el selector de ficheros del sistema.
+
 ## 4. Fuera de alcance (MVP)
 - Notificaciones push (IMAP IDLE) y servicio en primer plano. *(v1.1)*
 - Posponer (snooze). *(v1.1)*
