@@ -39,11 +39,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -61,7 +61,6 @@ import com.qtekfun.ultimatemail.ui.theme.AvatarPalette
 import com.qtekfun.ultimatemail.ui.theme.LocalDensityMetrics
 import com.qtekfun.ultimatemail.ui.theme.StarColor
 
-private val IconSize = 16.dp
 private val CheckSize = 24.dp
 
 /**
@@ -102,13 +101,8 @@ fun ConversationRow(
     val labels = remember(item.labels, hiddenLabels) {
         LabelPresentation.summarize(item.labels, hiddenLabels)
     }
-    val texts = rememberDescriptionTexts()
     val selectedText = stringResource(R.string.inbox_state_selected)
-    val description = remember(item, formatter, labels, accountMarker, texts, badge) {
-        ConversationDescriber(texts)
-            .describe(item, formatter.formatSpoken(item.sentAt), labels, accountMarker)
-            .let { if (badge == null) it else "$it, $badge" }
-    }
+    val description = rememberRowDescription(item, formatter, labels, accountMarker, badge)
 
     val background =
         if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
@@ -312,80 +306,6 @@ private fun SubjectLine(item: ConversationItem, highlights: SearchHighlights?) {
     }
 }
 
-@Composable
-private fun UnreadDot(unread: Boolean) {
-    Box(
-        modifier = Modifier.width(10.dp).padding(top = 18.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        if (unread) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(MaterialTheme.colorScheme.primary, CircleShape)
-            )
-        }
-    }
-    Box(modifier = Modifier.width(6.dp))
-}
-
-/** The flag, attachment and pending-sync icons; they are described by the row, not alone. */
-@Composable
-private fun Indicators(item: ConversationItem) {
-    Row(
-        modifier = Modifier.padding(start = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (item.pendingSync) {
-            Icon(
-                Icons.Filled.Refresh,
-                contentDescription = null,
-                modifier = Modifier.size(IconSize),
-                tint = MaterialTheme.colorScheme.outline
-            )
-        }
-        if (item.hasAttachments) {
-            Icon(
-                MailIcons.Attachment,
-                contentDescription = null,
-                modifier = Modifier.size(IconSize),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        if (item.flagged) {
-            Icon(
-                Icons.Filled.Star,
-                contentDescription = null,
-                modifier = Modifier.size(IconSize),
-                tint = StarColor
-            )
-        }
-    }
-}
-
-@Composable
-private fun AccountMarkerTag(marker: AccountMarker) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .background(
-                    AvatarPalette[marker.colorIndex.coerceIn(AvatarPalette.indices)],
-                    CircleShape
-                )
-        )
-        Text(
-            text = marker.name,
-            modifier = Modifier.padding(start = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
-
 /** The description phrases from string resources, rebuilt when the configuration changes. */
 @Composable
 fun rememberDescriptionTexts(): DescriptionTexts {
@@ -412,4 +332,21 @@ private class ResourceDescriptionTexts(private val resources: Resources) : Descr
 
     override fun account(name: String): String =
         resources.getString(R.string.conversation_desc_account, name)
+}
+
+/** The one spoken description of a row (TalkBack), with the optional [badge] at the end. */
+@Composable
+private fun rememberRowDescription(
+    item: ConversationItem,
+    formatter: MessageTimeFormatter,
+    labels: LabelSummary,
+    accountMarker: AccountMarker?,
+    badge: String?
+): String {
+    val texts = rememberDescriptionTexts()
+    return remember(item, formatter, labels, accountMarker, texts, badge) {
+        ConversationDescriber(texts)
+            .describe(item, formatter.formatSpoken(item.sentAt), labels, accountMarker)
+            .let { if (badge == null) it else "$it, $badge" }
+    }
 }

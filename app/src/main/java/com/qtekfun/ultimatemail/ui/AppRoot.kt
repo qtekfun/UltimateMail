@@ -208,7 +208,7 @@ private fun ShellRoute(
                 val from = SearchScope.startingFrom(scope)
                 search.startNew(from)
                 navigator.openSearch(from)
-            },
+            }
         )
     )
 }
@@ -313,28 +313,25 @@ private fun AddAccountRoute(addAccount: AddAccountViewModel, navigator: AppNavig
     )
 }
 
-private fun inboxActions(
-    inbox: InboxViewModel,
-    navigator: AppNavigator,
-    onOpenSearch: () -> Unit
-) = InboxActions(
-    onOpenMenu = { navigator.setDrawerOpen(true) },
-    onRefresh = inbox::refresh,
-    onLoadMore = inbox::loadMore,
-    onFilterChange = inbox::setFilter,
-    onOpenConversation = {
-        navigator.openConversation(it.accountId, it.folderPath, it.threadId)
-    },
-    onScrolled = inbox::onScrolled,
-    savedScroll = inbox::savedScroll,
-    selection = SelectionActions(
-        onToggle = inbox::toggleSelection,
-        onSwipe = inbox::onSwipe,
-        onSelectAll = inbox::selectAll,
-        onClear = inbox::clearSelection,
-        onApply = inbox::applyToSelection,
-        onMove = inbox::moveSelection,
-        restoreRequests = inbox.restoreRequests
-    ),
-    onOpenSearch = onOpenSearch
-)
+private fun inboxActions(inbox: InboxViewModel, navigator: AppNavigator, onOpenSearch: () -> Unit) =
+    InboxActions(
+        onOpenMenu = { navigator.setDrawerOpen(true) },
+        onRefresh = inbox::refresh,
+        onLoadMore = inbox::loadMore,
+        onFilterChange = inbox::setFilter,
+        onOpenConversation = {
+            navigator.openConversation(it.accountId, it.folderPath, it.threadId)
+        },
+        onScrolled = inbox::onScrolled,
+        savedScroll = inbox::savedScroll,
+        selection = SelectionActions(
+            onToggle = inbox::toggleSelection,
+            onSwipe = inbox::onSwipe,
+            onSelectAll = inbox::selectAll,
+            onClear = inbox::clearSelection,
+            onApply = inbox::applyToSelection,
+            onMove = inbox::moveSelection,
+            restoreRequests = inbox.restoreRequests
+        ),
+        onOpenSearch = onOpenSearch
+    )
