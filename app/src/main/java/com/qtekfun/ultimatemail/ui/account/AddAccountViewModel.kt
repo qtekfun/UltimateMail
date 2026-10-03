@@ -11,6 +11,7 @@ import com.qtekfun.ultimatemail.domain.account.AccountInputError
 import com.qtekfun.ultimatemail.domain.account.AccountSetup
 import com.qtekfun.ultimatemail.domain.account.ConnectionTestResult
 import com.qtekfun.ultimatemail.domain.account.CreateAccountResult
+import com.qtekfun.ultimatemail.sync.engine.SyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
@@ -33,7 +34,10 @@ sealed interface AddAccountEvent {
  * [AccountSetup]; this class only turns the form into input and the outcomes into state.
  */
 @HiltViewModel
-class AddAccountViewModel @Inject constructor(private val setup: AccountSetup) : ViewModel() {
+class AddAccountViewModel @Inject constructor(
+    private val setup: AccountSetup,
+    private val scheduler: SyncScheduler
+) : ViewModel() {
     private val mutableState = MutableStateFlow(AddAccountState())
     val state: StateFlow<AddAccountState> = mutableState.asStateFlow()
 
@@ -105,6 +109,8 @@ class AddAccountViewModel @Inject constructor(private val setup: AccountSetup) :
         when (val result = setup.create(mutableState.value.toInput())) {
             is CreateAccountResult.Created -> {
                 mutableState.value = AddAccountState()
+                // First sync right away, so the folders appear without waiting for the periodic one.
+                scheduler.requestSync(result.accountId, userInitiated = true)
                 eventChannel.send(AddAccountEvent.Created(result.accountId))
             }
 
