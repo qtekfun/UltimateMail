@@ -87,14 +87,16 @@ sealed interface Screen {
                 route.removePrefix(ACCOUNT_SETTINGS_PREFIX).toLongOrNull()
                     ?.let(::AccountSettings) ?: Home
 
-            route != null && route.startsWith(REAUTH_PREFIX) ->
-                route.removePrefix(REAUTH_PREFIX).toLongOrNull()?.let(::Reauth) ?: Home
-
             route != null && route.startsWith(INBOX_PREFIX) ->
                 InboxScope.fromKey(route.removePrefix(INBOX_PREFIX))?.let(::Inbox) ?: Home
 
-            else -> Home
+            else -> reauthFromRoute(route)
         }
+
+        /** The sign-in-again screen for a saved [route]; anything else is the start screen. */
+        private fun reauthFromRoute(route: String?): Screen =
+            route?.removePrefix(REAUTH_PREFIX)?.takeIf { route.startsWith(REAUTH_PREFIX) }
+                ?.toLongOrNull()?.let(::Reauth) ?: Home
 
         private fun conversationFromRoute(text: String): Conversation? {
             val parts = text.split(':')
