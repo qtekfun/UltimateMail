@@ -32,7 +32,7 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 - [x] **T14b Menú lateral de carpetas**: navigation drawer estilo Gmail con la bandeja unificada arriba, el selector de cuenta en la cabecera y todas las carpetas y etiquetas de la cuenta (especiales primero, jerarquía, contadores de no leídos); la pantalla de carpetas de T13 pasa a ser el contenido del menú. Debe ser la base de navegación de T15–T21.
 - [x] **T15 Lectura de conversación**: mensajes plegables, HTML seguro (según T04), adjuntos bajo demanda.
 - [ ] **T16 Gestos configurables y selección múltiple**, con deshacer.
-- [ ] **T17 Selector mover/etiquetar con búsqueda**: diálogo con filtro en vivo, recientes, etiquetas múltiples en Gmail.
+- [x] **T17 Selector mover/etiquetar con búsqueda**: diálogo con filtro en vivo, recientes, etiquetas múltiples en Gmail.
 - [ ] **T18 Redactar y cola de envío**: responder/reenviar, borradores, adjuntos, autocompletado, texto enriquecido básico.
 - [ ] **T19 Firmas por cuenta**: editor en ajustes de cuenta, inserción automática con `-- `, posición en respuestas, cambio de remitente, sin duplicados. *(lógica de dominio; editor en ajustes hecho; inserción en el redactor con T18)*
   - *Verificación:* tests unitarios de la lógica de firma (`domain`) y test de UI con dos cuentas.

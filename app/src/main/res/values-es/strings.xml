@@ -119,6 +119,32 @@
         <item quantity="many">%d de mensajes</item>
         <item quantity="other">%d mensajes</item>
     </plurals>
+    <string name="picker_title_move">Mover a</string>
+    <string name="picker_title_labels">Etiquetar como</string>
+    <string name="picker_search_hint_folders">Buscar carpetas</string>
+    <string name="picker_search_hint_labels">Buscar etiquetas</string>
+    <string name="picker_search_clear">Borrar búsqueda</string>
+    <string name="picker_close">Cerrar</string>
+    <string name="picker_apply">Aplicar</string>
+    <string name="picker_section_recent">Recientes</string>
+    <string name="picker_section_all_folders">Todas las carpetas</string>
+    <string name="picker_section_all_labels">Todas las etiquetas</string>
+    <string name="picker_no_matches">Sin resultados para «%1$s»</string>
+    <string name="picker_loading">Cargando carpetas</string>
+    <string name="picker_unavailable">Esta cuenta ya no está disponible.</string>
+    <string name="picker_state_checked">Seleccionada</string>
+    <string name="picker_state_partial">Seleccionada en parte</string>
+    <string name="picker_state_unchecked">No seleccionada</string>
+    <string name="picker_desc_path">%1$s, en %2$s</string>
+    <string name="picker_desc_current">%1$s, carpeta actual</string>
+    <plurals name="picker_result_moved">
+        <item quantity="one">%1$d mensaje movido a %2$s</item>
+        <item quantity="many">%1$d de mensajes movidos a %2$s</item>
+        <item quantity="other">%1$d mensajes movidos a %2$s</item>
+    </plurals>
+    <string name="picker_result_labels">Etiquetas actualizadas</string>
+    <string name="picker_result_archived">Archivado</string>
+    <string name="picker_undo">Deshacer</string>
     <string name="conversation_star">Destacar</string>
     <string name="conversation_unstar">Quitar destacado</string>
     <string name="conversation_mark_unread">Marcar como no leído</string>
