@@ -152,7 +152,13 @@ class MailOperationExecutor @Inject constructor(
         val folder = operation.folderPath
         val uids = setOf(uid)
         return when (operation.type) {
-            OperationType.MOVE -> done(session.move(folder, uids, operation.payload))
+            OperationType.MOVE -> done(session.move(folder, uids, operation.payload)).also {
+                // The list already hides the message (RF-06); with the server done, the row of
+                // the old folder goes, so it cannot show again before the next pull of it.
+                if (it == OperationOutcome.Done) {
+                    messages.delete(operation.accountId, folder, operation.uid)
+                }
+            }
 
             OperationType.ADD_LABEL -> done(
                 session.addLabels(folder, uids, setOf(operation.payload))

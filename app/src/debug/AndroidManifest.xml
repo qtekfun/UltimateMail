@@ -44,6 +44,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          Debug builds only: the move / label picker over made-up demo accounts (reserved .invalid
+          domain). It lists only those accounts, so being exported (to start it from adb) is harmless.
+        -->
+        <activity
+            android:name=".ui.debug.PickerDemoActivity"
+            android:exported="true"
+            android:label="@string/debug_picker_label">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>
