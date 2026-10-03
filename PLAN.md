@@ -41,7 +41,7 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 - [x] **T21 Ajustes**: tema, colores dinámicos, idioma, gestos, política offline por cuenta.
 
 ## Fase 4 — Cierre del MVP
-- [ ] **T22 Accesibilidad y rendimiento**: TalkBack, táctiles, fuente grande; medir arranque y scroll con el volumen de referencia.
+- [ ] **T22 Accesibilidad y rendimiento**: TalkBack, táctiles, fuente grande; medir arranque y scroll con el volumen de referencia. (auditoría y correcciones por código hechas; medición en dispositivo pendiente, ver docs/performance-notes.md)
 - [ ] **T23 Tests de UI clave (Compose)**: añadir cuenta, archivar por gesto, mover con búsqueda, enviar offline, firma por cuenta.
 - [ ] **T24 Metadatos F-Droid** *(metadatos y receta listos; faltan capturas; el icono 512 se generó del vector adaptativo)*: `fastlane/metadata/android/{en-US,es-ES}/`, iconos, capturas; revisar builds reproducibles y ausencia de dependencias no libres.
 - [x] **T25 Documentación**: `README.md`, `CONTRIBUTING.md`, política de privacidad, `CHANGELOG.md`.
