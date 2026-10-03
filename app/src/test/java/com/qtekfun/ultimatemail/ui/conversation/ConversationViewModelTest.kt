@@ -23,6 +23,7 @@ import com.qtekfun.ultimatemail.domain.mail.MailFolderRole
 import com.qtekfun.ultimatemail.domain.mail.MailResult
 import com.qtekfun.ultimatemail.domain.mail.MessageBody
 import com.qtekfun.ultimatemail.domain.mail.MessageFlags
+import com.qtekfun.ultimatemail.sync.engine.BodyStore
 import com.qtekfun.ultimatemail.sync.engine.DownloadAttachment
 import com.qtekfun.ultimatemail.sync.engine.EngineHarness
 import com.qtekfun.ultimatemail.sync.engine.LoadMessageBody
@@ -112,7 +113,7 @@ class ConversationViewModelTest {
         val vm = ConversationViewModel(
             ConversationReader(h.db),
             actions,
-            LoadMessageBody(h.messages, h.db.attachmentDao(), h.sessions),
+            LoadMessageBody(h.messages, h.sessions, BodyStore(h.messages, h.db.attachmentDao())),
             DownloadAttachment(h.db.attachmentDao(), h.messages, h.sessions, storage),
             launcher,
             NoticeCenter(scheduler),

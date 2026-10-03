@@ -39,7 +39,8 @@ class LoadMessageBodyTest {
         h.addAccount()
         h.engine.sync(h.accountId)
         h.server.log.clear()
-        return h to LoadMessageBody(h.messages, h.db.attachmentDao(), h.sessions)
+        return h to
+            LoadMessageBody(h.messages, h.sessions, BodyStore(h.messages, h.db.attachmentDao()))
     }
 
     private suspend fun EngineHarness.messageId() = messages.get(accountId, "INBOX", 1)!!.id
@@ -132,7 +133,7 @@ class LoadMessageBodyTest {
         val orphan = h.messages.get(h.accountId, "INBOX", 1)!!.copy(accountId = 999)
         val messages = mockk<MessageDao>()
         coEvery { messages.getById(1) } returns orphan
-        val load = LoadMessageBody(messages, h.db.attachmentDao(), h.sessions)
+        val load = LoadMessageBody(messages, h.sessions, BodyStore(messages, h.db.attachmentDao()))
 
         assertEquals(BodyResult.NotFound, load(1))
     }

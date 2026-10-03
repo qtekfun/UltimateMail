@@ -25,12 +25,13 @@ import org.junit.jupiter.api.Test
 class AccountSettingsStoreTest {
     private lateinit var db: UltimateMailDatabase
     private val scheduler = mockk<SyncScheduler>(relaxed = true)
+    private val downloads = MemoryOfflineDownloads()
     private lateinit var store: AccountSettingsStore
 
     @BeforeEach
     fun setUp() {
         db = inMemoryDatabase()
-        store = AccountSettingsStore(db, scheduler, Dispatchers.Unconfined)
+        store = AccountSettingsStore(db, scheduler, downloads, Dispatchers.Unconfined)
     }
 
     @AfterEach
@@ -56,6 +57,28 @@ class AccountSettingsStoreTest {
         assertEquals("ana@example.test", settings.email)
         assertEquals(AccountProfile("Ana", "", true, true), settings.profile)
         assertEquals(OfflineWindow.DAYS_90, settings.offlineWindow)
+    }
+
+    @Test
+    fun `downloading for offline is on by default and can be switched`() = runTest {
+        val id = addAccount()
+        assertTrue(store.observe(id).first()!!.downloadForOffline)
+
+        store.setDownloadForOffline(id, false)
+        assertFalse(store.observe(id).first()!!.downloadForOffline)
+        verify(exactly = 0) { scheduler.requestSync(id) }
+
+        store.setDownloadForOffline(id, true)
+        assertTrue(store.observe(id).first()!!.downloadForOffline)
+        verify { scheduler.requestSync(id) }
+    }
+
+    @Test
+    fun `switching downloads for an account that is gone does nothing`() = runTest {
+        store.setDownloadForOffline(99, true)
+
+        assertTrue(downloads.isEnabled(99))
+        verify(exactly = 0) { scheduler.requestSync(any()) }
     }
 
     @Test

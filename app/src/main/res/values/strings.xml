@@ -88,6 +88,7 @@
     </plurals>
     <string name="sync_status_never">Not synced yet</string>
     <string name="sync_status_syncing">Syncing…</string>
+    <string name="sync_status_downloading">Downloading messages %1$d/%2$d</string>
     <string name="sync_status_last">Last synced %1$s</string>
     <string name="sync_status_reauth">Sign in again</string>
     <string name="sync_error_network">No connection</string>
@@ -276,6 +277,8 @@
     <string name="offline_title">Mail kept on this device</string>
     <string name="offline_summary">How far back the mail of this account is kept for offline use. Older mail stays on the server.</string>
     <string name="offline_note">Choosing a longer period does not download again the headers that were already removed from this device.</string>
+    <string name="offline_download">Download messages for offline reading</string>
+    <string name="offline_download_summary">Sync downloads the full text of the messages kept on this device, so you can read them without a connection. Attachments are downloaded when you open them. Very large messages are fetched when opened.</string>
     <string name="offline_30_days">30 days</string>
     <string name="offline_90_days">90 days (recommended)</string>
     <string name="offline_180_days">180 days</string>

@@ -3,8 +3,10 @@
 
 package com.qtekfun.ultimatemail.di
 
+import com.qtekfun.ultimatemail.data.settings.PreferenceOfflineDownloads
 import com.qtekfun.ultimatemail.data.settings.PreferenceStore
 import com.qtekfun.ultimatemail.data.settings.SharedPreferencesStore
+import com.qtekfun.ultimatemail.domain.settings.OfflineDownloads
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -15,4 +17,7 @@ import dagger.hilt.components.SingletonComponent
 abstract class SettingsModule {
     @Binds
     abstract fun preferenceStore(store: SharedPreferencesStore): PreferenceStore
+
+    @Binds
+    abstract fun offlineDownloads(impl: PreferenceOfflineDownloads): OfflineDownloads
 }
