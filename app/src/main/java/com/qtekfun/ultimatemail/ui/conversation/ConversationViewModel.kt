@@ -278,12 +278,12 @@ class ConversationViewModel @Inject constructor(
     /** A message without undo was shown. */
     fun noticeShown(noticeId: Long) = notices.shown(noticeId)
 
-    /** Starts writing a message from the newest one (placeholder until T18). */
+    /** Starts writing a message from the newest one. */
     fun compose(mode: ComposeMode) {
         val newest = state.value.view?.newest ?: return
         val target = ref.value ?: return
         val request = ComposeRequest(target.accountId, target.folderPath, newest.id, mode)
-        if (!composeLauncher.start(request)) notices.post(NoticeKind.COMPOSE_SOON)
+        if (!composeLauncher.start(request)) notices.post(NoticeKind.COMPOSE_FAILED)
     }
 
     /**

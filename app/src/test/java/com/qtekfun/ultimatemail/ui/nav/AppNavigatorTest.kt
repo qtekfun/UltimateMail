@@ -169,4 +169,41 @@ class AppNavigatorTest {
         assertTrue(navigator.back())
         assertEquals(Screen.Home, navigator.screen.value)
     }
+
+    @Test
+    fun `the composer returns to the screen it was opened from`() {
+        val navigator = AppNavigator(SavedStateHandle())
+        navigator.openConversation(1, "INBOX", "t1")
+
+        navigator.openCompose(42)
+        assertEquals(Screen.Compose(42), navigator.screen.value)
+
+        navigator.closeCompose()
+        assertEquals(Screen.Conversation(1, "INBOX", "t1"), navigator.screen.value)
+        // The way back out of the reader is still the list it came from.
+        navigator.back()
+        assertEquals(Screen.Home, navigator.screen.value)
+    }
+
+    @Test
+    fun `reopening the composer from the composer keeps the original way back`() {
+        val navigator = AppNavigator(SavedStateHandle())
+        navigator.open(Screen.Inbox(work))
+        navigator.openCompose(1)
+
+        navigator.openCompose(2)
+        navigator.back()
+
+        assertEquals(Screen.Inbox(work), navigator.screen.value)
+    }
+
+    @Test
+    fun `the composer and the outbox survive process death by route`() {
+        val saved = SavedStateHandle()
+        AppNavigator(saved).openCompose(7)
+        assertEquals(Screen.Compose(7), AppNavigator(saved).screen.value)
+
+        assertEquals(Screen.Outbox, Screen.fromRoute(Screen.Outbox.route))
+        assertEquals(Screen.Home, Screen.fromRoute("compose:abc"))
+    }
 }
