@@ -320,6 +320,8 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.core)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
+    implementation(libs.androidx.work.runtime)
+
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)
 

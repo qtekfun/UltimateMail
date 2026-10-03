@@ -22,13 +22,13 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 ## Fase 2 — Sincronización (lo más crítico)
 - [x] **T08 Cola de operaciones pendientes**: idempotente, backoff exponencial, persistida. **100% de cobertura.**
 - [x] **T09 Resolutor de consistencia**: reglas de la sección 5 de `SPEC.md`. **100% de cobertura**, un test por regla más fallos a mitad de operación.
-- [ ] **T10 Motor de sincronización**: UIDVALIDITY/UIDNEXT/CONDSTORE/QRESYNC, ventana offline por cuenta, WorkManager periódico (~15 min), sync al abrir y pull-to-refresh.
+- [x] **T10 Motor de sincronización**: UIDVALIDITY/UIDNEXT/CONDSTORE/QRESYNC, ventana offline por cuenta, WorkManager periódico (~15 min), sync al abrir y pull-to-refresh.
 - [x] **T11 Hilos**: `X-GM-THRID`, `THREAD` y algoritmo References/asunto, con tests.
 - [ ] **T12 Tests de sync offline**: caídas de red, UIDVALIDITY cambiada, cambios concurrentes, app cerrada a mitad de sync.
 
 ## Fase 3 — Interfaz del MVP
 - [x] **T13 Añadir cuenta y lista de carpetas/etiquetas** (offline funcional). *(Solo contraseña de aplicación; el acceso con Google/Microsoft queda para después.)*
-- [ ] **T14 Bandeja y bandeja unificada**: lista de conversaciones, paginación, indicador "pendiente de sync".
+- [x] **T14 Bandeja y bandeja unificada**: lista de conversaciones, paginación, indicador "pendiente de sync".
 - [ ] **T14b Menú lateral de carpetas**: navigation drawer estilo Gmail con la bandeja unificada arriba, el selector de cuenta en la cabecera y todas las carpetas y etiquetas de la cuenta (especiales primero, jerarquía, contadores de no leídos); la pantalla de carpetas de T13 pasa a ser el contenido del menú. Debe ser la base de navegación de T15–T21.
 - [ ] **T15 Lectura de conversación**: mensajes plegables, HTML seguro (según T04), adjuntos bajo demanda.
 - [ ] **T16 Gestos configurables y selección múltiple**, con deshacer.
