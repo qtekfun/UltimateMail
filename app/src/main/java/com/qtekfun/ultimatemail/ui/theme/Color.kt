@@ -12,3 +12,9 @@ internal val Teal40 = Color(0xFF00696E)
 internal val Teal80 = Color(0xFF80D4DA)
 internal val Amber40 = Color(0xFF7A5900)
 internal val Amber80 = Color(0xFFF7BD48)
+
+// Surfaces of the dark theme with pure black behind them (AMOLED option).
+internal val AmoledLow = Color(0xFF0A0A0A)
+internal val AmoledContainer = Color(0xFF121212)
+internal val AmoledHigh = Color(0xFF1A1A1A)
+internal val AmoledHighest = Color(0xFF222222)
