@@ -8,6 +8,7 @@ import com.qtekfun.ultimatemail.data.local.entity.FolderEntity
 import com.qtekfun.ultimatemail.data.local.message
 import com.qtekfun.ultimatemail.data.local.model.AttachmentState
 import com.qtekfun.ultimatemail.data.local.model.FolderRole
+import com.qtekfun.ultimatemail.data.settings.RemoteContentPolicy
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -87,7 +88,7 @@ class ConversationPresenterTest {
 
         val body = view.messages.single().body as BodyView.Ready
         assertEquals(RenderedBody.Text(listOf(TextRun("Hello"))), body.rendered)
-        assertFalse(body.showRemoteBanner)
+        assertFalse(body.remoteBanner != null)
     }
 
     @Test
@@ -123,6 +124,19 @@ class ConversationPresenterTest {
     }
 
     @Test
+    fun `the remote content policy of the settings reaches the banner and the colours choice`() {
+        val html = "<p>Hi</p><img src=\"https://tracker.example.test/p.gif\">"
+        val data = data(msg(1, html = html))
+        val open = ConversationLocal(expanded = setOf(1), originalColors = setOf(1))
+
+        val view = presenter.present(data, open, "INBOX", RemoteContentPolicy.ASK)
+        val body = view.messages.single().body as BodyView.Ready
+
+        assertEquals(RemoteBanner.ASK, body.remoteBanner)
+        assertTrue(body.originalColors)
+    }
+
+    @Test
     fun `remote images offer the banner until the reader allows them`() {
         val html = "<p>Hi</p><img src=\"https://tracker.example.test/p.gif\">"
         val data = data(msg(1, html = html))
@@ -132,8 +146,8 @@ class ConversationPresenterTest {
         val allowed = present(data, open.copy(remoteAllowed = setOf(1))).messages.single()
             .body as BodyView.Ready
 
-        assertTrue(blocked.showRemoteBanner)
-        assertFalse(allowed.showRemoteBanner)
+        assertEquals(RemoteBanner.BLOCKED, blocked.remoteBanner)
+        assertNull(allowed.remoteBanner)
         assertFalse((allowed.rendered as RenderedBody.Html).sanitized.hadBlockedRemoteContent)
     }
 

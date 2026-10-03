@@ -5,6 +5,7 @@ package com.qtekfun.ultimatemail.data.local
 
 import com.qtekfun.ultimatemail.data.local.entity.AttachmentEntity
 import com.qtekfun.ultimatemail.sync.engine.AttachmentStorage
+import com.qtekfun.ultimatemail.sync.engine.StoredAttachment
 
 /** Attachment storage in memory: the "files" are map entries, paths look like real ones. */
 class FakeAttachmentStorage : AttachmentStorage {
@@ -27,4 +28,11 @@ class FakeAttachmentStorage : AttachmentStorage {
     }
 
     override fun exists(path: String) = path in files
+
+    override fun stored(accountId: Long) = files.keys.filter { it.startsWith("/files/$accountId/") }
+        .map { StoredAttachment(it.substringAfterLast('/').toLong(), it) }
+
+    override fun delete(path: String) {
+        files.remove(path)
+    }
 }
