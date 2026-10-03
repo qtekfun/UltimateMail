@@ -3,11 +3,7 @@
 
 package com.qtekfun.ultimatemail.domain.compose
 
-import com.qtekfun.ultimatemail.data.local.dao.AccountDao
-import com.qtekfun.ultimatemail.data.local.dao.DraftDao
-import com.qtekfun.ultimatemail.data.local.dao.FolderDao
-import com.qtekfun.ultimatemail.data.local.dao.MessageDao
-import com.qtekfun.ultimatemail.data.local.dao.PendingOperationDao
+import com.qtekfun.ultimatemail.data.local.UltimateMailDatabase
 import com.qtekfun.ultimatemail.data.local.model.DraftState
 import com.qtekfun.ultimatemail.data.local.model.FolderRole
 import com.qtekfun.ultimatemail.data.local.model.OperationType
@@ -42,17 +38,18 @@ import kotlinx.coroutines.withContext
  */
 @Singleton
 class DraftServerSync @Inject constructor(
-    private val drafts: DraftDao,
-    private val accounts: AccountDao,
-    private val folders: FolderDao,
-    private val messages: MessageDao,
-    private val operations: PendingOperationDao,
+    database: UltimateMailDatabase,
     private val queue: OperationQueue,
     private val marker: PendingSyncMarker,
     private val scheduler: SyncScheduler,
     private val clock: Clock,
     @IoDispatcher private val io: CoroutineDispatcher
 ) {
+    private val drafts = database.draftDao()
+    private val accounts = database.accountDao()
+    private val folders = database.folderDao()
+    private val messages = database.messageDao()
+    private val operations = database.pendingOperationDao()
     private val lastQueued = ConcurrentHashMap<Long, Instant>()
 
     /**
@@ -60,41 +57,42 @@ class DraftServerSync @Inject constructor(
      * is now waiting in the queue (false: nothing to upload, no Drafts folder, or throttled).
      */
     suspend fun request(draftId: Long, force: Boolean = false): Boolean = withContext(io) {
-        val entity = drafts.get(draftId)
+        val entity = drafts.get(draftId)?.takeIf { it.state == DraftState.EDITING }
+            ?.takeIf { it.dirty || force }
         val account = entity?.let { accounts.get(it.accountId) }
-        val hasFolder = account != null &&
-            folders.all(account.id).any { it.role == FolderRole.DRAFTS }
-        if (entity == null || account == null || !hasFolder ||
-            entity.state != DraftState.EDITING || (!entity.dirty && !force)
-        ) {
+        if (entity == null || account == null || !hasDraftsFolder(account.id)) {
             return@withContext false
         }
         val draft = entity.toDraft()
         val id = DraftMessageIds.forServerCopy(draft.key, account.email)
-        val payload = OutgoingPayload.encode(
-            DraftMessages.queued(draft, account, id, emptyList(), false)
-        )
-        val waiting = operations.forDraft(account.id, draftId, OperationType.SAVE_DRAFT)
-            .firstOrNull { it.startedAt == null }
-        val refreshed = waiting != null && operations.replacePayload(waiting.id, payload) > 0
-        val now = clock.instant()
-        val last = lastQueued[draftId]
-        val throttled = !force && last != null && Duration.between(last, now) < MIN_INTERVAL
-        val queued = refreshed || (!throttled && enqueue(account.id, draftId, payload, now))
+        val payload =
+            OutgoingPayload.encode(DraftMessages.queued(draft, account, id, emptyList(), false))
+        val queued = refreshWaiting(account.id, draftId, payload) ||
+            (!throttled(draftId, force) && enqueue(account.id, draftId, payload))
         if (queued && force) scheduler.requestSync(account.id)
         queued
     }
 
-    private suspend fun enqueue(
-        accountId: Long,
-        draftId: Long,
-        payload: String,
-        now: Instant
-    ): Boolean {
-        queue.enqueue(
+    private suspend fun hasDraftsFolder(accountId: Long) =
+        folders.all(accountId).any { it.role == FolderRole.DRAFTS }
+
+    /** Replaces the text of a save that was not handed to the server yet. */
+    private suspend fun refreshWaiting(accountId: Long, draftId: Long, payload: String): Boolean {
+        val waiting = operations.forDraft(accountId, draftId, OperationType.SAVE_DRAFT)
+            .firstOrNull { it.startedAt == null }
+        return waiting != null && operations.replacePayload(waiting.id, payload) > 0
+    }
+
+    private fun throttled(draftId: Long, force: Boolean): Boolean {
+        val last = lastQueued[draftId]
+        return !force && last != null && Duration.between(last, clock.instant()) < MIN_INTERVAL
+    }
+
+    private suspend fun enqueue(accountId: Long, draftId: Long, payload: String): Boolean {
+        val operation =
             NewOperation(accountId, OperationType.SAVE_DRAFT, OUTBOX_FOLDER, draftId, payload)
-        )
-        lastQueued[draftId] = now
+        queue.enqueue(operation)
+        lastQueued[draftId] = clock.instant()
         return true
     }
 

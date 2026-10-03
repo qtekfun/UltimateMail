@@ -6,6 +6,7 @@ package com.qtekfun.ultimatemail.sync.engine
 import com.qtekfun.ultimatemail.data.local.dao.AccountDao
 import com.qtekfun.ultimatemail.data.local.dao.FolderDao
 import com.qtekfun.ultimatemail.data.local.dao.MessageDao
+import com.qtekfun.ultimatemail.data.local.entity.AccountEntity
 import com.qtekfun.ultimatemail.data.local.entity.PendingOperationEntity
 import com.qtekfun.ultimatemail.data.local.model.FolderRole
 import com.qtekfun.ultimatemail.data.local.model.OperationType
@@ -303,6 +304,18 @@ class MailOperationExecutor @Inject constructor(
             SendDecision.ConfirmFirst -> return OperationOutcome.RetryLater(Reasons.CONFIRM_SENT)
             SendDecision.Retry -> Unit
         }
+        return transmit(session, account, message, delivered)
+    }
+
+    /** Hands [message] to the SMTP server of [account] and settles what comes back. */
+    // Each failure leaves early; guard clauses keep the normal path flat.
+    @Suppress("ReturnCount")
+    private suspend fun transmit(
+        session: MailSession,
+        account: AccountEntity,
+        message: OutgoingMessage,
+        delivered: suspend () -> OperationOutcome
+    ): OperationOutcome {
         val login = when (val result = credentials.forAccount(account)) {
             is CredentialsResult.Ready -> result.credentials
 

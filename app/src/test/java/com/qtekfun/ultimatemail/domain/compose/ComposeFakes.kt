@@ -22,12 +22,18 @@ class FakeOutboxStorage : OutboxFileStorage {
         source: InputStream,
         maxBytes: Long
     ): StoreResult {
-        if (failWrites) return StoreResult.Failed
         val bytes = source.readBytes()
-        if (bytes.size > maxBytes) return StoreResult.TooLarge
-        val path = "/outbox/$draftId/${++counter}-$displayName"
-        files[path] = bytes
-        return StoreResult.Stored(path, bytes.size.toLong())
+        return when {
+            failWrites -> StoreResult.Failed
+
+            bytes.size > maxBytes -> StoreResult.TooLarge
+
+            else -> {
+                val path = "/outbox/$draftId/${++counter}-$displayName"
+                files[path] = bytes
+                StoreResult.Stored(path, bytes.size.toLong())
+            }
+        }
     }
 
     override fun read(path: String): ByteArray? = files[path]

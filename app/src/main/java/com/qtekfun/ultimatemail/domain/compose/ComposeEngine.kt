@@ -3,11 +3,8 @@
 
 package com.qtekfun.ultimatemail.domain.compose
 
-import com.qtekfun.ultimatemail.data.local.dao.AccountDao
-import com.qtekfun.ultimatemail.data.local.dao.DraftDao
-import com.qtekfun.ultimatemail.data.local.dao.MessageDao
+import com.qtekfun.ultimatemail.data.local.UltimateMailDatabase
 import com.qtekfun.ultimatemail.data.local.entity.AccountEntity
-import com.qtekfun.ultimatemail.data.local.entity.MessageEntity
 import com.qtekfun.ultimatemail.data.local.model.DraftKind
 import com.qtekfun.ultimatemail.data.local.model.DraftState
 import com.qtekfun.ultimatemail.di.IoDispatcher
@@ -42,94 +39,76 @@ import kotlinx.coroutines.withContext
  * 4. **Send.** `SendDraft` moves the draft to the outbox; `OutboxActions` and `ComposeState` show
  *    and manage it.
  */
-@Suppress("LongParameterList")
 class ComposeEngine @Inject constructor(
-    private val drafts: DraftDao,
-    private val accounts: AccountDao,
-    private val messages: MessageDao,
+    database: UltimateMailDatabase,
     private val repository: DraftRepository,
     private val serverSync: DraftServerSync,
     private val templates: QuoteTemplatesProvider,
     private val clock: Clock,
     @IoDispatcher private val io: CoroutineDispatcher
 ) {
+    private val drafts = database.draftDao()
+    private val accounts = database.accountDao()
+    private val messages = database.messageDao()
     private val quotes = QuoteBuilder(templates)
 
     /** A new, empty message from [accountId] with the account signature; null if no such account. */
     suspend fun newMessage(accountId: Long, to: List<MailAddress> = emptyList()): Draft? =
         withContext(io) {
             val account = accounts.get(accountId) ?: return@withContext null
-            create(
-                account,
-                DraftKind.NEW,
-                source = null,
-                to = to,
-                cc = emptyList(),
-                subject = "",
-                text = ""
-            )
+            store(account, blank(account, DraftKind.NEW).copy(to = to), text = "")
         }
 
     /** Starts a reply, reply all or forward of the message in [request]; null if it is gone. */
     suspend fun start(request: ComposeRequest): Draft? = withContext(io) {
         val account = accounts.get(request.accountId) ?: return@withContext null
         val row = messages.getById(request.messageId) ?: return@withContext null
-        val source = row.toSource()
+        val source = row.toComposeSource()
         val kind = when (request.mode) {
             ComposeMode.REPLY -> DraftKind.REPLY
             ComposeMode.REPLY_ALL -> DraftKind.REPLY_ALL
             ComposeMode.FORWARD -> DraftKind.FORWARD
         }
-        val forward = kind == DraftKind.FORWARD
         val recipients = ReplyRecipientsRule.of(kind, source, setOf(account.email))
-        val headers = if (forward) null else ReferenceChain.forReply(source)
-        create(
-            account = account,
-            kind = kind,
-            source = DraftSource(source.accountId, source.folderPath, source.uid, source.messageId),
+        val draft = blank(account, kind).copy(
             to = recipients.to,
             cc = recipients.cc,
-            subject = if (forward) {
-                ComposeSubject.forward(
-                    source.subject
-                )
-            } else {
-                ComposeSubject.reply(source.subject)
-            },
-            text = "\n\n" + if (forward) quotes.forward(source) else quotes.reply(source),
-            inReplyTo = headers?.inReplyTo,
-            references = headers?.references.orEmpty()
+            source = DraftSource(source.accountId, source.folderPath, source.uid, source.messageId)
         )
+        // The user's own line comes first, then the signature (above the quote by default).
+        if (kind == DraftKind.FORWARD) {
+            val text = "\n\n" + quotes.forward(source)
+            store(account, draft.copy(subject = ComposeSubject.forward(source.subject)), text)
+        } else {
+            val headers = ReferenceChain.forReply(source)
+            val replying = draft.copy(
+                subject = ComposeSubject.reply(source.subject),
+                inReplyTo = headers.inReplyTo,
+                references = headers.references
+            )
+            store(account, replying, "\n\n" + quotes.reply(source))
+        }
     }
 
-    private suspend fun create(
-        account: AccountEntity,
-        kind: DraftKind,
-        source: DraftSource?,
-        to: List<MailAddress>,
-        cc: List<MailAddress>,
-        subject: String,
-        text: String,
-        inReplyTo: String? = null,
-        references: List<String> = emptyList()
-    ): Draft {
-        val settings = signatureOf(account)
+    /** An empty draft of [kind] for [account], with its signature settings but no signature yet. */
+    private fun blank(account: AccountEntity, kind: DraftKind): Draft {
+        val settings = account.signatureSettings()
         val now = clock.instant()
-        val draft = Draft(
+        return Draft(
             id = 0,
             key = DraftMessageIds.newKey(),
             accountId = account.id,
             kind = kind,
             state = DraftState.EDITING,
-            to = to,
-            cc = cc,
+            to = emptyList(),
+            cc = emptyList(),
             bcc = emptyList(),
-            subject = subject,
+            subject = "",
             body = "",
-            inReplyTo = inReplyTo,
-            references = references,
-            source = source,
-            signatureText = settings.takeIf { it.hasBlock() }?.text,
+            inReplyTo = null,
+            references = emptyList(),
+            source = null,
+            signatureText = settings.takeIf { it.block != null }?.text,
             signatureBeforeQuote = settings.beforeQuote,
             serverMessageId = null,
             dirty = true,
@@ -139,7 +118,11 @@ class ComposeEngine @Inject constructor(
             createdAt = now,
             updatedAt = now
         )
-        val body = SignatureEditor.apply(text, draft.composeKind, settings)
+    }
+
+    /** Puts [text] and the signature of [account] into [draft] and stores it. */
+    private suspend fun store(account: AccountEntity, draft: Draft, text: String): Draft {
+        val body = SignatureEditor.apply(text, draft.composeKind, account.signatureSettings())
         val stored = draft.copy(body = body)
         return stored.copy(id = drafts.insert(stored.toEntity()))
     }
@@ -182,12 +165,17 @@ class ComposeEngine @Inject constructor(
         if (current.accountId == accountId) return@withContext DraftChange.SAVED
         if (current.state != DraftState.EDITING) return@withContext DraftChange.NOT_EDITABLE
         serverSync.forgetServerCopy(current)
-        val next = signatureOf(account)
-        repository.change(id) {
-            it.copy(
+        val next = account.signatureSettings()
+        repository.change(id) { draft ->
+            draft.copy(
                 accountId = accountId,
-                body = SignatureEditor.replace(it.body, it.signatureSettings, next, it.composeKind),
-                signatureText = next.takeIf { settings -> settings.hasBlock() }?.text,
+                body = SignatureEditor.replace(
+                    draft.body,
+                    draft.signatureSettings,
+                    next,
+                    draft.composeKind
+                ),
+                signatureText = next.takeIf { it.block != null }?.text,
                 signatureBeforeQuote = next.beforeQuote,
                 serverMessageId = null
             )
@@ -205,25 +193,7 @@ class ComposeEngine @Inject constructor(
         /** The pause after the last change before the composer's text is stored. */
         const val AUTOSAVE_DEBOUNCE_MILLIS = 800L
     }
-
-    private fun signatureOf(account: AccountEntity) =
-        SignatureSettings(account.signature, account.signatureEnabled, account.signatureBeforeQuote)
-
-    private fun SignatureSettings.hasBlock() = enabled && text.isNotBlank()
-
-    private fun MessageEntity.toSource() = ComposeSource(
-        accountId = accountId,
-        folderPath = folderPath,
-        uid = uid,
-        messageId = messageId,
-        from = senderAddress.takeIf { it.isNotBlank() }
-            ?.let { MailAddress(it, senderName.ifBlank { null }) },
-        to = toAddresses.map { MailAddress(it) },
-        cc = ccAddresses.map { MailAddress(it) },
-        subject = subject,
-        sentAt = sentAt,
-        inReplyTo = inReplyTo,
-        references = referenceIds,
-        bodyText = bodyText ?: bodyHtml?.let(HtmlText::toPlain)
-    )
 }
+
+private fun AccountEntity.signatureSettings() =
+    SignatureSettings(signature, signatureEnabled, signatureBeforeQuote)

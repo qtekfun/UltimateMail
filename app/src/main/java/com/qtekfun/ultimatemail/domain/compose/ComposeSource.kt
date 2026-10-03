@@ -3,6 +3,7 @@
 
 package com.qtekfun.ultimatemail.domain.compose
 
+import com.qtekfun.ultimatemail.data.local.entity.MessageEntity
 import com.qtekfun.ultimatemail.domain.mail.MailAddress
 import java.time.Instant
 
@@ -32,3 +33,23 @@ data class ComposeSource(
 ) {
     override fun toString(): String = "ComposeSource(uid=$uid)"
 }
+
+/**
+ * What the composer takes from a stored message. To and Cc keep only the addresses (that is all
+ * Room stores of them); the text is the plain part, or a plain reading of the HTML part.
+ */
+internal fun MessageEntity.toComposeSource() = ComposeSource(
+    accountId = accountId,
+    folderPath = folderPath,
+    uid = uid,
+    messageId = messageId,
+    from = senderAddress.takeIf { it.isNotBlank() }
+        ?.let { MailAddress(it, senderName.ifBlank { null }) },
+    to = toAddresses.map { MailAddress(it) },
+    cc = ccAddresses.map { MailAddress(it) },
+    subject = subject,
+    sentAt = sentAt,
+    inReplyTo = inReplyTo,
+    references = referenceIds,
+    bodyText = bodyText ?: bodyHtml?.let(HtmlText::toPlain)
+)

@@ -22,9 +22,13 @@ object ReferenceChain {
     fun forReply(source: ComposeSource): Headers {
         val parent = source.messageId?.takeIf { ThreadKeys.messageId(it) != null }?.trim()
         val chain = source.references.ifEmpty { listOfNotNull(source.inReplyTo) }
-        val ids = (chain + listOfNotNull(parent)).filter { ThreadKeys.messageId(it) != null }
+        val parentKey = ThreadKeys.messageId(parent)
+        // The parent always ends the chain, wherever the older references mention it.
+        val older = chain.filter { ThreadKeys.messageId(it) != null }
             .map { it.trim() }
+            .filter { ThreadKeys.messageId(it) != parentKey }
             .distinctBy { ThreadKeys.messageId(it) }
+        val ids = older + listOfNotNull(parent)
         return Headers(parent, trim(ids))
     }
 

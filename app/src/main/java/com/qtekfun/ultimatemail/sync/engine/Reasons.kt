@@ -60,6 +60,8 @@ internal fun failureOutcome(failure: MailResult.Failure): OperationOutcome = whe
 }
 
 /** The newest [count] headers of [folder] (fewer if it is smaller). */
+// Each failure leaves early; guard clauses keep the normal path flat.
+@Suppress("ReturnCount")
 internal suspend fun MailSession.newestHeaders(
     folder: String,
     count: Long

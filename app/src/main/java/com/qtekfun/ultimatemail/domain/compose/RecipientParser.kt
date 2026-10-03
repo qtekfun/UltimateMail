@@ -33,13 +33,17 @@ object RecipientParser {
     private const val MAX_LABEL = 63
     private const val MAX_ADDRESS = 254
     private const val ATOM_SPECIALS = "!#$%&'*+/=?^_`{|}~-"
+    private const val ASCII_LIMIT = 0x80
+    private const val FIRST_PRINTABLE = 0x20
+    private const val LAST_PRINTABLE = 0x7E
+    private val PRINTABLE_ASCII = FIRST_PRINTABLE..LAST_PRINTABLE
     private const val NAME_SPECIALS = "()<>[]:;@\\,.\""
 
     /** Splits [text] into recipients; empty entries are ignored. */
     fun parseList(text: String): ParsedRecipients {
         val valid = mutableListOf<MailAddress>()
         val invalid = mutableListOf<String>()
-        split(text).forEach { entry ->
+        AddressText.split(text).forEach { entry ->
             val parsed = parse(entry)
             if (parsed == null) invalid += entry.trim() else valid += parsed
         }
@@ -49,12 +53,12 @@ object RecipientParser {
     /** One recipient, or null if [text] is not a valid address with an optional display name. */
     fun parse(text: String): MailAddress? {
         val entry = text.trim()
-        val open = lastUnquoted(entry, '<')
+        val open = AddressText.lastUnquoted(entry, '<')
         val address: String
         var name: String?
         if (open >= 0 && entry.endsWith(">")) {
             address = entry.substring(open + 1, entry.length - 1).trim()
-            name = unquote(entry.substring(0, open).trim())
+            name = AddressText.unquote(entry.substring(0, open).trim())
         } else {
             val comment = entry.indexOf('(')
             address =
@@ -114,7 +118,7 @@ object RecipientParser {
             local.substring(1, local.length - 1).let { body ->
                 var escaped = false
                 body.all { c ->
-                    val ok = c.code in 0x20..0x7E && (escaped || (c != '"' && c != '\\'))
+                    val ok = c.code in PRINTABLE_ASCII && (escaped || c != '"')
                     escaped = !escaped && c == '\\'
                     ok
                 } && !escaped
@@ -122,7 +126,7 @@ object RecipientParser {
 
         else -> local.split('.').all { atom ->
             atom.isNotEmpty() &&
-                atom.all { it.code < 0x80 && (it.isLetterOrDigit() || it in ATOM_SPECIALS) }
+                atom.all { it.code < ASCII_LIMIT && (it.isLetterOrDigit() || it in ATOM_SPECIALS) }
         }
     }
 
@@ -135,66 +139,5 @@ object RecipientParser {
 
     private fun validLabel(label: String) = label.length in 1..MAX_LABEL &&
         !label.startsWith("-") && !label.endsWith("-") &&
-        label.all { it.code < 0x80 && (it.isLetterOrDigit() || it == '-') }
-
-    /** Cuts [text] at commas and semicolons that are not inside quotes, brackets or comments. */
-    private fun split(text: String): List<String> {
-        val parts = mutableListOf<String>()
-        val current = StringBuilder()
-        var quoted = false
-        var angle = 0
-        var comment = 0
-        var escaped = false
-        for (c in text) {
-            val separator =
-                !escaped && !quoted && angle == 0 && comment == 0 && (c == ',' || c == ';')
-            when {
-                separator -> {
-                    parts += current.toString()
-                    current.clear()
-                    continue
-                }
-
-                escaped -> escaped = false
-
-                c == '\\' && (quoted || comment > 0) -> escaped = true
-
-                c == '"' && comment == 0 -> quoted = !quoted
-
-                !quoted && c == '<' -> angle++
-
-                !quoted && c == '>' && angle > 0 -> angle--
-
-                !quoted && c == '(' -> comment++
-
-                !quoted && c == ')' && comment > 0 -> comment--
-            }
-            current.append(c)
-        }
-        parts += current.toString()
-        return parts.filter { it.isNotBlank() }
-    }
-
-    /** Index of the last [target] outside quotes, or -1. */
-    private fun lastUnquoted(text: String, target: Char): Int {
-        var quoted = false
-        var escaped = false
-        var found = -1
-        text.forEachIndexed { index, c ->
-            when {
-                escaped -> escaped = false
-                quoted && c == '\\' -> escaped = true
-                c == '"' -> quoted = !quoted
-                !quoted && c == target -> found = index
-            }
-        }
-        return found
-    }
-
-    private fun unquote(raw: String): String? {
-        if (raw.length >= 2 && raw.startsWith("\"") && raw.endsWith("\"")) {
-            return raw.substring(1, raw.length - 1).replace(Regex("\\\\(.)"), "$1")
-        }
-        return raw.takeIf { it.isNotEmpty() }
-    }
+        label.all { it.code < ASCII_LIMIT && (it.isLetterOrDigit() || it == '-') }
 }

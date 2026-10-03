@@ -3,8 +3,7 @@
 
 package com.qtekfun.ultimatemail.domain.compose
 
-import com.qtekfun.ultimatemail.data.local.dao.DraftDao
-import com.qtekfun.ultimatemail.data.local.dao.PendingOperationDao
+import com.qtekfun.ultimatemail.data.local.UltimateMailDatabase
 import com.qtekfun.ultimatemail.data.local.entity.PendingOperationEntity
 import com.qtekfun.ultimatemail.data.local.model.DraftState
 import com.qtekfun.ultimatemail.data.local.model.OperationType
@@ -38,14 +37,16 @@ enum class OutboxChange {
  * delivered, so [OutboxChange.MAY_BE_SENT] protects against sending twice.
  */
 class OutboxActions @Inject constructor(
-    private val drafts: DraftDao,
-    private val operations: PendingOperationDao,
+    database: UltimateMailDatabase,
     private val queue: OperationQueue,
     private val repository: DraftRepository,
     private val scheduler: SyncScheduler,
     private val clock: Clock,
     @IoDispatcher private val io: CoroutineDispatcher
 ) {
+    private val drafts = database.draftDao()
+    private val operations = database.pendingOperationDao()
+
     /** Tries a failed send again now. Does nothing for a message that has not failed. */
     suspend fun retry(draftId: Long): OutboxChange = withContext(io) {
         val draft = drafts.get(draftId) ?: return@withContext OutboxChange.MISSING
