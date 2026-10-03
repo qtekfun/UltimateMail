@@ -35,17 +35,29 @@ class MailCredentialsProvider @Inject constructor(
     private val clock: Clock
 ) {
     /** [forceRefresh] gets a new OAuth token even if the stored one looks valid. */
-    suspend fun forAccount(account: AccountEntity, forceRefresh: Boolean = false): CredentialsResult {
+    suspend fun forAccount(
+        account: AccountEntity,
+        forceRefresh: Boolean = false
+    ): CredentialsResult {
         val stored = vault.load(account.id) ?: return CredentialsResult.ReauthenticationNeeded
         return when (account.authType) {
-            AuthType.PASSWORD -> stored.password
-                ?.let { CredentialsResult.Ready(MailCredentials.Password(account.username, it)) }
-                ?: CredentialsResult.ReauthenticationNeeded
+            AuthType.PASSWORD ->
+                stored.password
+                    ?.let {
+                        CredentialsResult.Ready(MailCredentials.Password(account.username, it))
+                    }
+                    ?: CredentialsResult.ReauthenticationNeeded
 
-            AuthType.OAUTH_GOOGLE, AuthType.OAUTH_MICROSOFT -> oauthCredentials(account, stored, forceRefresh)
+            AuthType.OAUTH_GOOGLE, AuthType.OAUTH_MICROSOFT -> oauthCredentials(
+                account,
+                stored,
+                forceRefresh
+            )
         }
     }
 
+    // Each failure leaves early; guard clauses keep the normal path flat.
+    @Suppress("ReturnCount")
     private suspend fun oauthCredentials(
         account: AccountEntity,
         stored: AccountCredentials,
@@ -66,7 +78,9 @@ class MailCredentialsProvider @Inject constructor(
                     refreshToken = result.tokens.refreshToken ?: refreshToken
                 )
                 vault.save(account.id, stored.copy(oauth = fresh))
-                CredentialsResult.Ready(MailCredentials.OAuthBearer(account.username, fresh.accessToken))
+                CredentialsResult.Ready(
+                    MailCredentials.OAuthBearer(account.username, fresh.accessToken)
+                )
             }
 
             OAuthRefreshResult.Revoked -> CredentialsResult.ReauthenticationNeeded

@@ -16,6 +16,8 @@ import javax.inject.Inject
 /** Keeps the folders of an account in Room equal to the ones the server lists (RF-02). */
 class FolderCatalog @Inject constructor(private val folders: FolderDao) {
     /** Returns the failure if the server could not list its folders; Room is then untouched. */
+    // Each failure leaves early; guard clauses keep the normal path flat.
+    @Suppress("ReturnCount")
     suspend fun refresh(account: AccountEntity, session: MailSession): MailResult.Failure? {
         val listed = when (val result = session.listFolders()) {
             is MailResult.Success -> result.value

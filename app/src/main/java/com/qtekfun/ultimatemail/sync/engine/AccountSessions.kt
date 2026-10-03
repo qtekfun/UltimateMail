@@ -124,18 +124,20 @@ class AccountSessions @Inject constructor(
         return attempt
     }
 
-    private suspend fun connectWith(account: AccountEntity, forceRefresh: Boolean): Leased<MailSession> =
-        when (val ready = credentials.forAccount(account, forceRefresh)) {
-            CredentialsResult.ReauthenticationNeeded -> Leased.AuthRequired
+    private suspend fun connectWith(
+        account: AccountEntity,
+        forceRefresh: Boolean
+    ): Leased<MailSession> = when (val ready = credentials.forAccount(account, forceRefresh)) {
+        CredentialsResult.ReauthenticationNeeded -> Leased.AuthRequired
 
-            CredentialsResult.TemporarilyUnavailable -> Leased.Failed(MailResult.NetworkUnavailable)
+        CredentialsResult.TemporarilyUnavailable -> Leased.Failed(MailResult.NetworkUnavailable)
 
-            is CredentialsResult.Ready -> when (
-                val result = connector.connect(account.imapServer(), ready.credentials)
-            ) {
-                is MailResult.Success -> Leased.Ok(result.value)
-                MailResult.AuthenticationFailed -> Leased.AuthRequired
-                is MailResult.Failure -> Leased.Failed(result)
-            }
+        is CredentialsResult.Ready -> when (
+            val result = connector.connect(account.imapServer(), ready.credentials)
+        ) {
+            is MailResult.Success -> Leased.Ok(result.value)
+            MailResult.AuthenticationFailed -> Leased.AuthRequired
+            is MailResult.Failure -> Leased.Failed(result)
         }
+    }
 }

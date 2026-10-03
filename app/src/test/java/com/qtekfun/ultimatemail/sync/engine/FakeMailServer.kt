@@ -49,8 +49,11 @@ class FakeMailServer {
 
     val appendedDrafts = mutableListOf<OutgoingMessage>()
 
-    fun folder(path: String, role: MailFolderRole = MailFolderRole.OTHER, selectable: Boolean = true) =
-        folders.getOrPut(path) { FakeFolder(path, role, selectable) }
+    fun folder(
+        path: String,
+        role: MailFolderRole = MailFolderRole.OTHER,
+        selectable: Boolean = true
+    ) = folders.getOrPut(path) { FakeFolder(path, role, selectable) }
 
     fun deliver(
         path: String,
@@ -140,17 +143,16 @@ class FakeSession(private val server: FakeMailServer) : MailSession {
         )
     }
 
-    override suspend fun folderStatus(folder: String) =
-        inFolder(folder, "folderStatus $folder") {
-            MailResult.Success(
-                FolderStatus(
-                    uidValidity = it.uidValidity,
-                    uidNext = it.nextUid,
-                    messageCount = it.messages.size,
-                    highestModSeq = if (server.condstore) it.modSeq else null
-                )
+    override suspend fun folderStatus(folder: String) = inFolder(folder, "folderStatus $folder") {
+        MailResult.Success(
+            FolderStatus(
+                uidValidity = it.uidValidity,
+                uidNext = it.nextUid,
+                messageCount = it.messages.size,
+                highestModSeq = if (server.condstore) it.modSeq else null
             )
-        }
+        )
+    }
 
     override suspend fun fetchHeaders(folder: String, range: UidRange) =
         inFolder(folder, "fetchHeaders $folder ${range.first}-${range.last}") {

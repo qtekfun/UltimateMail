@@ -37,6 +37,8 @@ class SyncEngine @Inject constructor(
      * [userInitiated] sync tries it (a wrong password retried every 15 minutes can get an account
      * locked); the others answer [AccountSyncResult.ReauthenticationNeeded] right away.
      */
+    // Each failure leaves early; guard clauses keep the normal path flat.
+    @Suppress("ReturnCount")
     suspend fun sync(accountId: Long, userInitiated: Boolean = false): AccountSyncResult {
         val before = status.get(accountId)
         if (!userInitiated && before == AccountSyncState.ReauthenticationNeeded) {
@@ -63,13 +65,11 @@ class SyncEngine @Inject constructor(
         }
     }
 
-    private fun AccountSyncResult.toState(before: AccountSyncState): AccountSyncState = when (this) {
-        is AccountSyncResult.Synced -> AccountSyncState.Idle(clock.instant())
-
-        is AccountSyncResult.Failed -> AccountSyncState.Error(problem)
-
-        AccountSyncResult.ReauthenticationNeeded -> AccountSyncState.ReauthenticationNeeded
-
-        AccountSyncResult.AlreadyRunning, AccountSyncResult.NoAccount -> before
-    }
+    private fun AccountSyncResult.toState(before: AccountSyncState): AccountSyncState =
+        when (this) {
+            is AccountSyncResult.Synced -> AccountSyncState.Idle(clock.instant())
+            is AccountSyncResult.Failed -> AccountSyncState.Error(problem)
+            AccountSyncResult.ReauthenticationNeeded -> AccountSyncState.ReauthenticationNeeded
+            AccountSyncResult.AlreadyRunning, AccountSyncResult.NoAccount -> before
+        }
 }

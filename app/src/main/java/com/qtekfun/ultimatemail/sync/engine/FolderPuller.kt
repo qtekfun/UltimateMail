@@ -14,6 +14,9 @@ import com.qtekfun.ultimatemail.domain.mail.MailSession
 import com.qtekfun.ultimatemail.domain.mail.MessageHeader
 import com.qtekfun.ultimatemail.domain.mail.UidRange
 import com.qtekfun.ultimatemail.domain.thread.MessageRef
+import com.qtekfun.ultimatemail.sync.conflict.FlagResolver
+import com.qtekfun.ultimatemail.sync.conflict.Flags
+import com.qtekfun.ultimatemail.sync.conflict.PendingFlagOperation
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -38,6 +41,8 @@ internal class FolderPuller @Inject constructor(
     private val pending: PendingReconciler,
     private val clock: Clock
 ) {
+    // Each failure leaves early; guard clauses keep the normal path flat.
+    @Suppress("ReturnCount")
     suspend fun pull(
         session: MailSession,
         account: AccountEntity,
@@ -45,7 +50,14 @@ internal class FolderPuller @Inject constructor(
         assigner: ThreadAssigner
     ): PullOutcome {
         val status = session.folderStatus(folder.path).valueOr { return PullOutcome.Failed(it) }
-        val previous = resetIfInvalidated(account.id, folder, status, assigner)
+        val reset = pending.resetIfInvalidated(folder, status.uidValidity)
+        val previous = if (reset) startAnew(account.id, folder, status, assigner) else folder
+        val run = Run(
+            account,
+            folder.path,
+            assigner,
+            pending.flagOperations(account.id, folder.path)
+        )
         val knownNext = previous.uidNext
         val untouched = knownNext != null && status.highestModSeq != null &&
             knownNext == status.uidNext && status.highestModSeq == previous.highestModSeq
@@ -53,11 +65,11 @@ internal class FolderPuller @Inject constructor(
         if (!untouched) {
             val range = (knownNext ?: FIRST_UID) until status.uidNext
             if (!range.isEmpty()) {
-                counts += fetchNew(session, account, folder.path, range, assigner)
+                counts += fetchNew(session, run, range)
                     .valueOr { return PullOutcome.Failed(it) }
             }
             if (knownNext != null) {
-                counts += reconcile(session, account.id, folder.path, knownNext)
+                counts += reconcile(session, run, knownNext)
                     .valueOr { return PullOutcome.Failed(it) }
             }
         }
@@ -68,35 +80,38 @@ internal class FolderPuller @Inject constructor(
             status.uidNext,
             status.highestModSeq
         )
-        pending.settle(account.id, folder.path)
+        pending.settle(account.id, folder.path, afterReset = reset)
         return PullOutcome.Pulled(counts)
     }
 
-    /** UIDVALIDITY changed: every UID we hold is meaningless, but queued changes must survive. */
-    private suspend fun resetIfInvalidated(
+    /** The folder was invalidated: every UID we hold is meaningless, so start from nothing. */
+    private suspend fun startAnew(
         accountId: Long,
         folder: FolderEntity,
         status: FolderStatus,
         assigner: ThreadAssigner
     ): FolderEntity {
-        val stored = folder.uidValidity
-        if (stored == null || stored == status.uidValidity) return folder
-        pending.detach(accountId, folder.path)
-        messages.deleteServerMessages(accountId, folder.path)
         // Saved last: if the run dies before this, the next one repeats the idempotent steps.
         folders.setSyncState(accountId, folder.path, status.uidValidity, null, null)
         assigner.reset()
         return folder.copy(uidValidity = status.uidValidity, uidNext = null, highestModSeq = null)
     }
 
+    /** What one folder pull works with, so the helpers do not each take it piecemeal. */
+    private class Run(
+        val account: AccountEntity,
+        val path: String,
+        val assigner: ThreadAssigner,
+        val flagOperations: Map<Long, List<PendingFlagOperation>>
+    )
+
     private suspend fun fetchNew(
         session: MailSession,
-        account: AccountEntity,
-        path: String,
-        uids: LongRange,
-        assigner: ThreadAssigner
+        run: Run,
+        uids: LongRange
     ): MailResult<SyncCounts> {
-        val cutoff = windowStart(account)
+        val path = run.path
+        val cutoff = windowStart(run.account)
         var added = 0
         var top = uids.last
         while (top >= uids.first) {
@@ -106,7 +121,7 @@ internal class FolderPuller @Inject constructor(
                 is MailResult.Failure -> return result
             }
             val inWindow = headers.filter { cutoff == null || it.sentAt(clock.instant()) >= cutoff }
-            added += store(account.id, path, inWindow, bottom, top, assigner)
+            added += store(run, inWindow, bottom..top)
             // UIDs grow with arrival: a whole batch older than the window means everything
             // below it is older too, so there is no point fetching on.
             if (headers.isNotEmpty() && inWindow.isEmpty()) break
@@ -115,23 +130,25 @@ internal class FolderPuller @Inject constructor(
         return MailResult.Success(SyncCounts(added = added))
     }
 
-    private suspend fun store(
-        accountId: Long,
-        path: String,
-        headers: List<MessageHeader>,
-        bottom: Long,
-        top: Long,
-        assigner: ThreadAssigner
-    ): Int {
-        val stored = messages.syncRows(accountId, path, bottom, top).map { it.uid }.toSet()
+    private suspend fun store(run: Run, headers: List<MessageHeader>, uids: LongRange): Int {
+        val accountId = run.account.id
+        val path = run.path
+        val stored = messages.syncRows(accountId, path, uids.first, uids.last).map {
+            it.uid
+        }.toSet()
         val fresh = headers.filter { it.uid !in stored }
         if (fresh.isEmpty()) return 0
         val now = clock.instant()
-        val threads = assigner.assign(fresh.map { it.toThreadMessage(accountId, path, now) })
+        val threads = run.assigner.assign(fresh.map { it.toThreadMessage(accountId, path, now) })
         messages.insertNew(
             fresh.map { header ->
                 val ref = MessageRef(accountId, path, header.uid)
-                header.toEntity(accountId, path, threads.getValue(ref), now)
+                val flags = effectiveFlags(header, run.flagOperations)
+                header.toEntity(accountId, path, threads.getValue(ref), now).copy(
+                    seen = flags.seen,
+                    flagged = flags.flagged,
+                    answered = flags.answered
+                )
             }
         )
         return fresh.size
@@ -140,42 +157,69 @@ internal class FolderPuller @Inject constructor(
     /** Takes flags and deletions of messages below [below] (the ones stored before this pull). */
     private suspend fun reconcile(
         session: MailSession,
-        accountId: Long,
-        path: String,
+        run: Run,
         below: Long
     ): MailResult<SyncCounts> {
+        val accountId = run.account.id
+        val path = run.path
         var counts = SyncCounts()
         for (chunk in messages.serverUids(accountId, path).filter { it < below }.chunked(BATCH)) {
             val first = chunk.first()
             val last = chunk.last()
             val onServer = when (val result = session.fetchHeaders(path, UidRange(first, last))) {
-                is MailResult.Success -> result.value.filter { !it.flags.deleted }.associateBy { it.uid }
+                is MailResult.Success -> result.value.filter {
+                    !it.flags.deleted
+                }.associateBy { it.uid }
+
                 is MailResult.Failure -> return result
             }
             val rows = messages.syncRows(accountId, path, first, last)
             val gone = rows.filter { it.uid !in onServer }.map { it.uid }
             if (gone.isNotEmpty()) messages.deleteUids(accountId, path, gone)
-            val changed = rows.filter { row -> onServer[row.uid]?.let { differs(row, it) } == true }
-            changed.forEach { row ->
-                val header = onServer.getValue(row.uid)
-                messages.updateServerState(
-                    row.id,
-                    header.flags.seen,
-                    header.flags.flagged,
-                    header.flags.answered,
-                    header.flags.draft,
-                    header.gmail?.labels.orEmpty()
-                )
+            var updated = 0
+            for (row in rows) {
+                val header = onServer[row.uid] ?: continue
+                val flags = effectiveFlags(header, run.flagOperations)
+                val labels = header.gmail?.labels.orEmpty()
+                if (differs(row, flags, header, labels)) {
+                    messages.updateServerState(
+                        row.id,
+                        flags.seen,
+                        flags.flagged,
+                        flags.answered,
+                        header.flags.draft,
+                        labels
+                    )
+                    updated++
+                }
             }
-            counts += SyncCounts(updated = changed.size, removed = gone.size)
+            counts += SyncCounts(updated = updated, removed = gone.size)
         }
         return MailResult.Success(counts)
     }
 
-    private fun differs(row: MessageSyncRow, header: MessageHeader) =
-        row.seen != header.flags.seen || row.flagged != header.flags.flagged ||
-            row.answered != header.flags.answered || row.draft != header.flags.draft ||
-            row.labels != header.gmail?.labels.orEmpty()
+    /**
+     * The flags the message should show: the server's, with the user's queued changes over them
+     * (rule 1). Operations the server already reflects are completed.
+     */
+    private suspend fun effectiveFlags(
+        header: MessageHeader,
+        flagOperations: Map<Long, List<PendingFlagOperation>>
+    ): Flags {
+        val server = Flags(header.flags.seen, header.flags.flagged, header.flags.answered)
+        val queued = flagOperations[header.uid] ?: return server
+        val resolution = FlagResolver.resolve(server, queued)
+        pending.complete(resolution)
+        return resolution.merged
+    }
+
+    private fun differs(
+        row: MessageSyncRow,
+        flags: Flags,
+        header: MessageHeader,
+        labels: List<String>
+    ) = row.seen != flags.seen || row.flagged != flags.flagged || row.answered != flags.answered ||
+        row.draft != header.flags.draft || row.labels != labels
 
     private fun windowStart(account: AccountEntity): Instant? = account.offlineWindowDays
         ?.let { clock.instant().minus(Duration.ofDays(it.toLong())) }

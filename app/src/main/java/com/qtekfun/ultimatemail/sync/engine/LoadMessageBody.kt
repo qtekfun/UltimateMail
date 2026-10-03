@@ -6,7 +6,9 @@ package com.qtekfun.ultimatemail.sync.engine
 import com.qtekfun.ultimatemail.data.local.dao.AttachmentDao
 import com.qtekfun.ultimatemail.data.local.dao.MessageDao
 import com.qtekfun.ultimatemail.data.local.entity.AttachmentEntity
+import com.qtekfun.ultimatemail.data.local.entity.MessageEntity
 import com.qtekfun.ultimatemail.domain.mail.MailResult
+import com.qtekfun.ultimatemail.domain.mail.MessageBody
 import javax.inject.Inject
 
 /** The outcome of [LoadMessageBody]. */
@@ -33,26 +35,41 @@ class LoadMessageBody @Inject constructor(
     private val sessions: AccountSessions
 ) {
     suspend operator fun invoke(messageId: Long): BodyResult {
-        val message = messages.getById(messageId) ?: return BodyResult.NotFound
-        if (message.bodyText != null || message.bodyHtml != null) {
-            return BodyResult.Loaded(message.bodyText, message.bodyHtml)
+        val message = messages.getById(messageId)
+        return when {
+            message == null -> BodyResult.NotFound
+
+            message.bodyText != null || message.bodyHtml != null ->
+                BodyResult.Loaded(message.bodyText, message.bodyHtml)
+
+            // A local-only row: nothing of it is on the server.
+            message.uid <= 0 -> BodyResult.NotFound
+
+            else -> download(message)
         }
-        if (message.uid <= 0) return BodyResult.NotFound
+    }
+
+    private suspend fun download(message: MessageEntity): BodyResult {
         val leased = sessions.withSession(message.accountId) {
             it.fetchBody(message.folderPath, message.uid)
         }
-        val fetched = when (leased) {
-            is Leased.Ok -> leased.value
-            Leased.AuthRequired -> return BodyResult.AuthenticationRequired
-            is Leased.Failed -> return BodyResult.Failed(leased.failure.toProblem())
-            Leased.NoAccount -> return BodyResult.NotFound
+        return when (leased) {
+            is Leased.Ok -> when (val fetched = leased.value) {
+                is MailResult.Success -> save(message, fetched.value)
+                MailResult.NotFound -> BodyResult.NotFound
+                MailResult.AuthenticationFailed -> BodyResult.AuthenticationRequired
+                is MailResult.Failure -> BodyResult.Failed(fetched.toProblem())
+            }
+
+            Leased.AuthRequired -> BodyResult.AuthenticationRequired
+
+            is Leased.Failed -> BodyResult.Failed(leased.failure.toProblem())
+
+            Leased.NoAccount -> BodyResult.NotFound
         }
-        val body = when (fetched) {
-            is MailResult.Success -> fetched.value
-            MailResult.NotFound -> return BodyResult.NotFound
-            MailResult.AuthenticationFailed -> return BodyResult.AuthenticationRequired
-            is MailResult.Failure -> return BodyResult.Failed(fetched.toProblem())
-        }
+    }
+
+    private suspend fun save(message: MessageEntity, body: MessageBody): BodyResult {
         // A message without any text still counts as fetched: the empty string says so.
         val text = body.text ?: if (body.html == null) "" else null
         messages.setBody(message.accountId, message.folderPath, message.uid, text, body.html)

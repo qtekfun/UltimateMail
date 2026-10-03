@@ -10,11 +10,13 @@ import com.qtekfun.ultimatemail.domain.mail.GmailMetadata
 import com.qtekfun.ultimatemail.domain.mail.MailFolderRole
 import com.qtekfun.ultimatemail.domain.mail.MailResult
 import com.qtekfun.ultimatemail.domain.mail.MessageFlags
+import com.qtekfun.ultimatemail.sync.conflict.SyncNotice
 import com.qtekfun.ultimatemail.sync.queue.FlagChange
 import com.qtekfun.ultimatemail.sync.queue.NewOperation
 import java.time.Duration
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -65,7 +67,7 @@ class PullTest {
         assertFalse(folders.getValue("[Gmail]/All Mail").syncEnabled)
         assertEquals("Hello", h.stored().single().subject)
         assertEquals("Sent one", h.stored("Sent").single().subject)
-        assertEquals(2L, folders.getValue("INBOX").uidNext!! + 0 + 0 - 0 + 0 - 0 + 0 - 0 + 0 - 0 + 0 - 0 + 0 - 0 + 0)
+        assertEquals(2L, folders.getValue("INBOX").uidNext)
     }
 
     @Test
@@ -78,7 +80,10 @@ class PullTest {
         val result = h.sync()
 
         assertEquals(AccountSyncResult.Synced(SyncCounts(added = 1)), result)
-        assertEquals(listOf("fetchHeaders INBOX 2-2", "fetchHeaders INBOX 1-1"), h.server.logged("fetchHeaders"))
+        assertEquals(
+            listOf("fetchHeaders INBOX 2-2", "fetchHeaders INBOX 1-1"),
+            h.server.logged("fetchHeaders")
+        )
         assertEquals(listOf("Subject", "Second"), h.stored().map { it.subject })
     }
 
@@ -161,7 +166,9 @@ class PullTest {
         val h = start {
             server.deliver("INBOX", sentAt = clock.now.minus(Duration.ofDays(4000)))
         }
-        h.db.accountDao().update(h.db.accountDao().get(h.accountId)!!.copy(offlineWindowDays = null))
+        h.db.accountDao().update(
+            h.db.accountDao().get(h.accountId)!!.copy(offlineWindowDays = null)
+        )
 
         h.sync()
 
@@ -177,52 +184,95 @@ class PullTest {
 
         h.sync()
 
-        // 750 UIDs: 551-750, 351-550, 151-350 (the last one all old: stops there).
+        // 750 UIDs: 300 old (1-300) and 450 new; the batch 1-150 is all old: stops there.
         assertEquals(
-            listOf("fetchHeaders INBOX 551-750", "fetchHeaders INBOX 351-550", "fetchHeaders INBOX 151-350"),
+            listOf(
+                "fetchHeaders INBOX 551-750",
+                "fetchHeaders INBOX 351-550",
+                "fetchHeaders INBOX 151-350",
+                "fetchHeaders INBOX 1-150"
+            ),
             h.server.logged("fetchHeaders")
         )
-        assertEquals(450 - 0, h.stored().size - 0)
+        assertEquals(450, h.stored().size)
     }
 
     @Test
-    fun `a UIDVALIDITY change resyncs the folder and keeps queued operations and local drafts`() = runTest {
-        val h = start {
-            server.deliver("INBOX", subject = "one", messageId = "<one@x>")
-            server.deliver("INBOX", subject = "two", messageId = "<two@x>")
-            server.deliver("INBOX", subject = "three", messageId = "<three@x>")
-        }
-        h.sync()
-        // A local draft: a row no server UID refers to.
-        h.messages.insertNew(
-            listOf(
-                h.stored().first().copy(id = 0, uid = 0, messageId = "<draft@x>", subject = "my draft", draft = true)
+    fun `a UIDVALIDITY change resyncs the folder and keeps queued operations and local drafts`() =
+        runTest {
+            val h = start {
+                server.deliver("INBOX", subject = "one", messageId = "<one@x>")
+                server.deliver("INBOX", subject = "two", messageId = "<two@x>")
+                server.deliver("INBOX", subject = "three", messageId = "<three@x>")
+            }
+            h.sync()
+            // A local draft: a row no server UID refers to.
+            h.messages.insertNew(
+                listOf(
+                    h.stored().first().copy(
+                        id = 0,
+                        uid = 0,
+                        messageId = "<draft@x>",
+                        subject = "my draft",
+                        draft = true
+                    )
+                )
             )
-        )
-        // Operations wait on message two (still on the server) and on one that is gone.
-        h.queue.enqueue(NewOperation(h.accountId, OperationType.SET_FLAGS, "INBOX", 2, FlagChange(seen = true).encode()))
-        h.queue.enqueue(NewOperation(h.accountId, OperationType.SET_FLAGS, "INBOX", 3, FlagChange(seen = true).encode()))
-        h.server.expunge("INBOX", 3)
-        h.server.folder("INBOX").also { folder ->
-            // The server gives out new UIDs: what was 2 is now 1 (one was lost).
-            folder.messages.remove(1)
+            // Operations wait on message two (which survives) and on three (which is lost).
+            h.queue.enqueue(
+                NewOperation(
+                    h.accountId,
+                    OperationType.SET_FLAGS,
+                    "INBOX",
+                    2,
+                    FlagChange(seen = true).encode()
+                )
+            )
+            h.queue.enqueue(NewOperation(h.accountId, OperationType.MOVE, "INBOX", 3, "Archive"))
+            h.executorOffline()
+            h.server.expunge("INBOX", 1)
+            h.server.expunge("INBOX", 3)
+            h.server.renumber("INBOX")
+
+            h.sync()
+
+            val byId = h.stored().associateBy { it.messageId }
+            assertEquals(setOf("<two@x>"), byId.keys)
+            val newUid = byId.getValue("<two@x>").uid
+            val queued = h.operations.all(h.accountId).single()
+            assertEquals(OperationType.SET_FLAGS, queued.type)
+            assertEquals(newUid, queued.uid)
+            assertNotNull(h.messages.get(h.accountId, "INBOX", 0), "the local draft survives")
+            assertEquals(2L, h.folders.get(h.accountId, "INBOX")!!.uidValidity)
+            assertTrue(byId.getValue("<two@x>").pendingSync)
+            assertTrue(
+                byId.getValue("<two@x>").seen,
+                "the pending change shows over the fresh state"
+            )
+            // The user is told about the reset and about the operation that lost its message.
+            val notices = h.collectNotices()
+            assertTrue(notices.any { it is SyncNotice.FolderReset })
+            assertEquals(1, notices.count { it is SyncNotice.MessageVanished })
         }
-        h.server.renumber("INBOX")
+
+    @Test
+    fun `a moved message found at its destination after a reset completes the move`() = runTest {
+        val h = start {
+            server.folder("Archive")
+            server.deliver("INBOX", messageId = "<one@x>")
+        }
+        h.sync()
+        h.queue.enqueue(NewOperation(h.accountId, OperationType.MOVE, "INBOX", 1, "Archive"))
         h.executorOffline()
+        // The server moved it (the answer was lost) and renumbered the folder.
+        h.server.deliver("Archive", messageId = "<one@x>")
+        h.server.expunge("INBOX", 1)
+        h.server.renumber("INBOX")
 
         h.sync()
 
-        val byId = h.stored().associateBy { it.messageId }
-        assertEquals(setOf("<two@x>"), byId.keys)
-        val newUid = byId.getValue("<two@x>").uid
-        val queued = h.operations.all(h.accountId)
-        assertEquals(2, queued.size)
-        assertEquals(newUid, queued.first { it.type == OperationType.SET_FLAGS && !it.failed }.uid)
-        assertEquals(PendingReconciler.MESSAGE_GONE, queued.first { it.failed }.lastError)
-        assertNotNull(h.messages.get(h.accountId, "INBOX", 0), "the local draft survives")
-        assertEquals(2L, h.folders.get(h.accountId, "INBOX")!!.uidValidity)
-        // Rebased operations push on the next run, against the new UID.
-        assertTrue(byId.getValue("<two@x>").pendingSync)
+        assertTrue(h.operations.all(h.accountId).isEmpty(), "nothing left to send")
+        assertTrue(h.collectNotices().none { it is SyncNotice.MessageVanished })
     }
 
     @Test
@@ -231,10 +281,19 @@ class PullTest {
             server.deliver("INBOX", messageId = "<one@x>")
         }
         h.sync()
-        h.queue.enqueue(NewOperation(h.accountId, OperationType.SET_FLAGS, "INBOX", 1, FlagChange(seen = true).encode()))
+        h.queue.enqueue(
+            NewOperation(
+                h.accountId,
+                OperationType.SET_FLAGS,
+                "INBOX",
+                1,
+                FlagChange(seen = true).encode()
+            )
+        )
         h.executorOffline()
         h.server.renumber("INBOX")
-        h.server.failure = { name -> MailResult.NetworkUnavailable.takeIf { name.startsWith("fetchHeaders") } }
+        h.server.failure =
+            { name -> MailResult.NetworkUnavailable.takeIf { name.startsWith("fetchHeaders") } }
 
         h.sync()
 
@@ -267,7 +326,8 @@ class PullTest {
 
         val result = h.sync()
 
-        assertEquals(AccountSyncResult.Synced(SyncCounts()), result)
+        assertEquals(AccountSyncResult.Failed(SyncProblem.SERVER), result)
+        assertNotNull(h.folders.get(h.accountId, "INBOX"))
         assertEquals(1, h.stored().size)
     }
 
@@ -275,9 +335,6 @@ class PullTest {
     fun `a renamed or re-roled folder keeps its sync choice and state`() = runTest {
         val h = start { server.deliver("INBOX") }
         h.sync()
-        h.folders.get(h.accountId, "INBOX")!!.let {
-            h.db.folderDao().insertNew(emptyList())
-        }
         h.server.folders["INBOX"] = FakeFolder("INBOX", MailFolderRole.ARCHIVE).also {
             val old = h.server.folder("INBOX")
             it.messages.putAll(old.messages)
@@ -293,13 +350,21 @@ class PullTest {
     }
 
     @Test
-    fun `a network drop in the middle of a pull leaves a consistent state and the next run finishes`() = runTest {
+    fun `a network drop mid-pull leaves a consistent state and the next run finishes`() = runTest {
         val h = start {
-            repeat(450) { server.deliver("INBOX", sentAt = clock.now.minus(Duration.ofDays(1))) }
+            repeat(450) {
+                server.deliver("INBOX", sentAt = clock.now.minus(Duration.ofDays(1)))
+            }
         }
         var fetches = 0
         h.server.failure = { name ->
-            if (name.startsWith("fetchHeaders") && ++fetches == 2) MailResult.NetworkUnavailable else null
+            if (name.startsWith("fetchHeaders") &&
+                ++fetches == 2
+            ) {
+                MailResult.NetworkUnavailable
+            } else {
+                null
+            }
         }
 
         val first = h.sync()
@@ -307,7 +372,10 @@ class PullTest {
         assertEquals(AccountSyncResult.Failed(SyncProblem.NETWORK), first)
         assertEquals(AccountSyncState.Error(SyncProblem.NETWORK), h.status.get(h.accountId))
         assertEquals(200, h.stored().size, "the first batch is stored whole")
-        assertNull(h.folders.get(h.accountId, "INBOX")!!.uidNext, "the sync state is saved only when done")
+        assertNull(
+            h.folders.get(h.accountId, "INBOX")!!.uidNext,
+            "the sync state is saved only when done"
+        )
 
         h.server.failure = { null }
         val second = h.sync()
@@ -351,7 +419,8 @@ class PullTest {
     @Test
     fun `an authentication failure in the middle of a sync asks to sign in again`() = runTest {
         val h = start { server.deliver("INBOX") }
-        h.server.failure = { name -> MailResult.AuthenticationFailed.takeIf { name.startsWith("folderStatus") } }
+        h.server.failure =
+            { name -> MailResult.AuthenticationFailed.takeIf { name.startsWith("folderStatus") } }
 
         val result = h.sync()
 
@@ -448,7 +517,8 @@ class PullTest {
     @Test
     fun `a message without a Date counts as received now`() = runTest {
         val h = start { server.deliver("INBOX") }
-        h.server.folder("INBOX").messages[1] = h.server.folder("INBOX").messages.getValue(1).copy(date = null)
+        h.server.folder("INBOX").messages[1] =
+            h.server.folder("INBOX").messages.getValue(1).copy(date = null)
 
         h.sync()
 
@@ -459,7 +529,15 @@ class PullTest {
     fun `pending flag changes are applied again over what the server says`() = runTest {
         val h = start { server.deliver("INBOX") }
         h.sync()
-        h.queue.enqueue(NewOperation(h.accountId, OperationType.SET_FLAGS, "INBOX", 1, FlagChange(seen = true).encode()))
+        h.queue.enqueue(
+            NewOperation(
+                h.accountId,
+                OperationType.SET_FLAGS,
+                "INBOX",
+                1,
+                FlagChange(seen = true).encode()
+            )
+        )
         h.executorOffline()
 
         h.sync()
@@ -489,14 +567,22 @@ class PullTest {
             server.deliver("Archive")
         }
         h.sync()
-        h.queue.enqueue(NewOperation(h.accountId, OperationType.SET_FLAGS, "INBOX", 1, FlagChange(seen = true).encode()))
+        h.queue.enqueue(
+            NewOperation(
+                h.accountId,
+                OperationType.SET_FLAGS,
+                "INBOX",
+                1,
+                FlagChange(seen = true).encode()
+            )
+        )
         h.server.log.clear()
 
         h.sync()
 
         val log = h.server.log
         val push = log.indexOfFirst { it.startsWith("setFlags INBOX") }
-        val firstPull = log.indexOfFirst { it.startsWith("folderStatus") }
+        val firstPull = log.indexOf("listFolders")
         assertTrue(push in 0 until firstPull, "push first: $log")
         assertTrue(h.server.folder("INBOX").messages.getValue(1).flags.seen)
         assertTrue(h.stored().single().seen)
@@ -510,7 +596,15 @@ class PullTest {
             server.deliver("INBOX")
         }
         h.sync()
-        h.queue.enqueue(NewOperation(h.accountId, OperationType.SET_FLAGS, "INBOX", 1, FlagChange(seen = true).encode()))
+        h.queue.enqueue(
+            NewOperation(
+                h.accountId,
+                OperationType.SET_FLAGS,
+                "INBOX",
+                1,
+                FlagChange(seen = true).encode()
+            )
+        )
         h.connector.connects.clear()
 
         h.sync()
@@ -519,10 +613,19 @@ class PullTest {
         assertTrue(h.connector.sessions.last().closed)
     }
 
+    private suspend fun EngineHarness.collectNotices(): List<SyncNotice> {
+        val seen = mutableListOf<SyncNotice>()
+        withTimeoutOrNull(1) { notices.notices.collect { seen += it } }
+        return seen
+    }
+
     private suspend fun EngineHarness.executorOffline() {
         // Make the push fail with a network error so queued operations stay queued.
         server.failure = { name ->
-            MailResult.NetworkUnavailable.takeIf { name.startsWith("setFlags") || name.startsWith("move") }
+            MailResult.NetworkUnavailable.takeIf {
+                name.startsWith("setFlags") ||
+                    name.startsWith("move")
+            }
         }
     }
 }

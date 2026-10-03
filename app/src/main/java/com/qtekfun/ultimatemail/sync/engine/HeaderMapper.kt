@@ -12,19 +12,16 @@ import java.time.Instant
 /** A header without a Date counts as received now, so it neither vanishes nor sorts to 1970. */
 internal fun MessageHeader.sentAt(now: Instant): Instant = date ?: now
 
-internal fun MessageHeader.toThreadMessage(
-    accountId: Long,
-    folderPath: String,
-    now: Instant
-) = ThreadMessage(
-    ref = MessageRef(accountId, folderPath, uid),
-    messageId = messageId,
-    inReplyTo = inReplyTo,
-    references = references,
-    subject = subject,
-    sentAt = sentAt(now),
-    gmailThreadId = gmail?.threadId?.toString()
-)
+internal fun MessageHeader.toThreadMessage(accountId: Long, folderPath: String, now: Instant) =
+    ThreadMessage(
+        ref = MessageRef(accountId, folderPath, uid),
+        messageId = messageId,
+        inReplyTo = inReplyTo,
+        references = references,
+        subject = subject,
+        sentAt = sentAt(now),
+        gmailThreadId = gmail?.threadId?.toString()
+    )
 
 internal fun MessageHeader.toEntity(
     accountId: Long,
