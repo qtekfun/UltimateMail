@@ -108,6 +108,8 @@
     <string name="inbox_empty_none_body">Messages you receive will appear here.</string>
     <string name="inbox_empty_unsynced_title">Not synced yet</string>
     <string name="inbox_empty_unsynced_body">The first sync has not run yet. Pull down to refresh. This list always shows what is stored on this device.</string>
+    <string name="inbox_empty_not_enabled_title">This folder is not synced</string>
+    <string name="inbox_empty_not_enabled_body">This account is set not to keep this folder on the device. Turn it on in the account settings to see its mail here.</string>
     <string name="inbox_empty_filtered_title">No unread messages</string>
     <string name="inbox_empty_filtered_body">Everything loaded here has been read.</string>
     <string name="conversation_no_subject">(no subject)</string>
