@@ -8,6 +8,7 @@ import androidx.room3.Insert
 import androidx.room3.OnConflictStrategy
 import androidx.room3.Query
 import com.qtekfun.ultimatemail.data.local.entity.FolderEntity
+import com.qtekfun.ultimatemail.data.local.model.FolderRole
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -17,6 +18,27 @@ interface FolderDao {
 
     @Query("SELECT * FROM folder WHERE accountId = :accountId ORDER BY path")
     fun observeAll(accountId: Long): Flow<List<FolderEntity>>
+
+    /** Inserts folders not stored yet; stored ones are left alone, because replacing a folder row
+     * would delete its messages through the foreign key. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertNew(folders: List<FolderEntity>)
+
+    @Query("SELECT * FROM folder WHERE accountId = :accountId ORDER BY path")
+    suspend fun all(accountId: Long): List<FolderEntity>
+
+    /** What the server says about a folder, keeping the user's sync choice and the sync state. */
+    @Query(
+        "UPDATE folder SET name = :name, role = :role, isLabel = :isLabel " +
+            "WHERE accountId = :accountId AND path = :path"
+    )
+    suspend fun updateDescription(
+        accountId: Long,
+        path: String,
+        name: String,
+        role: FolderRole,
+        isLabel: Boolean
+    )
 
     @Query("SELECT * FROM folder WHERE accountId = :accountId AND path = :path")
     suspend fun get(accountId: Long, path: String): FolderEntity?

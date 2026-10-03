@@ -7,6 +7,8 @@ import androidx.room3.ColumnTypeConverters
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import androidx.room3.migration.Migration
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.execSQL
 import com.qtekfun.ultimatemail.data.local.dao.AccountDao
 import com.qtekfun.ultimatemail.data.local.dao.AttachmentDao
 import com.qtekfun.ultimatemail.data.local.dao.ConversationDao
@@ -36,13 +38,13 @@ import com.qtekfun.ultimatemail.data.local.entity.PendingOperationEntity
 @ColumnTypeConverters(Converters::class)
 abstract class UltimateMailDatabase : RoomDatabase() {
     companion object {
-        const val VERSION = 1
+        const val VERSION = 2
 
         /**
          * Migrations from each released version to the next. There is no destructive fallback:
          * raising [VERSION] requires adding its migration here (checked by DatabaseSchemaTest).
          */
-        val MIGRATIONS: Array<Migration> = emptyArray()
+        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
     }
 
     abstract fun accountDao(): AccountDao
@@ -56,4 +58,12 @@ abstract class UltimateMailDatabase : RoomDatabase() {
     abstract fun attachmentDao(): AttachmentDao
 
     abstract fun pendingOperationDao(): PendingOperationDao
+}
+
+/** T10: the headers conversations are built from are kept with each message. */
+internal val MIGRATION_1_2: Migration = object : Migration(1, 2) {
+    override suspend fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE message ADD COLUMN inReplyTo TEXT")
+        connection.execSQL("ALTER TABLE message ADD COLUMN referenceIds TEXT NOT NULL DEFAULT ''")
+    }
 }

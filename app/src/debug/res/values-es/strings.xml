@@ -23,4 +23,9 @@
     <string name="debug_sample_links">Enlaces</string>
     <string name="debug_bypass_sanitizer">Saltar el sanitizador (probar solo el WebView)</string>
     <string name="debug_allow_remote">Permitir contenido remoto</string>
+    <string name="debug_demo_label">Datos de demo de la bandeja (depuración)</string>
+    <string name="debug_demo_explanation">Añade dos cuentas inventadas con conversaciones falsas, para probar la bandeja sin motor de sincronización. Solo se añaden o quitan cuentas que terminan en @seed.invalid.</string>
+    <string name="debug_demo_seed">Insertar datos de demo</string>
+    <string name="debug_demo_remove">Quitar datos de demo</string>
+    <string name="debug_demo_done">Hecho. Abre UltimateMail para verlo.</string>
 </resources>

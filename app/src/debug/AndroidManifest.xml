@@ -30,6 +30,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          Debug builds only: inserts or removes made-up demo accounts (reserved .invalid domain).
+          It never touches other accounts, so being exported (to start it from adb) is harmless.
+        -->
+        <activity
+            android:name=".ui.debug.InboxDemoActivity"
+            android:exported="true"
+            android:label="@string/debug_demo_label">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>
