@@ -76,6 +76,7 @@ sealed interface Screen {
         private const val ACCOUNT_SETTINGS_PREFIX = "account-settings:"
 
         /** The screen for a saved [route]; anything unknown goes back to the start screen. */
+        @Suppress("CyclomaticComplexMethod") // One branch per screen, by design.
         fun fromRoute(route: String?): Screen = when {
             route == AddAccount.route -> AddAccount
 

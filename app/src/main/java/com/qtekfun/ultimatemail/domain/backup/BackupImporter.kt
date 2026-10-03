@@ -98,7 +98,7 @@ data class ImportSummary(
  * Nothing existing is ever changed or removed, and each account is imported completely or not
  * at all.
  */
-@Suppress("LongParameterList") // One collaborator per thing an account is made of.
+@Suppress("LongParameterList", "TooManyFunctions") // One collaborator and one step per part.
 class BackupImporter @Inject constructor(
     database: UltimateMailDatabase,
     private val setup: AccountSetup,

@@ -78,33 +78,38 @@ class BackupCrypto(
     }
 
     fun decrypt(container: ByteArray, passphrase: CharArray): DecryptResult {
-        if (container.size > BackupFormat.MAX_FILE_BYTES) {
-            return DecryptResult.Failed(BackupError.TooLarge)
-        }
-        val header = when (val parsed = readHeader(container)) {
-            is HeaderResult.Valid -> parsed.header
-            is HeaderResult.Invalid -> return DecryptResult.Failed(parsed.error)
-        }
-        if (container.size - header.length < TAG_BYTES) {
-            return DecryptResult.Failed(BackupError.Truncated)
-        }
-        return try {
-            val aad = container.copyOfRange(0, header.length)
-            val cipher = cipher(
-                Cipher.DECRYPT_MODE,
-                passphrase,
-                header.iterations,
-                header.salt,
-                header.nonce,
-                aad
+        val parsed = readHeader(container)
+        return when {
+            container.size > BackupFormat.MAX_FILE_BYTES -> DecryptResult.Failed(
+                BackupError.TooLarge
             )
-            DecryptResult.Plain(
-                cipher.doFinal(container, header.length, container.size - header.length)
-            )
-        } catch (_: GeneralSecurityException) {
-            // A wrong key and a changed file are the same thing to GCM.
-            DecryptResult.Failed(BackupError.WrongPassphraseOrDamaged)
+
+            parsed is HeaderResult.Invalid -> DecryptResult.Failed(parsed.error)
+
+            parsed is HeaderResult.Valid &&
+                container.size - parsed.header.length < TAG_BYTES ->
+                DecryptResult.Failed(BackupError.Truncated)
+
+            else -> open(container, (parsed as HeaderResult.Valid).header, passphrase)
         }
+    }
+
+    private fun open(container: ByteArray, header: BackupHeader, passphrase: CharArray) = try {
+        val aad = container.copyOfRange(0, header.length)
+        val cipher = cipher(
+            Cipher.DECRYPT_MODE,
+            passphrase,
+            header.iterations,
+            header.salt,
+            header.nonce,
+            aad
+        )
+        DecryptResult.Plain(
+            cipher.doFinal(container, header.length, container.size - header.length)
+        )
+    } catch (_: GeneralSecurityException) {
+        // A wrong key and a changed file are the same thing to GCM.
+        DecryptResult.Failed(BackupError.WrongPassphraseOrDamaged)
     }
 
     /** Reads and checks the header of [container] without deriving any key. */
@@ -146,10 +151,12 @@ class BackupCrypto(
     }
 
     private fun readBlock(buffer: ByteBuffer): ByteArray? {
-        if (!buffer.hasRemaining()) return null
-        val length = buffer.get().toInt() and BYTE_MASK
-        if (buffer.remaining() < length) return null
-        return ByteArray(length).also(buffer::get)
+        val length = if (buffer.hasRemaining()) buffer.get().toInt() and BYTE_MASK else -1
+        return if (length < 0 || buffer.remaining() < length) {
+            null
+        } else {
+            ByteArray(length).also(buffer::get)
+        }
     }
 
     private fun headerBytes(iterations: Int, salt: ByteArray, nonce: ByteArray): ByteArray =
@@ -176,7 +183,7 @@ class BackupCrypto(
         val keyBytes = deriveKey(passphrase, iterations, salt)
         try {
             return Cipher.getInstance(TRANSFORMATION).apply {
-                init(mode, SecretKeySpec(keyBytes, "AES"), GCMParameterSpec(TAG_BYTES * 8, nonce))
+                init(mode, SecretKeySpec(keyBytes, "AES"), GCMParameterSpec(TAG_BITS, nonce))
                 updateAAD(aad)
             }
         } finally {
@@ -202,6 +209,7 @@ class BackupCrypto(
         private const val MIN_SALT_BYTES = 8
         private const val MAX_SALT_BYTES = 64
         private const val TAG_BYTES = 16
+        private const val TAG_BITS = TAG_BYTES * 8
         private const val KEY_BITS = 256
         private const val BYTE_MASK = 0xFF
 

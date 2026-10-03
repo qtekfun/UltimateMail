@@ -88,7 +88,9 @@ object BackupJson {
                 char == '\t' -> out.append("\\t")
 
                 char.code <= LAST_CONTROL ->
-                    out.append("\\u").append(char.code.toString(HEX_RADIX).padStart(4, '0'))
+                    out.append(
+                        "\\u"
+                    ).append(char.code.toString(HEX_RADIX).padStart(UNICODE_DIGITS, '0'))
 
                 else -> out.append(char)
             }
@@ -96,6 +98,7 @@ object BackupJson {
         out.append('"')
     }
 
+    @Suppress("TooManyFunctions") // One small step per kind of JSON value.
     private class Reader(private val text: String) {
         private var pos = 0
 

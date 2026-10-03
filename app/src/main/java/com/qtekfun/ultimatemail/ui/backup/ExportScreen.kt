@@ -25,16 +25,6 @@ import com.qtekfun.ultimatemail.domain.backup.BackupPassphrase
 import com.qtekfun.ultimatemail.domain.backup.PassphraseIssue
 import com.qtekfun.ultimatemail.ui.settings.SwitchRow
 
-/** What the export screen can do. */
-data class ExportActions(
-    val onBack: () -> Unit,
-    val onPassphraseChange: (CharArray) -> Unit,
-    val onIncludeCredentialsChange: (Boolean) -> Unit,
-    val onSubmit: (CharArray, CharArray) -> Unit,
-    val onLocationChosen: (String?) -> Unit,
-    val onReset: () -> Unit
-)
-
 /**
  * Export accounts (RF-12): passphrase, confirmation and the credentials switch, then the system
  * file creator. What is typed lives only in this screen's memory (not in saved state) and goes
@@ -89,6 +79,7 @@ fun ExportScreen(state: ExportState, actions: ExportActions, modifier: Modifier 
     }
 }
 
+@Suppress("LongParameterList") // The two typed texts and their handlers belong together.
 @Composable
 private fun ExportForm(
     state: ExportState,

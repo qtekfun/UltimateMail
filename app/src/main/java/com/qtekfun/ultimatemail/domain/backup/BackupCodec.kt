@@ -51,8 +51,8 @@ object BackupCodec {
 
     fun decode(bytes: ByteArray): DecodeResult = try {
         val root = BackupJson.parse(String(bytes, Charsets.UTF_8)) as? JsonValue.Obj
-            ?: throw BadBackup()
-        if (root.string("format", MAX_VERSION_TEXT) != MARKER) throw BadBackup()
+            ?: fail()
+        if (root.string("format", MAX_VERSION_TEXT) != MARKER) fail()
         val version = root.int("formatVersion")
         if (version > BackupFormat.VERSION) {
             DecodeResult.Failed(BackupError.UnsupportedVersion(version))
@@ -146,13 +146,15 @@ object BackupCodec {
 
     private class BadBackup : Exception()
 
+    private fun fail(): Nothing = throw BadBackup()
+
     private fun readDocument(root: JsonValue.Obj, version: Int): BackupDocument {
         val accounts = root.array("accounts")
-        if (accounts.size > MAX_ACCOUNTS) throw BadBackup()
+        if (accounts.size > MAX_ACCOUNTS) fail()
         return BackupDocument(
             formatVersion = version,
             appVersion = root.string("appVersion", MAX_VERSION_TEXT),
-            accounts = accounts.map { readAccount(it as? JsonValue.Obj ?: throw BadBackup()) },
+            accounts = accounts.map { readAccount(it as? JsonValue.Obj ?: fail()) },
             settings = root.optionalObject("settings")?.let(::readSettings)
         )
     }
@@ -180,21 +182,21 @@ object BackupCodec {
             JsonValue.Null -> null
 
             is JsonValue.Num -> value.value.takeIf { it in 1..MAX_OFFLINE_DAYS }?.toInt()
-                ?: throw BadBackup()
+                ?: fail()
 
-            else -> throw BadBackup()
+            else -> fail()
         }
     }
 
     private fun readFolders(obj: JsonValue.Obj): Map<String, Boolean> {
         val list = if ("folders" in obj.fields) obj.array("folders") else return emptyMap()
-        if (list.size > MAX_FOLDERS) throw BadBackup()
+        if (list.size > MAX_FOLDERS) fail()
         val folders = linkedMapOf<String, Boolean>()
         for (item in list) {
-            val folder = item as? JsonValue.Obj ?: throw BadBackup()
+            val folder = item as? JsonValue.Obj ?: fail()
             val path = folder.string("path", MAX_PATH)
             if (path.isEmpty() || path.any { it.isISOControl() } || path in folders) {
-                throw BadBackup()
+                fail()
             }
             folders[path] = folder.bool("sync")
         }
@@ -214,7 +216,7 @@ object BackupCodec {
                 accessToken = oauth.string("accessToken", MAX_TOKEN),
                 refreshToken = oauth.optionalString("refreshToken", MAX_TOKEN),
                 expiresAt = oauth.optionalLong("expiresAt")?.let {
-                    if (it !in 0..MAX_EPOCH_SECOND) throw BadBackup()
+                    if (it !in 0..MAX_EPOCH_SECOND) fail()
                     Instant.ofEpochSecond(it)
                 }
             )
@@ -244,52 +246,52 @@ object BackupCodec {
     private const val DEFAULT_OFFLINE_DAYS = 90
 
     private fun JsonValue.Obj.string(key: String, max: Int, default: String? = null): String {
-        val value = fields[key] ?: return default ?: throw BadBackup()
-        val text = (value as? JsonValue.Str)?.value ?: throw BadBackup()
-        if (text.length > max) throw BadBackup()
+        val value = fields[key] ?: return default ?: fail()
+        val text = (value as? JsonValue.Str)?.value ?: fail()
+        if (text.length > max) fail()
         return text
     }
 
     private fun JsonValue.Obj.optionalString(key: String, max: Int): String? =
         when (val value = fields[key]) {
             null, JsonValue.Null -> null
-            is JsonValue.Str -> value.value.takeIf { it.length <= max } ?: throw BadBackup()
-            else -> throw BadBackup()
+            is JsonValue.Str -> value.value.takeIf { it.length <= max } ?: fail()
+            else -> fail()
         }
 
     private fun JsonValue.Obj.bool(key: String, default: Boolean? = null): Boolean {
-        val value = fields[key] ?: return default ?: throw BadBackup()
-        return (value as? JsonValue.Bool)?.value ?: throw BadBackup()
+        val value = fields[key] ?: return default ?: fail()
+        return (value as? JsonValue.Bool)?.value ?: fail()
     }
 
     private fun JsonValue.Obj.int(key: String): Int {
-        val value = (fields[key] as? JsonValue.Num)?.value ?: throw BadBackup()
-        if (value < Int.MIN_VALUE || value > Int.MAX_VALUE) throw BadBackup()
+        val value = (fields[key] as? JsonValue.Num)?.value ?: fail()
+        if (value < Int.MIN_VALUE || value > Int.MAX_VALUE) fail()
         return value.toInt()
     }
 
     private fun JsonValue.Obj.optionalLong(key: String): Long? = when (val value = fields[key]) {
         null, JsonValue.Null -> null
         is JsonValue.Num -> value.value
-        else -> throw BadBackup()
+        else -> fail()
     }
 
     private fun JsonValue.Obj.obj(key: String): JsonValue.Obj =
-        fields[key] as? JsonValue.Obj ?: throw BadBackup()
+        fields[key] as? JsonValue.Obj ?: fail()
 
     private fun JsonValue.Obj.optionalObject(key: String): JsonValue.Obj? =
         when (val value = fields[key]) {
             null, JsonValue.Null -> null
             is JsonValue.Obj -> value
-            else -> throw BadBackup()
+            else -> fail()
         }
 
     private fun JsonValue.Obj.array(key: String): List<JsonValue> =
-        (fields[key] as? JsonValue.Arr)?.items ?: throw BadBackup()
+        (fields[key] as? JsonValue.Arr)?.items ?: fail()
 
     private inline fun <reified T : Enum<T>> JsonValue.Obj.enum(key: String): T {
         val name = string(key, MAX_VERSION_TEXT)
-        return enumValues<T>().firstOrNull { it.name == name } ?: throw BadBackup()
+        return enumValues<T>().firstOrNull { it.name == name } ?: fail()
     }
 
     private inline fun <reified T : Enum<T>> JsonValue.Obj.lenientEnum(key: String, default: T): T {

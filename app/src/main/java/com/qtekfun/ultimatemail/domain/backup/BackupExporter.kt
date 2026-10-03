@@ -33,6 +33,7 @@ sealed interface ExportResult {
  * Writes the encrypted backup of the accounts and settings (RF-12). It reads through the DAOs
  * and repositories, so it needs no knowledge of the tables, and it never reads mail.
  */
+@Suppress("LongParameterList") // One collaborator per thing an account is made of.
 class BackupExporter @Inject constructor(
     database: UltimateMailDatabase,
     private val vault: CredentialVault,
