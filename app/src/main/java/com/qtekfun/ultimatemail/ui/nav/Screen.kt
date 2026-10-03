@@ -61,24 +61,6 @@ sealed interface Screen {
     }
 
     /**
-     * Signing in again to the account [accountId] after its credentials stopped working (T27):
-     * a password, or the provider's browser sign-in. Back returns to where it was opened from.
-     */
-    data class Reauth(val accountId: Long) : Screen {
-        override val route = REAUTH_PREFIX + accountId
-    }
-
-    /** Export accounts and settings to an encrypted file (T26), reached from [Settings]. */
-    data object ExportAccounts : Screen {
-        override val route = "export-accounts"
-    }
-
-    /** Import accounts and settings from a backup file (T26), reached from [Settings]. */
-    data object ImportAccounts : Screen {
-        override val route = "import-accounts"
-    }
-
-    /**
      * The composer (T18b) on the draft [draftId]. The draft lives in Room, so this id is all that
      * has to survive process death.
      */
@@ -91,15 +73,33 @@ sealed interface Screen {
         override val route = "outbox"
     }
 
+    /** Export accounts and settings to an encrypted file (T26), reached from [Settings]. */
+    data object ExportAccounts : Screen {
+        override val route = "export-accounts"
+    }
+
+    /** Import accounts and settings from a backup file (T26), reached from [Settings]. */
+    data object ImportAccounts : Screen {
+        override val route = "import-accounts"
+    }
+
     /** Search (T20), opened from the top bar of the conversation list in [initialScope]. */
     data class Search(val initialScope: SearchScope) : Screen {
         override val route = SEARCH_PREFIX + initialScope.key
     }
 
+    /**
+     * Signing in again to the account [accountId] after its credentials stopped working (T27):
+     * a password, or the provider's browser sign-in. Back returns to where it was opened from.
+     */
+    data class Reauth(val accountId: Long) : Screen {
+        override val route = REAUTH_PREFIX + accountId
+    }
+
     companion object {
-        private const val REAUTH_PREFIX = "reauth:"
         private const val COMPOSE_PREFIX = "compose:"
         private const val SEARCH_PREFIX = "search:"
+        private const val REAUTH_PREFIX = "reauth:"
         private const val INBOX_PREFIX = "inbox:"
         private const val CONVERSATION_PREFIX = "conversation:"
         private const val CONVERSATION_PARTS = 3
