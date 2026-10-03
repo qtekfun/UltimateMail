@@ -77,4 +77,17 @@ Decisiones tomadas por mí (a confirmar):
     Causa: `enableEdgeToEdge()` elige el color de los iconos de las barras según el tema del sistema. Corregido en la
     PR de `fix/status-bar-icons` (el tema de la app fija el aspecto de los iconos). No se verificó en el móvil porque
     exige cambiar el tema del sistema del teléfono, y no quise tocar sus ajustes sin que lo pidiera.
+23. **Motor de redactar y enviar (T18a, PR #33).** Decididas por el agente: Microsoft/Outlook se trata como los que ya guardan
+    el enviado ellos mismos (como Gmail), así que no se añade copia a Enviados: **lo cree pero no lo verificó**, y si fuera
+    falso habría correo enviado sin copia; el tope de 25 MiB se mide sobre bytes sin codificar (la base64 añade un tercio,
+    así que Gmail puede rechazar totales cercanos al tope); los borradores del servidor no llevan adjuntos; las respuestas
+    van a From porque la sincronización aún no guarda Reply-To (la regla ya lo respeta cuando exista); los reenvíos no
+    incluyen los adjuntos originales; `AcceptServer`/`DiscardLocal` del resolutor de borradores no están conectados (solo
+    la subida con conflicto); los textos de la cita usan el idioma de los recursos de la app; la operación SEND usa
+    `folderPath ""` y `uid = draftId`; tras aceptar el SMTP el borrador recuerda que ya se envió y nunca se reenvía, y la
+    limpieza posterior (copia a Enviados, flag, borrador del servidor) se reintenta hasta 6 veces. Esquema Room v4.
+24. **Redactar, pantallas (T18b) lanzadas.** Decididas por Claude: **deshacer envío de 5 segundos** (el mensaje solo entra en
+    la cola cuando acaba el aviso), guardar el borrador automáticamente al salir (se descarta solo con una orden
+    explícita y confirmación), botón flotante "Redactar" en la bandeja, vista de Salida en el menú con insignia y
+    reintentar/editar/descartar, y filtros de intención para `mailto:` y compartir desde otras apps.
 
