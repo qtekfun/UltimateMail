@@ -28,4 +28,10 @@
     <string name="debug_demo_seed">Insertar datos de demo</string>
     <string name="debug_demo_remove">Quitar datos de demo</string>
     <string name="debug_demo_done">Hecho. Abre UltimateMail para verlo.</string>
+    <string name="debug_picker_label">Demo del selector de mover y etiquetar (depuración)</string>
+    <string name="debug_picker_explanation">Cuentas inventadas que terminan en @seed.invalid con muchas carpetas. Selecciona mensajes, abre el selector y prueba la búsqueda: acentos, mayúsculas, partes de una ruta. Nada de esto toca una cuenta real.</string>
+    <string name="debug_picker_folders_account">Cuenta de carpetas</string>
+    <string name="debug_picker_labels_account">Cuenta de etiquetas</string>
+    <string name="debug_picker_open">Mover o etiquetar lo seleccionado</string>
+    <string name="debug_picker_pending">Pendiente de sincronizar</string>
 </resources>
