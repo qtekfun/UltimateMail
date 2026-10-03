@@ -112,4 +112,12 @@ Decisiones tomadas por mí (a confirmar):
     el idioma nunca se exporta. **Hueco detectado:** no hay pantalla para volver a iniciar sesión en una cuenta ya creada
     (una cuenta importada sin credenciales o con el token revocado solo muestra "Vuelve a iniciar sesión" en el menú, sin
     acción). Se añade como tarea **T27** (pantalla de reautenticación), lanzada.
+27. **Redactar, pantallas (T18b, PR #36).** Decididas por el agente: si el proceso muere durante los 5 s de deshacer el envío,
+    el mensaje queda como borrador (ni se pierde ni se envía; hay que volver a enviarlo); el temporizador y el envío final
+    corren en un ámbito de aplicación (`@ApplicationScope`) para que cerrar la pantalla no cancele el envío; el aviso de
+    5 s no sigue el tiempo de accesibilidad del sistema; `NoticeCenter` gana `holdUntilCleared` y `PendingUndo.onCommit`;
+    la carpeta Borradores muestra los borradores locales y los del servidor (los locales se abren en el redactor, los
+    que solo están en el servidor se abren en el lector); un borrador nuevo que no se ha tocado se descarta sin avisar.
+    **No hecho:** ocultar el botón Redactar al hacer scroll, borrar borradores deslizando, importar borradores del servidor
+    al redactor, texto enriquecido y adjuntos al reenviar.
 
