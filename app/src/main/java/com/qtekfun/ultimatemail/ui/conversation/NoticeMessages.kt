@@ -42,6 +42,11 @@ private fun NoticeKind.messageRes(): Int = when (this) {
     NoticeKind.SEND_FAILED -> R.string.notice_send_failed
     NoticeKind.SEND_PROBLEM -> R.string.notice_send_problem
     NoticeKind.ATTACHMENTS_SKIPPED -> R.string.notice_attachments_skipped
+    else -> attachmentMessageRes()
+}
+
+@StringRes
+private fun NoticeKind.attachmentMessageRes(): Int = when (this) {
     NoticeKind.ATTACHMENT_FAILED -> R.string.notice_attachment_failed
     NoticeKind.ATTACHMENT_GONE -> R.string.notice_attachment_gone
     NoticeKind.ATTACHMENT_SAVED -> R.string.notice_attachment_saved

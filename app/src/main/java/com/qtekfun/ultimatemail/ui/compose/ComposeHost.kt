@@ -24,14 +24,6 @@ import com.qtekfun.ultimatemail.domain.compose.DraftListItem
 import com.qtekfun.ultimatemail.ui.nav.AppNavigator
 import kotlinx.coroutines.launch
 
-/** The view models of the compose feature, created by the activity and handed to `AppRoot`. */
-class ComposeScreens(
-    val entry: ComposeEntryViewModel,
-    val composer: ComposerViewModel,
-    val drafts: DraftsViewModel,
-    val outbox: OutboxViewModel
-)
-
 /**
  * What has to happen whatever the screen: a new draft (a reply, a share, an Undo) opens the
  * composer, and a message from another app that needs an account asks which one.

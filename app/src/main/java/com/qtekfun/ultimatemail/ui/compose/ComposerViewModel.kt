@@ -61,8 +61,9 @@ import kotlinx.coroutines.withContext
  *
  * It is scoped to the activity like the other view models, so the undo outlives the screen.
  */
-// One function per thing the composer can do on the screen; they share the draft's state.
-@Suppress("TooManyFunctions")
+// One function per thing the composer can do on the screen; they share the draft's state. The
+// constructor takes the engine's collaborators one by one, as Hilt injects them.
+@Suppress("TooManyFunctions", "LongParameterList")
 @HiltViewModel
 class ComposerViewModel @Inject constructor(
     private val engine: ComposeEngine,

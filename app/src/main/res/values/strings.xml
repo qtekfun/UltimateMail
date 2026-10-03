@@ -400,7 +400,10 @@
     <string name="outbox_empty_title">Nothing waiting to be sent</string>
     <string name="outbox_empty_body">Messages you send wait here until the server takes them.</string>
     <string name="outbox_to">To %1$s</string>
-    <string name="outbox_to_more">To %1$s and %2$d more</string>
+    <plurals name="outbox_to_more">
+        <item quantity="one">To %1$s and %2$d other</item>
+        <item quantity="other">To %1$s and %2$d others</item>
+    </plurals>
     <string name="outbox_status_waiting">Waiting to be sent</string>
     <string name="outbox_status_sending">Sending…</string>
     <string name="outbox_status_failed">Not sent</string>

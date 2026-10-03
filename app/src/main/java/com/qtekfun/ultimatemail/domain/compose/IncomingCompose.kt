@@ -4,7 +4,6 @@
 package com.qtekfun.ultimatemail.domain.compose
 
 import com.qtekfun.ultimatemail.domain.mail.MailAddress
-import java.io.ByteArrayOutputStream
 
 /**
  * What another app asked the composer to start with (a `mailto:` link, a share): already
@@ -91,12 +90,13 @@ object IncomingParser {
         val rest = data.substring(MAILTO.length).substringBefore('#')
         val query = rest.substringAfter('?', "")
         val params = query.split('&').filter { it.isNotEmpty() }.map {
-            it.substringBefore('=').lowercase() to percentDecode(it.substringAfter('=', ""))
+            it.substringBefore('=').lowercase() to PercentDecoder.decode(it.substringAfter('=', ""))
         }
 
         fun values(name: String) = params.filter { it.first == name }.map { it.second }
+        val path = PercentDecoder.decode(rest.substringBefore('?'))
         return IncomingCompose(
-            to = recipients(listOf(percentDecode(rest.substringBefore('?'))) + values("to")),
+            to = recipients(listOf(path) + values("to")),
             cc = recipients(values("cc")),
             bcc = recipients(values("bcc")),
             subject = cleanSubject(values("subject").firstOrNull()),
@@ -110,16 +110,13 @@ object IncomingParser {
         intent: IncomingIntent,
         ownAuthorities: Set<String>
     ) = base.copy(
-        to = merge(base.to, recipients(intent.to)),
-        cc = merge(base.cc, recipients(intent.cc)),
-        bcc = merge(base.bcc, recipients(intent.bcc)),
+        to = distinct(base.to + recipients(intent.to)),
+        cc = distinct(base.cc + recipients(intent.cc)),
+        bcc = distinct(base.bcc + recipients(intent.bcc)),
         subject = base.subject.ifEmpty { cleanSubject(intent.subject) },
         body = base.body.ifEmpty { cleanBody(intent.text) },
         attachments = streams(intent.streams, ownAuthorities)
     )
-
-    private fun merge(first: List<MailAddress>, second: List<MailAddress>) =
-        distinct(first + second)
 
     private fun recipients(entries: List<String>): List<MailAddress> =
         distinct(entries.flatMap { RecipientParser.parseList(it.take(MAX_URI)).valid })
@@ -154,41 +151,5 @@ object IncomingParser {
         val authority = uri.substring(CONTENT.length).takeWhile { it != '/' && it != '?' }
         return authority.isNotEmpty() && '@' !in authority && authority.lowercase() !in own &&
             uri.none { it.isISOControl() }
-    }
-
-    /**
-     * Percent-decoding as UTF-8. A `+` stays a plus (mailto is not a form), and a `%` that is
-     * not followed by two hex digits stays as it is instead of failing the whole value.
-     */
-    internal fun percentDecode(text: String): String {
-        val out = StringBuilder()
-        val pending = ByteArrayOutputStream()
-
-        fun flush() {
-            if (pending.size() > 0) {
-                out.append(pending.toString(Charsets.UTF_8.name()))
-                pending.reset()
-            }
-        }
-        var i = 0
-        while (i < text.length) {
-            val hex = if (text[i] == '%' && i + 2 < text.length) hexByte(text, i + 1) else null
-            if (hex != null) {
-                pending.write(hex)
-                i += 3
-            } else {
-                flush()
-                out.append(text[i])
-                i++
-            }
-        }
-        flush()
-        return out.toString()
-    }
-
-    private fun hexByte(text: String, at: Int): Int? {
-        val high = Character.digit(text[at], 16)
-        val low = Character.digit(text[at + 1], 16)
-        return if (high >= 0 && low >= 0) high * 16 + low else null
     }
 }
