@@ -7,7 +7,7 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
   - *Verificación:* `./gradlew assembleDebug` compila y la app arranca con pantalla vacía.
 - [x] **T01 CI y calidad**: detekt, ktlint, Lint (warnings como errores), Kover con umbrales, verificación de dependencias, chequeo de licencias/Play Services, GitHub Actions, Dependabot.
   - *Verificación:* un PR de prueba pasa CI; una dependencia de Play Services añadida a propósito la hace fallar.
-- [ ] **T02 Prototipo OAuth2**: AppAuth con Google y Microsoft, obtención de token y login IMAP XOAUTH2 contra cuentas reales de prueba. *(Gmail personal verificado en dispositivo; Microsoft pendiente.)*
+- [x] **T02 Prototipo OAuth2**: AppAuth con Google y Microsoft, obtención de token y login IMAP XOAUTH2 contra cuentas reales de prueba. *(Gmail personal verificado en dispositivo; Microsoft implementado y probado con tests unitarios, Microsoft sin verificar contra cuentas reales. Alta de cuenta con OAuth en la app, refresco de tokens y guía en `docs/oauth-setup.md`.)*
   - *Verificación:* demo manual con ambas cuentas; decisiones sobre clientes OAuth documentadas en `SPEC.md` (sección 9).
 - [x] **T03 Prototipo librería IMAP/SMTP**: evaluar candidatas (K-9/Thunderbird, Angus/Jakarta Mail) en licencia, mantenimiento, CONDSTORE/QRESYNC, extensiones Gmail, STARTTLS/TLS; listar carpetas, bajar cabeceras, mover y enviar.
   - *Verificación:* tabla comparativa y decisión en `SPEC.md`; pruebas contra Gmail, M365 y Dovecot. *(Hecho con GreenMail; la prueba contra Gmail y M365 reales queda ligada a T02.)*
