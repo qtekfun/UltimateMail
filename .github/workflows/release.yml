@@ -1,0 +1,62 @@
+# SPDX-FileCopyrightText: 2026 UltimateMail contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Builds the signed release APK for a version tag (vX.Y.Z or vX.Y.Z-rc.N) and publishes it as a
+# GitHub Release, with the notes of that version from CHANGELOG.md. See RELEASING.md.
+#
+# It only runs when a tag is pushed, never for pull requests, so the signing secrets are never
+# available to code from a pull request.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # Also validates the Gradle wrapper checksum.
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+
+      - name: Check that the tag matches appVersion
+        run: |
+          version=$(grep '^appVersion=' gradle.properties | cut -d= -f2)
+          test "v$version" = "$GITHUB_REF_NAME" || { echo "Tag $GITHUB_REF_NAME does not match appVersion $version"; exit 1; }
+
+      - name: Check and build the release APK
+        env:
+          UM_KEYSTORE_BASE64: ${{ secrets.UM_KEYSTORE_BASE64 }}
+          UM_KEYSTORE_PASSWORD: ${{ secrets.UM_KEYSTORE_PASSWORD }}
+          UM_KEY_ALIAS: ${{ secrets.UM_KEY_ALIAS }}
+          UM_KEY_PASSWORD: ${{ secrets.UM_KEY_PASSWORD }}
+        run: |
+          export UM_KEYSTORE_FILE="$RUNNER_TEMP/release.jks"
+          echo "$UM_KEYSTORE_BASE64" | base64 -d > "$UM_KEYSTORE_FILE"
+          ./gradlew check assembleRelease
+          rm -f "$UM_KEYSTORE_FILE"
+
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '$0 ~ "^## \\[" v "\\]" {found=1; next} found && /^## \[/ {exit} found {print}' CHANGELOG.md > notes.md
+          apk="UltimateMail-$version.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$apk"
+          prerelease=""
+          case "$version" in *-rc.*) prerelease="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" "$apk" --title "UltimateMail $version" --notes-file notes.md $prerelease
