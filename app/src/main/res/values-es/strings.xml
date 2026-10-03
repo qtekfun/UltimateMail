@@ -11,6 +11,9 @@
     <string name="html_link_cancel">Cancelar</string>
     <string name="html_remote_blocked">Las imágenes y otro contenido remoto están bloqueados para proteger tu privacidad.</string>
     <string name="html_remote_show">Cargar imágenes</string>
+    <string name="html_remote_ask">¿Cargar las imágenes de este mensaje? Al cargarlas, el remitente puede saber que lo has abierto.</string>
+    <string name="html_colors_original">Colores originales</string>
+    <string name="html_colors_adapted">Adaptar al tema oscuro</string>
     <string name="home_empty_body">Añade una cuenta de correo para empezar.</string>
     <string name="action_cancel">Cancelar</string>
     <string name="action_back">Atrás</string>

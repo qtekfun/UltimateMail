@@ -4,6 +4,7 @@
 package com.qtekfun.ultimatemail.domain.conversation
 
 import com.qtekfun.ultimatemail.data.local.model.AttachmentState
+import com.qtekfun.ultimatemail.data.settings.RemoteContentPolicy
 import com.qtekfun.ultimatemail.domain.inbox.LabelSummary
 import java.time.Instant
 
@@ -38,6 +39,8 @@ data class ConversationLocal(
     val quotedShown: Set<Long> = emptySet(),
     /** Ids of the messages whose remote content the reader allowed. */
     val remoteAllowed: Set<Long> = emptySet(),
+    /** Ids of the messages the reader wants in the colours the sender chose, in dark theme. */
+    val originalColors: Set<Long> = emptySet(),
     val bodyLoads: Map<Long, BodyLoad> = emptyMap(),
     /** Ids of the attachments being downloaded right now. */
     val downloading: Set<Long> = emptySet()
@@ -53,12 +56,18 @@ sealed interface BodyView {
     /** [preview] is the snippet kept with the headers, shown while the body is out of reach. */
     data class Failed(val reason: BodyFailure, val preview: String) : BodyView
 
-    data class Ready(val body: PreparedBody, val quotedShown: Boolean, val remoteAllowed: Boolean) :
-        BodyView {
+    data class Ready(
+        val body: PreparedBody,
+        val quotedShown: Boolean,
+        val remoteAllowed: Boolean,
+        val remotePolicy: RemoteContentPolicy = RemoteContentPolicy.NEVER,
+        val originalColors: Boolean = false
+    ) : BodyView {
         val rendered: RenderedBody get() = body.shown(quotedShown)
 
-        /** Offer "load images": something was blocked and the reader did not allow it yet. */
-        val showRemoteBanner: Boolean get() = !remoteAllowed && body.hadBlockedRemoteContent
+        /** The notice offering "load images": something was blocked, not yet allowed. */
+        val remoteBanner: RemoteBanner?
+            get() = RemoteBanners.of(remotePolicy, body.hadBlockedRemoteContent, remoteAllowed)
     }
 }
 
