@@ -1,0 +1,1 @@
+Cliente de correo moderno y offline-first para IMAP/SMTP, en desarrollo
