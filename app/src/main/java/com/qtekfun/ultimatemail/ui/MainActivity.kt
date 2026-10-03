@@ -10,6 +10,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import com.qtekfun.ultimatemail.ui.account.AddAccountViewModel
 import com.qtekfun.ultimatemail.ui.folders.FolderListViewModel
+import com.qtekfun.ultimatemail.ui.inbox.InboxViewModel
 import com.qtekfun.ultimatemail.ui.nav.AppNavigator
 import com.qtekfun.ultimatemail.ui.theme.UltimateMailTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -20,13 +21,14 @@ class MainActivity : ComponentActivity() {
     private val navigator: AppNavigator by viewModels()
     private val folders: FolderListViewModel by viewModels()
     private val addAccount: AddAccountViewModel by viewModels()
+    private val inbox: InboxViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             UltimateMailTheme {
-                AppRoot(navigator, folders, addAccount)
+                AppRoot(navigator, folders, addAccount, inbox)
             }
         }
     }
