@@ -90,6 +90,7 @@ private class SafeWebViewClient : WebViewClient() {
     ): WebResourceResponse? {
         val url = request.url.toString()
         return when {
+            RequestPolicy.isOwnDocument(url, request.isForMainFrame) -> null
             url.startsWith("cid:", ignoreCase = true) -> cidResolver.resolve(url) ?: blocked()
             RequestPolicy.allowsRequest(url, allowRemoteContent) -> null
             else -> blocked()
