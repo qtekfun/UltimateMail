@@ -47,3 +47,19 @@ Decisiones tomadas por mí (a confirmar):
     por defecto: al importar se pide volver a iniciar sesión; solo se incluyen si el usuario lo marca y elige una
     frase de contraseña (PBKDF2 + AES-GCM del JDK, sin dependencias nuevas). Se usa el selector de ficheros del
     sistema (crear y abrir documento). Está en `PLAN.md` y `SPEC.md` (RF-12).
+
+18. **Pulido del visor HTML (PR #29).** El agente decidió: zoom desactivado con los diseños anchos reducidos para que
+    quepan (sin desplazamiento horizontal); modo oscuro algorítmico en Android 13+ y solo el `color-scheme` por debajo,
+    con un botón por mensaje "Colores originales / Adaptar al tema oscuro"; con la política de imágenes remotas en
+    "Nunca" el aviso ofrece igualmente cargar las imágenes de ese mensaje, y con "Preguntar" lo pregunta; las imágenes
+    bloqueadas se ven como un recuadro discontinuo con su texto alternativo. **No se comprobó en el móvil**: al agente
+    le denegaron una captura de pantalla (clasificador de permisos) y paró; yo no hice por él lo que se le denegó. La
+    causa del hueco en blanco sobre el contenido es una hipótesis (el scroll de Compose salta al WebView con foco).
+    Limpié del teléfono los datos de demostración que dejó sembrados (acción `remove` de la pantalla de depuración).
+19. **Redactar (T18) en dos tandas.** T18a: borradores, bandeja de salida, adjuntos, envío por la cola y copia a
+    Enviados; T18b: las pantallas. Decididas por Claude: el editor del MVP es de **texto plano** (el texto enriquecido se
+    pospone: el plan lo pedía, pero un editor WYSIWYG fiable en Compose es la parte más arriesgada); adjuntos con aviso a
+    partir de 20 MB totales y rechazo por encima de 25 MB (límite de Gmail); en Gmail no se añade copia a Enviados
+    (el servidor ya la guarda) y en los demás proveedores sí; sin permiso de contactos: las sugerencias de destinatarios
+    salen solo de los correos ya descargados.
+
