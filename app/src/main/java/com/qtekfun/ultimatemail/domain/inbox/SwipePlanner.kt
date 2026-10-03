@@ -5,6 +5,7 @@ package com.qtekfun.ultimatemail.domain.inbox
 
 import com.qtekfun.ultimatemail.data.settings.SwipeAction
 import com.qtekfun.ultimatemail.data.settings.SwipeActions
+import com.qtekfun.ultimatemail.domain.conversation.FolderTargets
 
 /** The side a row is swiped towards. */
 enum class SwipeDirection {
@@ -56,20 +57,22 @@ object SwipePlanner {
                 if (item.flagged) RowChange.UNSTAR else RowChange.STAR
             )
 
-            SwipeAction.ARCHIVE -> targets.of(item)?.let {
-                when {
-                    it.canArchive -> SwipeDecision.Apply(RowChange.ARCHIVE)
-                    it.archivePath == null -> SwipeDecision.Blocked(SwipeBlock.NO_ARCHIVE_FOLDER)
-                    else -> SwipeDecision.Inactive
-                }
-            } ?: SwipeDecision.Inactive
+            SwipeAction.ARCHIVE -> archive(targets.of(item))
 
-            SwipeAction.DELETE -> targets.of(item)?.let {
-                when {
-                    it.canDelete -> SwipeDecision.Apply(RowChange.DELETE)
-                    it.trashPath == null -> SwipeDecision.Blocked(SwipeBlock.NO_TRASH_FOLDER)
-                    else -> SwipeDecision.Inactive
-                }
-            } ?: SwipeDecision.Inactive
+            SwipeAction.DELETE -> delete(targets.of(item))
         }
+
+    private fun archive(folders: FolderTargets?): SwipeDecision = when {
+        folders == null -> SwipeDecision.Inactive
+        folders.canArchive -> SwipeDecision.Apply(RowChange.ARCHIVE)
+        folders.archivePath == null -> SwipeDecision.Blocked(SwipeBlock.NO_ARCHIVE_FOLDER)
+        else -> SwipeDecision.Inactive
+    }
+
+    private fun delete(folders: FolderTargets?): SwipeDecision = when {
+        folders == null -> SwipeDecision.Inactive
+        folders.canDelete -> SwipeDecision.Apply(RowChange.DELETE)
+        folders.trashPath == null -> SwipeDecision.Blocked(SwipeBlock.NO_TRASH_FOLDER)
+        else -> SwipeDecision.Inactive
+    }
 }

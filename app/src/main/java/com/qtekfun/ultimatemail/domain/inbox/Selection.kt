@@ -17,8 +17,7 @@ data class Selection(val scopeKey: String? = null, val keys: Set<String> = empty
     operator fun contains(key: String) = key in keys
 
     /** Picks [key], or takes it off; this is how a long-press starts selection mode too. */
-    fun toggle(key: String): Selection =
-        copy(keys = if (key in keys) keys - key else keys + key)
+    fun toggle(key: String): Selection = copy(keys = if (key in keys) keys - key else keys + key)
 
     /** Selects every one of [visible]. */
     fun selectAll(visible: Collection<String>): Selection = copy(keys = visible.toSet())
@@ -29,12 +28,11 @@ data class Selection(val scopeKey: String? = null, val keys: Set<String> = empty
     fun forScope(scope: String?): Selection = if (scope == scopeKey) this else Selection(scope)
 
     /** Drops what is no longer in the list ([visible]); the same instance when nothing is. */
-    fun retain(visible: Set<String>): Selection =
-        if (visible.containsAll(keys)) {
-            this
-        } else {
-            copy(keys = keys.filterTo(linkedSetOf()) { it in visible })
-        }
+    fun retain(visible: Set<String>): Selection = if (visible.containsAll(keys)) {
+        this
+    } else {
+        copy(keys = keys.filterTo(linkedSetOf()) { it in visible })
+    }
 
     /** The picked items of [items], in list order. */
     fun pick(items: List<ConversationItem>): List<ConversationItem> =
