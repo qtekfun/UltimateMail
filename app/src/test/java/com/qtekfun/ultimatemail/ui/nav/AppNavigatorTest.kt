@@ -128,6 +128,7 @@ class AppNavigatorTest {
             Screen.Home,
             Screen.AddAccount,
             Screen.Settings,
+            Screen.AccountSettings(7),
             Screen.Inbox(work),
             Screen.Inbox(InboxScope.Unified)
         ).forEach { assertEquals(it, Screen.fromRoute(it.route)) }
@@ -140,5 +141,19 @@ class AppNavigatorTest {
         assertEquals(Screen.Home, Screen.fromRoute("folders"))
         assertEquals(Screen.Home, Screen.fromRoute("inbox:folder/x/INBOX"))
         assertEquals(Screen.Home, Screen.fromRoute("inbox:"))
+        assertEquals(Screen.Home, Screen.fromRoute("account-settings:abc"))
+    }
+
+    @Test
+    fun `back from account settings returns to settings, then to the start screen`() {
+        val navigator = AppNavigator(SavedStateHandle())
+        navigator.open(Screen.Settings)
+        navigator.open(Screen.AccountSettings(7))
+
+        assertTrue(navigator.back())
+        assertEquals(Screen.Settings, navigator.screen.value)
+
+        assertTrue(navigator.back())
+        assertEquals(Screen.Home, navigator.screen.value)
     }
 }

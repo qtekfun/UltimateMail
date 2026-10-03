@@ -105,4 +105,76 @@
         <item quantity="one">%d message</item>
         <item quantity="other">%d messages</item>
     </plurals>
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="theme_system">Follow system</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="settings_dynamic_color">Dynamic colors</string>
+    <string name="settings_dynamic_color_summary">Use the colors of your wallpaper (Android 12 and later).</string>
+    <string name="settings_amoled">Pure black background</string>
+    <string name="settings_amoled_summary">In the dark theme, use a black background. It saves battery on OLED screens.</string>
+    <string name="settings_section_language">Language</string>
+    <string name="settings_language">App language</string>
+    <string name="language_system">Follow system</string>
+    <string name="language_english" translatable="false">English</string>
+    <string name="language_spanish" translatable="false">Español</string>
+    <string name="settings_section_gestures">Inbox gestures</string>
+    <string name="settings_gestures_pending">Swipe gestures are not active yet. What you choose here is saved for when they are.</string>
+    <string name="settings_swipe_right">Swipe right</string>
+    <string name="settings_swipe_left">Swipe left</string>
+    <string name="swipe_archive">Archive</string>
+    <string name="swipe_delete">Delete</string>
+    <string name="swipe_move">Move</string>
+    <string name="swipe_toggle_read">Mark as read or unread</string>
+    <string name="swipe_toggle_star">Star or unstar</string>
+    <string name="swipe_none">Nothing</string>
+    <string name="settings_section_privacy">Privacy</string>
+    <string name="settings_remote_content">Remote content in HTML mail</string>
+    <string name="settings_remote_content_summary">Images and other remote content can tell the sender that you opened a message, so they are blocked by default.</string>
+    <string name="remote_never">Never load</string>
+    <string name="remote_ask">Ask for each message</string>
+    <string name="settings_section_accounts">Accounts</string>
+    <string name="settings_no_accounts">No accounts yet</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_license">License</string>
+    <string name="settings_license_value" translatable="false">GPL-3.0-or-later</string>
+    <string name="settings_source">Source code</string>
+    <string name="settings_source_url" translatable="false">https://github.com/qtekfun/UltimateMail</string>
+    <string name="settings_open_failed">No app was found to open this link.</string>
+    <string name="settings_language_unsupported">Choosing a language for this app needs Android 13 or later. The app follows the language of your system.</string>
+    <string name="account_settings_title">Account settings</string>
+    <string name="account_settings_name">Your name</string>
+    <string name="account_settings_name_too_long">Maximum: %1$d.</string>
+    <string name="signature_title">Signature</string>
+    <string name="signature_field">Signature text</string>
+    <string name="signature_use">Use signature</string>
+    <string name="signature_before_quote">Put the signature above the quoted text in replies and forwards</string>
+    <string name="signature_too_long">The signature is too long. Maximum: %1$d.</string>
+    <string name="signature_counter">%1$d / %2$d</string>
+    <string name="signature_preview">Preview</string>
+    <string name="signature_preview_new">New message</string>
+    <string name="signature_preview_reply">Reply</string>
+    <string name="signature_preview_off">No signature will be added.</string>
+    <string name="signature_sample_new">Hi,\n\nSee you tomorrow at ten.\n\nThanks!</string>
+    <string name="signature_sample_reply">Sounds good, see you then.\n\nOn Monday, Sam wrote:\n> Are we still meeting tomorrow?\n> Let me know.</string>
+    <string name="profile_save">Save</string>
+    <string name="profile_status_saved">Saved</string>
+    <string name="profile_status_unsaved">Unsaved changes</string>
+    <string name="profile_status_saving">Saving…</string>
+    <string name="profile_status_invalid">Fix the errors above to save</string>
+    <string name="offline_title">Mail kept on this device</string>
+    <string name="offline_summary">How far back the mail of this account is kept for offline use. Older mail stays on the server.</string>
+    <string name="offline_note">Choosing a longer period does not download again the headers that were already removed from this device.</string>
+    <string name="offline_30_days">30 days</string>
+    <string name="offline_90_days">90 days (recommended)</string>
+    <string name="offline_180_days">180 days</string>
+    <string name="offline_1_year">1 year</string>
+    <string name="offline_all">Whole mailbox</string>
+    <string name="folders_sync_title">Folders to sync</string>
+    <string name="folders_sync_summary">Folders that are turned off are not synced and keep no mail on this device.</string>
+    <string name="folders_sync_always">Always synced</string>
+    <string name="folders_sync_none">The folders will appear here after the first sync.</string>
 </resources>
