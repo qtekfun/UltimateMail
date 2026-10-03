@@ -3,7 +3,8 @@
   SPDX-FileCopyrightText: 2026 UltimateMail contributors
   SPDX-License-Identifier: GPL-3.0-or-later
 -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -27,6 +28,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          AppAuth's redirect receiver is an AppCompat activity and crashes with a non-AppCompat
+          theme as soon as the browser hands back the sign-in result, which AppAuth then reports
+          as "User cancelled flow". Only this activity needs the AppCompat theme.
+        -->
+        <activity
+            android:name="net.openid.appauth.RedirectUriReceiverActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            tools:node="merge" />
     </application>
 
 </manifest>
