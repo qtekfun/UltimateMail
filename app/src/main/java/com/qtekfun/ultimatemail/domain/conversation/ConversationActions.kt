@@ -4,6 +4,7 @@
 package com.qtekfun.ultimatemail.domain.conversation
 
 import com.qtekfun.ultimatemail.data.local.dao.MessageDao
+import com.qtekfun.ultimatemail.data.local.entity.MessageEntity
 import com.qtekfun.ultimatemail.data.local.model.OperationType
 import com.qtekfun.ultimatemail.sync.engine.PendingSyncMarker
 import com.qtekfun.ultimatemail.sync.engine.SyncScheduler
@@ -77,7 +78,14 @@ class ConversationActions @Inject constructor(
             seen = seen?.takeIf { it != row.seen },
             flagged = flagged?.takeIf { it != row.flagged }
         )
-        if (change.seen == null && change.flagged == null) return null
+        return if (change.seen == null && change.flagged == null) {
+            null
+        } else {
+            apply(row, change, sync)
+        }
+    }
+
+    private suspend fun apply(row: MessageEntity, change: FlagChange, sync: Boolean): PriorFlags {
         val onServer = row.uid > 0
         messages.setFlags(
             row.id,
