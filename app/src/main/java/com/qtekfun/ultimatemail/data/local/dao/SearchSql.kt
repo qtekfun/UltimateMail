@@ -4,14 +4,13 @@
 package com.qtekfun.ultimatemail.data.local.dao
 
 import androidx.room3.RoomRawQuery
-import com.qtekfun.ultimatemail.data.local.model.FolderRole
 import com.qtekfun.ultimatemail.domain.search.FtsPlan
 import com.qtekfun.ultimatemail.domain.search.FtsQueryBuilder
+import com.qtekfun.ultimatemail.domain.search.LabelMatch
 import com.qtekfun.ultimatemail.domain.search.SearchQuery
 import com.qtekfun.ultimatemail.domain.search.SearchScope
 import java.time.LocalDate
 import java.time.ZoneId
-import java.util.Locale
 
 /**
  * The SQL of a local search. The text is assembled from fixed pieces only, one per part of the
@@ -139,7 +138,7 @@ internal object SearchSql {
                 "char(31)) LIKE ? ESCAPE '\\' OR (char(31) || m.labels || " +
                 "char(31)) LIKE ? ESCAPE '\\')"
             val exact = likeEscape(label)
-            args += roleOf(label)?.name.orEmpty()
+            args += LabelMatch.role(label)?.name.orEmpty()
             args += exact
             args += exact
             args += LIKE_ANY + LIST_SEPARATOR + exact + LIST_SEPARATOR + LIKE_ANY
@@ -171,19 +170,6 @@ internal object SearchSql {
 
     private fun startOf(day: LocalDate, zone: ZoneId): Long =
         day.atStartOfDay(zone).toInstant().toEpochMilli()
-
-    /** The folder role a word like `inbox` or `trash` stands for, in English. */
-    internal fun roleOf(label: String): FolderRole? = when (label.trim().lowercase(Locale.ROOT)) {
-        "inbox" -> FolderRole.INBOX
-        "sent" -> FolderRole.SENT
-        "draft", "drafts" -> FolderRole.DRAFTS
-        "trash", "bin" -> FolderRole.TRASH
-        "spam", "junk" -> FolderRole.JUNK
-        "archive" -> FolderRole.ARCHIVE
-        "all", "allmail" -> FolderRole.ALL_MAIL
-        "starred" -> FolderRole.STARRED
-        else -> null
-    }
 
     /** [text] as a LIKE pattern that matches it literally (escape character is a backslash). */
     internal fun likeEscape(text: String): String =
