@@ -6,6 +6,7 @@ package com.qtekfun.ultimatemail.ui.nav
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
+import com.qtekfun.ultimatemail.domain.search.SearchScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +23,8 @@ class AppNavigator @Inject constructor(private val savedState: SavedStateHandle)
     private var cameFrom: Screen? = savedState.get<String>(CAME_FROM_KEY)?.let(Screen::fromRoute)
     private var composeFrom: Screen? =
         savedState.get<String>(COMPOSE_FROM_KEY)?.let(Screen::fromRoute)
+    private var searchFrom: Screen? =
+        savedState.get<String>(SEARCH_FROM_KEY)?.let(Screen::fromRoute)
     private val drawer = MutableStateFlow(savedState.get<Boolean>(DRAWER_KEY) ?: false)
 
     val screen: StateFlow<Screen> = current.asStateFlow()
@@ -63,6 +66,15 @@ class AppNavigator @Inject constructor(private val savedState: SavedStateHandle)
         if (current.value is Screen.Compose) open(composeFrom ?: Screen.Home)
     }
 
+    /** Opens the search in [scope]. Back returns to the screen it was opened from. */
+    fun openSearch(scope: SearchScope) {
+        if (current.value !is Screen.Search) {
+            searchFrom = current.value
+            savedState[SEARCH_FROM_KEY] = current.value.route
+        }
+        open(Screen.Search(scope))
+    }
+
     /**
      * Shows the conversations of [scope] and closes the side menu. [home] is the scope the start
      * screen already shows: asking for it goes back to the start screen, so Back from any other
@@ -97,6 +109,11 @@ class AppNavigator @Inject constructor(private val savedState: SavedStateHandle)
             true
         }
 
+        current.value is Screen.Search -> {
+            open(searchFrom ?: Screen.Home)
+            true
+        }
+
         current.value == Screen.Home -> false
 
         current.value is Screen.AccountSettings -> {
@@ -115,5 +132,6 @@ class AppNavigator @Inject constructor(private val savedState: SavedStateHandle)
         const val DRAWER_KEY = "drawerOpen"
         const val CAME_FROM_KEY = "cameFrom"
         const val COMPOSE_FROM_KEY = "composeFrom"
+        const val SEARCH_FROM_KEY = "searchFrom"
     }
 }

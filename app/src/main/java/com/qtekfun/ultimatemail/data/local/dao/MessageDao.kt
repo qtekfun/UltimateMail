@@ -187,6 +187,13 @@ interface MessageDao {
     @Query("DELETE FROM message WHERE id IN (:ids) AND uid > 0")
     suspend fun deleteServerRows(ids: List<Long>)
 
+    /** The stored rows, among [uids] of one folder, that a search on the server found (T20). */
+    @Query(
+        "SELECT id, uid, sentAt, hasAttachments FROM message WHERE accountId = :accountId " +
+            "AND folderPath = :folderPath AND uid IN (:uids)"
+    )
+    suspend fun rowsByUids(accountId: Long, folderPath: String, uids: List<Long>): List<FoundRow>
+
     /**
      * How many messages of synced folders are inside the window ([sinceMillis]) and small enough
      * ([maxSize]) to have their body downloaded during sync: what "N of M" counts against.
@@ -272,6 +279,14 @@ interface MessageDao {
     )
     suspend fun addressSamples(accountId: Long, limit: Int): List<AddressSample>
 }
+
+/** What a search on the server needs to know about a stored message (T20). */
+data class FoundRow(
+    val id: Long,
+    val uid: Long,
+    val sentAt: java.time.Instant,
+    val hasAttachments: Boolean
+)
 
 /** The state of a stored message that a sync compares with the server. */
 data class MessageSyncRow(
