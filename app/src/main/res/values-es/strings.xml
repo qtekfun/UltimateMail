@@ -187,4 +187,9 @@
     <string name="folders_sync_summary">Las carpetas desactivadas no se sincronizan y no guardan correo en este dispositivo.</string>
     <string name="folders_sync_always">Siempre sincronizada</string>
     <string name="folders_sync_none">Las carpetas aparecerán aquí después de la primera sincronización.</string>
+    <string name="settings_density">Densidad de la pantalla</string>
+    <string name="settings_density_summary">Controla cuánto cabe en pantalla en el menú lateral y en la lista de conversaciones. En compacto caben más, pero las filas son más pequeñas que el tamaño táctil recomendado.</string>
+    <string name="density_comfortable">Cómoda</string>
+    <string name="density_default">Predeterminada</string>
+    <string name="density_compact">Compacta</string>
 </resources>

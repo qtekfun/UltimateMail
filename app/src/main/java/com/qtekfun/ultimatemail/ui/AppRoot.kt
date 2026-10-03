@@ -151,6 +151,7 @@ private fun SettingsRoute(settings: SettingsViewModel, navigator: AppNavigator) 
         actions = SettingsActions(
             onBack = { navigator.back() },
             onThemeChange = settings::setTheme,
+            onDensityChange = settings::setDensity,
             onDynamicColorChange = settings::setDynamicColor,
             onAmoledChange = settings::setAmoled,
             onSwipeRightChange = settings::setSwipeRight,
