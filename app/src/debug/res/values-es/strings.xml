@@ -7,7 +7,7 @@
     <string name="oauth_debug_title">Prueba de inicio de sesión con Google</string>
     <string name="oauth_debug_button">Iniciar sesión con Google</string>
     <string name="oauth_debug_idle">Sin sesión</string>
-    <string name="oauth_debug_not_configured">Esta compilación no tiene client ID de Google. Compila con -PUM_GOOGLE_CLIENT_ID=…</string>
+    <string name="oauth_debug_not_configured">Introduce primero tu client ID de Google</string>
     <string name="oauth_debug_authorizing">Esperando al navegador…</string>
     <string name="oauth_debug_cancelled">Inicio de sesión cancelado o rechazado: %1$s</string>
     <string name="oauth_debug_token_failed">Falló el intercambio del token: %1$s</string>
@@ -15,4 +15,6 @@
     <string name="oauth_debug_connecting">Sesión iniciada. Conectando por IMAP…</string>
     <string name="oauth_debug_success">El login IMAP con XOAUTH2 funciona (carpetas: %1$d)</string>
     <string name="oauth_debug_imap_failed">Falló el login IMAP: %1$s</string>
+    <string name="oauth_debug_client_id">Client ID de Google</string>
+    <string name="oauth_debug_client_id_invalid">Eso no parece un client ID de Google (…apps.googleusercontent.com)</string>
 </resources>
