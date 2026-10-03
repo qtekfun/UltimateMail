@@ -91,8 +91,9 @@ private const val VERSION_4 = 4
 internal val MIGRATION_3_4: Migration = object : Migration(VERSION_3, VERSION_4) {
     override suspend fun migrate(connection: SQLiteConnection) {
         connection.execSQL(
-            "CREATE TABLE IF NOT EXISTS `draft` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
-                "`key` TEXT NOT NULL, `accountId` INTEGER NOT NULL, `kind` TEXT NOT NULL, " +
+            "CREATE TABLE IF NOT EXISTS `draft` (`id` INTEGER PRIMARY KEY AUTOINCREMENT " +
+                "NOT NULL, `key` TEXT NOT NULL, `accountId` INTEGER NOT NULL, " +
+                "`kind` TEXT NOT NULL, " +
                 "`state` TEXT NOT NULL DEFAULT 'EDITING', `toAddresses` TEXT NOT NULL, " +
                 "`ccAddresses` TEXT NOT NULL, `bccAddresses` TEXT NOT NULL, " +
                 "`subject` TEXT NOT NULL, `body` TEXT NOT NULL, `inReplyTo` TEXT, " +
@@ -114,8 +115,9 @@ internal val MIGRATION_3_4: Migration = object : Migration(VERSION_3, VERSION_4)
         )
         connection.execSQL(
             "CREATE TABLE IF NOT EXISTS `outgoing_attachment` (`id` INTEGER PRIMARY KEY " +
-                "AUTOINCREMENT NOT NULL, `draftId` INTEGER NOT NULL, `displayName` TEXT NOT NULL, " +
-                "`mimeType` TEXT NOT NULL, `size` INTEGER NOT NULL, `filePath` TEXT NOT NULL, " +
+                "AUTOINCREMENT NOT NULL, `draftId` INTEGER NOT NULL, " +
+                "`displayName` TEXT NOT NULL, `mimeType` TEXT NOT NULL, " +
+                "`size` INTEGER NOT NULL, `filePath` TEXT NOT NULL, " +
                 "FOREIGN KEY(`draftId`) REFERENCES `draft`(`id`) ON UPDATE NO ACTION " +
                 "ON DELETE CASCADE )"
         )

@@ -3,9 +3,7 @@
 
 package com.qtekfun.ultimatemail.domain.compose
 
-import com.qtekfun.ultimatemail.data.local.dao.AccountDao
-import com.qtekfun.ultimatemail.data.local.dao.DraftDao
-import com.qtekfun.ultimatemail.data.local.dao.PendingOperationDao
+import com.qtekfun.ultimatemail.data.local.UltimateMailDatabase
 import com.qtekfun.ultimatemail.data.local.model.DraftState
 import com.qtekfun.ultimatemail.data.local.model.OperationType
 import com.qtekfun.ultimatemail.di.IoDispatcher
@@ -30,9 +28,6 @@ sealed interface SendResult {
     data object AttachmentMissing : SendResult
 
     data object DraftMissing : SendResult
-
-    /** The account of the draft was removed. */
-    data object NoAccount : SendResult
 }
 
 /**
@@ -51,19 +46,23 @@ sealed interface SendResult {
  * this: a message without subject is allowed.
  */
 class SendDraft @Inject constructor(
-    private val drafts: DraftDao,
-    private val accounts: AccountDao,
-    private val operations: PendingOperationDao,
+    database: UltimateMailDatabase,
     private val queue: OperationQueue,
     private val files: OutboxFileStorage,
     private val scheduler: SyncScheduler,
     private val clock: Clock,
     @IoDispatcher private val io: CoroutineDispatcher
 ) {
-    @Suppress("ReturnCount") // Each refusal leaves early; guard clauses keep the normal path flat.
+    private val drafts = database.draftDao()
+    private val accounts = database.accountDao()
+    private val operations = database.pendingOperationDao()
+
+    // Each refusal leaves early; guard clauses keep the normal path flat.
+    @Suppress("ReturnCount")
     suspend operator fun invoke(draftId: Long): SendResult = withContext(io) {
         val entity = drafts.get(draftId) ?: return@withContext SendResult.DraftMissing
-        val account = accounts.get(entity.accountId) ?: return@withContext SendResult.NoAccount
+        // A draft goes with its account (foreign key), so a missing account means a missing draft.
+        val account = accounts.get(entity.accountId) ?: return@withContext SendResult.DraftMissing
         val waiting = operations.forDraft(account.id, draftId, OperationType.SEND).firstOrNull()
         if (waiting != null) return@withContext SendResult.Queued(waiting.id)
         val draft = entity.toDraft()

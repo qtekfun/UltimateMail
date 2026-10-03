@@ -129,12 +129,13 @@ object OutgoingPayload {
         )
         val draft = all("draft").singleOrNull()?.fields()
         val source = all("source").singleOrNull()?.fields()?.let {
+            val fields = it.iterator()
             PayloadSource(
-                it[0].toLong(),
-                it[1],
-                it[2].toLong(),
-                it[3].ifEmpty { null },
-                it[4].toBooleanStrict()
+                accountId = fields.next().toLong(),
+                folderPath = fields.next(),
+                uid = fields.next().toLong(),
+                messageId = fields.next().ifEmpty { null },
+                forwarded = fields.next().toBooleanStrict()
             )
         }
         QueuedMessage(

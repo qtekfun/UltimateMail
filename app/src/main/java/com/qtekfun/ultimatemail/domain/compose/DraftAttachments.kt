@@ -7,6 +7,7 @@ import com.qtekfun.ultimatemail.data.local.dao.DraftDao
 import com.qtekfun.ultimatemail.data.local.entity.OutgoingAttachmentEntity
 import com.qtekfun.ultimatemail.data.local.model.DraftState
 import com.qtekfun.ultimatemail.di.IoDispatcher
+import com.qtekfun.ultimatemail.domain.conversation.AttachmentFileNames
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -70,7 +71,7 @@ class DraftAttachments @Inject constructor(
         if (info.size != null && info.size > room) {
             return@withContext AddAttachmentResult.TooLarge(AttachmentLimits.MAX_BYTES)
         }
-        val name = info.name?.takeIf { it.isNotBlank() } ?: DEFAULT_NAME
+        val name = AttachmentFileNames.safe(info.name, DEFAULT_NAME)
         val stream = source.open(uri) ?: return@withContext AddAttachmentResult.Unreadable
         when (val stored = stream.use { files.write(draftId, name, it, room) }) {
             StoreResult.TooLarge -> AddAttachmentResult.TooLarge(AttachmentLimits.MAX_BYTES)

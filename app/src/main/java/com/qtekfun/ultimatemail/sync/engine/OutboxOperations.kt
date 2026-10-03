@@ -53,6 +53,8 @@ class OutboxOperations @Inject constructor(
     internal suspend fun draft(id: Long): DraftEntity? = drafts.get(id)
 
     /** The message of [queued] with its attachment files read, or null if one is gone. */
+    // Each failure leaves early; guard clauses keep the normal path flat.
+    @Suppress("ReturnCount")
     internal fun withAttachments(queued: QueuedMessage): OutgoingMessage? {
         val message = queued.message
         val loaded = queued.attachments.map {
@@ -88,97 +90,79 @@ class OutboxOperations @Inject constructor(
         val folder = folders.all(operation.accountId).firstOrNull { it.role == FolderRole.DRAFTS }
             ?: return OperationOutcome.Done
         val copies = when (val found = session.newestHeaders(folder.path, RECENT_DRAFTS)) {
-            is MailResult.Success -> found.value.filter {
-                DraftMessageIds.keyOf(it.messageId) == draft.key
-            }
+            is MailResult.Success ->
+                found.value
+                    .filter { DraftMessageIds.keyOf(it.messageId) == draft.key }
+                    .map { ServerCopy(it.uid, it.messageId) }
 
             is MailResult.Failure -> return failureOutcome(found)
         }
-        val newId = queued.message.messageId
+        // The id of this version belongs to the key the draft has now (a fork changes the key).
+        val message = queued.message.withId(
+            queued.message.messageId?.takeIf { DraftMessageIds.keyOf(it) == draft.key }
+                ?: DraftMessageIds.forServerCopy(draft.key, queued.message.from.address)
+        )
+        val target = Target(session, folder.path, draft, queued.revision, copies)
         // An earlier attempt stored this very version without us hearing back.
-        if (copies.any { it.messageId.sameMessageId(newId) }) {
-            return finishSave(
-                session,
-                folder.path,
-                draft,
-                queued,
-                newId,
-                copies.map {
-                    it.uid to
-                        it.messageId
-                }
-            )
+        if (copies.any { it.messageId.sameMessageId(message.messageId) }) {
+            return finishSave(target, message.messageId)
         }
-        val serverVersion = copies.maxByOrNull { it.uid }?.messageId
         val decision = DraftResolver.resolve(
             LocalDraft(operation.accountId, draft.key, draft.serverMessageId, dirty = true),
-            serverVersion
+            copies.maxByOrNull { it.uid }?.messageId
         )
         return when (decision) {
-            DraftDecision.UploadLocal ->
-                upload(
-                    session,
-                    folder.path,
-                    draft,
-                    queued,
-                    newId,
-                    copies.map {
-                        it.uid to
-                            it.messageId
-                    }
-                )
+            DraftDecision.UploadLocal -> upload(target, message)
 
-            is DraftDecision.KeepBoth -> fork(session, folder.path, draft, queued, decision)
+            is DraftDecision.KeepBoth -> fork(target, message, decision)
 
             // A draft with a save waiting is dirty by definition, so these never come out.
             DraftDecision.AcceptServer, DraftDecision.DiscardLocal -> OperationOutcome.Done
         }
     }
 
-    private suspend fun upload(
-        session: MailSession,
-        folder: String,
-        draft: DraftEntity,
-        queued: QueuedMessage,
-        newId: String?,
-        old: List<Pair<Long, String?>>
-    ): OperationOutcome = when (val stored = session.appendDraft(folder, queued.message)) {
-        is MailResult.Success -> finishSave(session, folder, draft, queued, newId, old)
-        is MailResult.Failure -> failureOutcome(stored)
-    }
+    private suspend fun upload(target: Target, message: OutgoingMessage): OperationOutcome =
+        when (val stored = target.session.appendDraft(target.folder, message)) {
+            is MailResult.Success -> finishSave(target, message.messageId)
+            is MailResult.Failure -> failureOutcome(stored)
+        }
+
+    /** A copy of a draft in the Drafts folder, by UID and Message-ID. */
+    private class ServerCopy(val uid: Long, val messageId: String?)
+
+    /** Where a save happens: the session, the Drafts folder, the draft and what is there. */
+    private class Target(
+        val session: MailSession,
+        val folder: String,
+        val draft: DraftEntity,
+        val revision: Int,
+        val copies: List<ServerCopy>
+    )
 
     /**
      * Both devices changed the draft: the server copy stays as it is (it is the other device's
      * draft) and this device's text goes on as a draft of its own, under a new key.
      */
     private suspend fun fork(
-        session: MailSession,
-        folder: String,
-        draft: DraftEntity,
-        queued: QueuedMessage,
+        target: Target,
+        message: OutgoingMessage,
         decision: DraftDecision.KeepBoth
     ): OperationOutcome {
         val key = DraftMessageIds.newKey()
-        val newId = DraftMessageIds.forServerCopy(key, queued.message.from.address)
+        val newId = DraftMessageIds.forServerCopy(key, message.from.address)
         // The new key and the id about to be written are stored first, so that a retry after a
         // lost answer finds its own copy instead of forking again.
-        drafts.rekey(draft.id, key)
-        drafts.markUploaded(draft.id, newId, UNCHANGED)
+        drafts.rekey(target.draft.id, key)
+        drafts.markUploaded(target.draft.id, newId, UNCHANGED)
         notices.publish(decision.notice)
-        val forked = OutgoingMessage(
-            from = queued.message.from,
-            to = queued.message.to,
-            cc = queued.message.cc,
-            bcc = queued.message.bcc,
-            subject = queued.message.subject,
-            text = queued.message.text,
-            inReplyTo = queued.message.inReplyTo,
-            references = queued.message.references,
-            messageId = newId
-        )
-        return when (val stored = session.appendDraft(folder, forked)) {
+        return when (
+            val stored = target.session.appendDraft(
+                target.folder,
+                message.withId(newId)
+            )
+        ) {
             is MailResult.Success -> {
-                drafts.markUploaded(draft.id, newId, queued.revision)
+                drafts.markUploaded(target.draft.id, newId, target.revision)
                 OperationOutcome.Done
             }
 
@@ -186,22 +170,16 @@ class OutboxOperations @Inject constructor(
         }
     }
 
-    @Suppress("LongParameterList")
-    private suspend fun finishSave(
-        session: MailSession,
-        folder: String,
-        draft: DraftEntity,
-        queued: QueuedMessage,
-        newId: String?,
-        old: List<Pair<Long, String?>>
-    ): OperationOutcome {
-        // Everything of this draft on the server that is not the new version goes.
-        val stale = old.filter { !it.second.sameMessageId(newId) }.map { it.first }.toSet()
+    /** Removes every copy of the draft except the new version, and records the new one. */
+    private suspend fun finishSave(target: Target, newId: String?): OperationOutcome {
+        val stale = target.copies.filter {
+            !it.messageId.sameMessageId(newId)
+        }.map { it.uid }.toSet()
         if (stale.isNotEmpty()) {
-            val removed = session.delete(folder, stale)
+            val removed = target.session.delete(target.folder, stale)
             if (removed is MailResult.Failure) return failureOutcome(removed)
         }
-        newId?.let { drafts.markUploaded(draft.id, it, queued.revision) }
+        newId?.let { drafts.markUploaded(target.draft.id, it, target.revision) }
         return OperationOutcome.Done
     }
 
@@ -234,6 +212,8 @@ class OutboxOperations @Inject constructor(
         return OperationOutcome.Done
     }
 
+    // Each failure leaves early; guard clauses keep the normal path flat.
+    @Suppress("ReturnCount")
     private suspend fun storeSentCopy(
         session: MailSession,
         account: AccountEntity,
@@ -253,6 +233,8 @@ class OutboxOperations @Inject constructor(
     }
 
     /** Sets `\Answered` or `$Forwarded` on the message replied to, if it is still that message. */
+    // Each failure leaves early; guard clauses keep the normal path flat.
+    @Suppress("ReturnCount")
     private suspend fun markSource(
         session: MailSession,
         accountId: Long,
@@ -292,6 +274,8 @@ class OutboxOperations @Inject constructor(
         return result
     }
 
+    // Each failure leaves early; guard clauses keep the normal path flat.
+    @Suppress("ReturnCount")
     private suspend fun removeServerDraft(
         session: MailSession,
         account: AccountEntity,
@@ -313,10 +297,6 @@ class OutboxOperations @Inject constructor(
         return if (uids.isEmpty()) MailResult.Success(Unit) else session.delete(folder.path, uids)
     }
 
-    private fun MailResult.Failure.worthRetrying() = this == MailResult.NetworkUnavailable ||
-        this == MailResult.Timeout || this == MailResult.AuthenticationFailed ||
-        (this is MailResult.ServerRejected && !permanent)
-
     private companion object {
         /** Passed to `markUploaded` to record the id without saying the text was uploaded. */
         const val UNCHANGED = -1
@@ -325,6 +305,24 @@ class OutboxOperations @Inject constructor(
         const val MAX_TIDY_ATTEMPTS = 6
     }
 }
+
+private fun OutgoingMessage.withId(id: String) = OutgoingMessage(
+    from = from,
+    to = to,
+    cc = cc,
+    bcc = bcc,
+    subject = subject,
+    text = text,
+    html = html,
+    attachments = attachments,
+    inReplyTo = inReplyTo,
+    references = references,
+    messageId = id
+)
+
+private fun MailResult.Failure.worthRetrying() = this == MailResult.NetworkUnavailable ||
+    this == MailResult.Timeout || this == MailResult.AuthenticationFailed ||
+    (this is MailResult.ServerRejected && !permanent)
 
 /**
  * Which providers file a copy of every message sent through their SMTP server in the Sent
