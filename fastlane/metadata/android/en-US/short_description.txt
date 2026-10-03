@@ -1,0 +1,1 @@
+Modern offline-first mail client for IMAP/SMTP, in early development
