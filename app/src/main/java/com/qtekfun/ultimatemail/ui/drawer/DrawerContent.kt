@@ -4,16 +4,23 @@
 package com.qtekfun.ultimatemail.ui.drawer
 
 import android.text.format.DateFormat
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -41,9 +48,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -55,6 +65,7 @@ import com.qtekfun.ultimatemail.domain.folder.SyncLine
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
 import com.qtekfun.ultimatemail.sync.engine.SyncProblem
 import com.qtekfun.ultimatemail.ui.nav.Screen
+import com.qtekfun.ultimatemail.ui.theme.LocalDensityMetrics
 import java.util.Date
 
 private val MinTouchTarget = 48.dp
@@ -243,30 +254,46 @@ private fun DrawerRow(
     expanded: Boolean = false,
     onToggle: () -> Unit = {}
 ) {
-    NavigationDrawerItem(
-        label = { Text(label, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-        selected = selected,
-        onClick = onClick,
-        icon = { Icon(icon, contentDescription = null) },
-        badge = if (unread > 0 || expandable) {
-            { RowTrailing(label, unread, expandable, expanded, onToggle) }
-        } else {
-            null
-        },
+    val colors = MaterialTheme.colorScheme
+    val content = if (selected) colors.onSecondaryContainer else colors.onSurfaceVariant
+    // Not a NavigationDrawerItem: Material 3 fixes its height at 56dp, and the row height here
+    // follows the display density setting.
+    Row(
         modifier = Modifier
-            .padding(NavigationDrawerItemDefaults.ItemPadding)
+            .padding(horizontal = 12.dp)
             .padding(start = IndentPerLevel * indent)
-            .heightIn(min = MinTouchTarget)
-    )
+            .fillMaxWidth()
+            .height(LocalDensityMetrics.current.drawerRowHeight)
+            .clip(CircleShape)
+            .background(if (selected) colors.secondaryContainer else Color.Transparent)
+            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
+            .padding(start = 16.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(24.dp))
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = content,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        if (unread > 0 || expandable) {
+            RowTrailing(label, unread, expanded.takeIf { expandable }, onToggle, content)
+        }
+    }
 }
 
 @Composable
 private fun RowTrailing(
     label: String,
     unread: Int,
-    expandable: Boolean,
-    expanded: Boolean,
-    onToggle: () -> Unit
+    /** Null when the row has no children; otherwise whether they are showing. */
+    expanded: Boolean?,
+    onToggle: () -> Unit,
+    content: Color
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         if (unread > 0) {
@@ -274,17 +301,30 @@ private fun RowTrailing(
             Text(
                 text = unread.toString(),
                 style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.semantics { contentDescription = description }
+                color = content,
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .semantics { contentDescription = description }
             )
         }
-        if (expandable) {
-            IconButton(onClick = onToggle, modifier = Modifier.heightIn(min = MinTouchTarget)) {
+        if (expanded != null) {
+            val size = LocalDensityMetrics.current.drawerRowHeight
+            val description = stringResource(
+                if (expanded) R.string.drawer_collapse else R.string.drawer_expand,
+                label
+            )
+            Box(
+                modifier = Modifier
+                    .size(size)
+                    .clip(CircleShape)
+                    .clickable(role = Role.Button, onClick = onToggle)
+                    .semantics { contentDescription = description },
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
                     if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                    contentDescription = stringResource(
-                        if (expanded) R.string.drawer_collapse else R.string.drawer_expand,
-                        label
-                    )
+                    contentDescription = null,
+                    tint = content
                 )
             }
         }
@@ -334,6 +374,9 @@ private fun SyncLine.text(): String = when (this) {
     SyncLine.NeverSynced -> stringResource(R.string.sync_status_never)
 
     SyncLine.Syncing -> stringResource(R.string.sync_status_syncing)
+
+    is SyncLine.DownloadingMessages ->
+        stringResource(R.string.sync_status_downloading, done, total)
 
     is SyncLine.LastSynced -> {
         val context = LocalContext.current

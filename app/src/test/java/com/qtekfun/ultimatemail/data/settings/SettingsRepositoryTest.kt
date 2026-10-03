@@ -20,6 +20,7 @@ class SettingsRepositoryTest {
         assertEquals(ThemeMode.SYSTEM, settings.theme)
         assertEquals(true, settings.dynamicColor)
         assertEquals(false, settings.amoled)
+        assertEquals(DisplayDensity.DEFAULT, settings.density)
         assertEquals(SwipeAction.ARCHIVE, settings.swipe.right)
         assertEquals(SwipeAction.DELETE, settings.swipe.left)
         assertEquals(RemoteContentPolicy.NEVER, settings.remoteContent)
@@ -30,6 +31,7 @@ class SettingsRepositoryTest {
         repository.setTheme(ThemeMode.DARK)
         repository.setDynamicColor(false)
         repository.setAmoled(true)
+        repository.setDensity(DisplayDensity.COMPACT)
         repository.setSwipeRight(SwipeAction.TOGGLE_STAR)
         repository.setSwipeLeft(SwipeAction.NONE)
         repository.setRemoteContent(RemoteContentPolicy.ASK)
@@ -39,6 +41,7 @@ class SettingsRepositoryTest {
                 theme = ThemeMode.DARK,
                 dynamicColor = false,
                 amoled = true,
+                density = DisplayDensity.COMPACT,
                 swipe = SwipeActions(right = SwipeAction.TOGGLE_STAR, left = SwipeAction.NONE),
                 remoteContent = RemoteContentPolicy.ASK
             ),
