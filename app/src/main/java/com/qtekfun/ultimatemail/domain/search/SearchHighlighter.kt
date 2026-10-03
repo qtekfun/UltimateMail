@@ -62,6 +62,17 @@ class SearchHighlighter(terms: List<SearchTerm>) {
     }
 }
 
+/** The highlighters of the texts of a result row, for one [SearchQuery]. */
+class SearchHighlights(query: SearchQuery) {
+    private val byField = HighlightField.entries.associateWith {
+        SearchHighlighter(query.highlightTerms(it))
+    }
+
+    /** The ranges of [text], shown in [field], that the search found. */
+    fun ranges(field: HighlightField, text: String): List<IntRange> =
+        byField.getValue(field).ranges(text)
+}
+
 /**
  * The line of text shown under a search hit. Full-text search also looks in the cached body, so
  * the stored snippet (the start of the message) may show nothing of what was found: then the
