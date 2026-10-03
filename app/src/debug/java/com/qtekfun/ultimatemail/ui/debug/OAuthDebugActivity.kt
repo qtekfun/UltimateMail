@@ -173,10 +173,9 @@ class OAuthDebugActivity : ComponentActivity() {
     private fun countFolders(email: String, accessToken: String): Int {
         val properties = Properties().apply {
             put("mail.imap.ssl.enable", "true")
-            put("mail.imap.sasl.enable", "true")
-            put("mail.imap.sasl.mechanisms", "XOAUTH2")
-            put("mail.imap.auth.login.disable", "true")
-            put("mail.imap.auth.plain.disable", "true")
+            // XOAUTH2 is built into Angus Mail; the SASL route needs javax.security.sasl, which
+            // Android does not have.
+            put("mail.imap.auth.mechanisms", "XOAUTH2")
             put("mail.imap.connectiontimeout", "10000")
             put("mail.imap.timeout", "10000")
         }
