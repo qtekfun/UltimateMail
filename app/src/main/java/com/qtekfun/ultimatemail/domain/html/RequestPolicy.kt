@@ -17,6 +17,15 @@ object RequestPolicy {
         }
 
     /**
+     * Whether [url] is the message document itself being loaded into the view: the page is
+     * handed to the WebView as a `data:text/html` URL, and that main-frame request must pass or
+     * nothing renders at all. Only the first load of that exact kind counts; any other main-frame
+     * navigation stays blocked.
+     */
+    fun isOwnDocument(url: String, isMainFrame: Boolean): Boolean =
+        isMainFrame && UrlPolicy.clean(url).startsWith("data:text/html", ignoreCase = true)
+
+    /**
      * The URL to hand to an `ACTION_VIEW` intent for a tapped link, or null when the link must
      * not be opened at all. Only web, mail and phone links qualify.
      */
