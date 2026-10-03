@@ -17,6 +17,7 @@ import com.qtekfun.ultimatemail.domain.account.AccountCredentials
 import com.qtekfun.ultimatemail.domain.account.AccountRemoval
 import com.qtekfun.ultimatemail.domain.account.CredentialVault
 import com.qtekfun.ultimatemail.domain.settings.AccountSettingsStore
+import com.qtekfun.ultimatemail.domain.settings.MemoryOfflineDownloads
 import com.qtekfun.ultimatemail.domain.settings.OfflineWindow
 import com.qtekfun.ultimatemail.domain.settings.ProfileError
 import com.qtekfun.ultimatemail.domain.settings.ProfileRules
@@ -70,7 +71,12 @@ class AccountSettingsViewModelTest {
     private val created = mutableListOf<AccountSettingsViewModel>()
 
     private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) = AccountSettingsViewModel(
-        AccountSettingsStore(db, mockk<SyncScheduler>(relaxed = true), Dispatchers.Unconfined),
+        AccountSettingsStore(
+            db,
+            mockk<SyncScheduler>(relaxed = true),
+            MemoryOfflineDownloads(),
+            Dispatchers.Unconfined
+        ),
         AccountRemoval(db, vault, FakeAttachmentStorage(), Dispatchers.Unconfined),
         saved
     ).also { created += it }
@@ -298,6 +304,22 @@ class AccountSettingsViewModelTest {
     }
 
     @Test
+    fun `the download for offline switch shows on and can be turned off`() = runTest {
+        val id = db.accountDao().insert(account())
+        val model = viewModel()
+        model.state.test {
+            awaitItem()
+            model.show(id)
+            assertTrue(awaitState { it.found }.downloadForOffline)
+
+            model.onDownloadForOfflineChange(false)
+
+            assertFalse(awaitState { !it.downloadForOffline }.downloadForOffline)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `a folder toggle is stored`() = runTest {
         val id = db.accountDao().insert(account())
         db.folderDao().upsert(listOf(folder(id, "Work", FolderRole.OTHER)))
@@ -325,6 +347,7 @@ class AccountSettingsViewModelTest {
             model.onNameChange("x")
             model.save()
             model.onOfflineWindowChange(OfflineWindow.YEAR)
+            model.onDownloadForOfflineChange(false)
             model.onFolderSyncChange("INBOX", false)
             model.confirmRemoval()
 

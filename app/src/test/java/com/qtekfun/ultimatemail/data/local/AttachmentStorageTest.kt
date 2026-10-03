@@ -90,6 +90,41 @@ class FileAttachmentStorageTest {
     }
 
     @Test
+    fun `stored lists finished files with their attachment id and ignores the rest`() {
+        val storage = FileAttachmentStorage(root)
+        storage.write(1, attachment("a.bin", id = 5, messageId = 9), byteArrayOf(1))
+        storage.write(1, attachment("b.bin", id = 6, messageId = 10), byteArrayOf(1))
+        storage.write(2, attachment("c.bin", id = 7), byteArrayOf(1))
+        File(root, "1/9/8-half.bin.part").writeText("x")
+        File(root, "1/9/notes.txt").writeText("x")
+        File(root, "1/stray.txt").writeText("x")
+
+        val listed = storage.stored(1)
+
+        assertEquals(listOf(5L, 6L), listed.map { it.attachmentId }.sorted())
+        assertTrue(listed.all { File(it.path).isFile })
+        assertEquals(emptyList<Long>(), storage.stored(42).map { it.attachmentId })
+    }
+
+    @Test
+    fun `delete removes the file and its empty folder and nothing else`() {
+        val storage = FileAttachmentStorage(File(root, "attachments"))
+        val first = storage.write(1, attachment("a.bin", id = 5, messageId = 9), byteArrayOf(1))
+        val sibling = storage.write(1, attachment("b.bin", id = 6, messageId = 9), byteArrayOf(1))
+        val outside = File(root, "outside.txt").also { it.writeText("x") }
+
+        storage.delete(first)
+        assertFalse(File(first).exists())
+        assertTrue(File(sibling).exists())
+        storage.delete(sibling)
+        assertFalse(File(sibling).parentFile!!.exists())
+        storage.delete(outside.absolutePath)
+        storage.delete(File(root, "attachments/1/9/missing").path)
+
+        assertTrue(outside.exists())
+    }
+
+    @Test
     fun `deleting an account that has no files is harmless`() {
         FileAttachmentStorage(root).deleteAccount(42)
     }

@@ -30,4 +30,11 @@ interface AttachmentDao {
 
     @Query("UPDATE attachment SET state = :state, localPath = :localPath WHERE id = :id")
     suspend fun setState(id: Long, state: AttachmentState, localPath: String?)
+
+    /** Ids of every attachment row of an account: the files of any other id are orphans. */
+    @Query(
+        "SELECT a.id FROM attachment a JOIN message m ON m.id = a.messageId " +
+            "WHERE m.accountId = :accountId"
+    )
+    suspend fun idsOfAccount(accountId: Long): List<Long>
 }

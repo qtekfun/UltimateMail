@@ -43,6 +43,7 @@ data class AccountSettingsState(
     val status: ProfileStatus = ProfileStatus.SAVED,
     val errors: Set<ProfileError> = emptySet(),
     val offlineWindow: OfflineWindow = OfflineWindow.DAYS_90,
+    val downloadForOffline: Boolean = true,
     val folders: List<FolderSync> = emptyList(),
     val confirmingRemoval: Boolean = false
 )
@@ -97,6 +98,7 @@ class AccountSettingsViewModel @Inject constructor(
                 },
                 errors = errors,
                 offlineWindow = account.offlineWindow,
+                downloadForOffline = account.downloadForOffline,
                 folders = list,
                 confirmingRemoval = f.confirming
             )
@@ -153,6 +155,11 @@ class AccountSettingsViewModel @Inject constructor(
     fun onOfflineWindowChange(window: OfflineWindow) {
         val id = accountId.value ?: return
         viewModelScope.launch { store.setOfflineWindow(id, window) }
+    }
+
+    fun onDownloadForOfflineChange(enabled: Boolean) {
+        val id = accountId.value ?: return
+        viewModelScope.launch { store.setDownloadForOffline(id, enabled) }
     }
 
     fun onFolderSyncChange(path: String, enabled: Boolean) {
