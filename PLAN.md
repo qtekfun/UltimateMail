@@ -1,0 +1,52 @@
+# UltimateMail — Plan de tareas
+
+Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en verde antes de cerrarla. Marca `[x]` al completar. Cada tarea debe poder verificarse (test o prueba manual descrita).
+
+## Fase 0 — Cimientos y prototipos de riesgo
+- [ ] **T00 Proyecto base**: módulo Android, Gradle KTS, `libs.versions.toml`, Hilt, Compose, tema Material 3, `strings.xml` en/es, cabeceras SPDX, `LICENSE` (GPLv3).
+  - *Verificación:* `./gradlew assembleDebug` compila y la app arranca con pantalla vacía.
+- [ ] **T01 CI y calidad**: detekt, ktlint, Lint (warnings como errores), Kover con umbrales, verificación de dependencias, chequeo de licencias/Play Services, GitHub Actions, Dependabot.
+  - *Verificación:* un PR de prueba pasa CI; una dependencia de Play Services añadida a propósito la hace fallar.
+- [ ] **T02 Prototipo OAuth2**: AppAuth con Google y Microsoft, obtención de token y login IMAP XOAUTH2 contra cuentas reales de prueba.
+  - *Verificación:* demo manual con ambas cuentas; decisiones sobre clientes OAuth documentadas en `SPEC.md` (sección 9).
+- [ ] **T03 Prototipo librería IMAP/SMTP**: evaluar candidatas (K-9/Thunderbird, Angus/Jakarta Mail) en licencia, mantenimiento, CONDSTORE/QRESYNC, extensiones Gmail, STARTTLS/TLS; listar carpetas, bajar cabeceras, mover y enviar.
+  - *Verificación:* tabla comparativa y decisión en `SPEC.md`; pruebas contra Gmail, M365 y Dovecot.
+- [ ] **T04 Prototipo HTML seguro**: WebView aislado sin JS, bloqueo de remotos, corpus de correos hostiles.
+  - *Verificación:* tests/manual con el corpus; decisión documentada.
+
+## Fase 1 — Datos y cuentas
+- [ ] **T05 Modelo Room**: cuenta (incluye firma y política offline), carpeta/etiqueta, mensaje, hilo, adjunto, cola de operaciones, FTS; migraciones y tests.
+- [ ] **T06 Cuentas y credenciales**: alta con autodetección, contraseña de app y OAuth2, cifrado Keystore, refresco de tokens, eliminación que limpia datos.
+- [ ] **T07 Cliente IMAP/SMTP (capa `data`)**: envoltorio de la librería elegida en T03 detrás de interfaces de `domain`; tests con servidor falso (NO/BAD, timeouts, caídas).
+
+## Fase 2 — Sincronización (lo más crítico)
+- [ ] **T08 Cola de operaciones pendientes**: idempotente, backoff exponencial, persistida. **100% de cobertura.**
+- [ ] **T09 Resolutor de consistencia**: reglas de la sección 5 de `SPEC.md`. **100% de cobertura**, un test por regla más fallos a mitad de operación.
+- [ ] **T10 Motor de sincronización**: UIDVALIDITY/UIDNEXT/CONDSTORE/QRESYNC, ventana offline por cuenta, WorkManager periódico (~15 min), sync al abrir y pull-to-refresh.
+- [ ] **T11 Hilos**: `X-GM-THRID`, `THREAD` y algoritmo References/asunto, con tests.
+- [ ] **T12 Tests de sync offline**: caídas de red, UIDVALIDITY cambiada, cambios concurrentes, app cerrada a mitad de sync.
+
+## Fase 3 — Interfaz del MVP
+- [ ] **T13 Añadir cuenta y lista de carpetas/etiquetas** (offline funcional).
+- [ ] **T14 Bandeja y bandeja unificada**: lista de conversaciones, paginación, indicador "pendiente de sync".
+- [ ] **T15 Lectura de conversación**: mensajes plegables, HTML seguro (según T04), adjuntos bajo demanda.
+- [ ] **T16 Gestos configurables y selección múltiple**, con deshacer.
+- [ ] **T17 Selector mover/etiquetar con búsqueda**: diálogo con filtro en vivo, recientes, etiquetas múltiples en Gmail.
+- [ ] **T18 Redactar y cola de envío**: responder/reenviar, borradores, adjuntos, autocompletado, texto enriquecido básico.
+- [ ] **T19 Firmas por cuenta**: editor en ajustes de cuenta, inserción automática con `-- `, posición en respuestas, cambio de remitente, sin duplicados.
+  - *Verificación:* tests unitarios de la lógica de firma (`domain`) y test de UI con dos cuentas.
+- [ ] **T20 Búsqueda**: local (FTS) y en servidor.
+- [ ] **T21 Ajustes**: tema, colores dinámicos, idioma, gestos, política offline por cuenta.
+
+## Fase 4 — Cierre del MVP
+- [ ] **T22 Accesibilidad y rendimiento**: TalkBack, táctiles, fuente grande; medir arranque y scroll con el volumen de referencia.
+- [ ] **T23 Tests de UI clave (Compose)**: añadir cuenta, archivar por gesto, mover con búsqueda, enviar offline, firma por cuenta.
+- [ ] **T24 Metadatos F-Droid**: `fastlane/metadata/android/{en-US,es-ES}/`, iconos, capturas; revisar builds reproducibles y ausencia de dependencias no libres.
+- [ ] **T25 Documentación**: `README.md`, `CONTRIBUTING.md`, política de privacidad, `CHANGELOG.md`.
+
+## Después del MVP (backlog, no implementar aún)
+- v1.1: notificaciones push con IMAP IDLE, snooze.
+- v2: PGP y S/MIME.
+- Aliases/identidades múltiples, firma rica (HTML), plantillas.
+- Tablet y apaisado, widgets.
+- Más idiomas.
