@@ -36,7 +36,7 @@ import com.qtekfun.ultimatemail.domain.conversation.RecipientSummary
 import com.qtekfun.ultimatemail.domain.inbox.MessageTimeFormatter
 import com.qtekfun.ultimatemail.ui.components.Avatar
 import com.qtekfun.ultimatemail.ui.components.MailIcons
-import com.qtekfun.ultimatemail.ui.theme.StarColor
+import com.qtekfun.ultimatemail.ui.theme.starColor
 
 private val MinTouchTarget = 48.dp
 private val SmallIcon = 16.dp
@@ -279,7 +279,7 @@ private fun Indicators(message: MessageView) {
                 Icons.Filled.Star,
                 contentDescription = starred,
                 modifier = Modifier.size(SmallIcon),
-                tint = StarColor
+                tint = starColor()
             )
         }
     }
