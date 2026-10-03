@@ -37,6 +37,13 @@ interface MessageDao {
         threadId: String
     ): Flow<List<MessageEntity>>
 
+    /** The messages of one conversation in one folder, oldest first. */
+    @Query(
+        "SELECT * FROM message WHERE accountId = :accountId AND folderPath = :folderPath " +
+            "AND threadId = :threadId ORDER BY sentAt, id"
+    )
+    suspend fun thread(accountId: Long, folderPath: String, threadId: String): List<MessageEntity>
+
     @Query(
         "UPDATE message SET seen = :seen, flagged = :flagged, answered = :answered, " +
             "pendingSync = :pendingSync WHERE id = :id"
