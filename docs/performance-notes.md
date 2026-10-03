@@ -283,3 +283,8 @@ Hallazgo de experiencia, no de rendimiento: una carpeta que no se sincroniza (po
 mensajes" de Gmail) muestra "Aún sin sincronizar. Desliza hacia abajo para actualizar", cuando
 debería decir que esa carpeta no está activada para sincronizar.
 
+Fuente al 200 % (`settings put system font_scale 2.0`, restaurada a 1.0): el menú lateral escala sin
+cortes. En la lista de correos el remitente y el asunto se truncan con puntos suspensivos y el
+extracto desaparece, porque cada línea queda en una sola; es usable, pero mejoraría permitiendo dos
+líneas a tamaños grandes. La revisión con TalkBack sigue pendiente (ver `docs/accessibility-audit.md`).
+
