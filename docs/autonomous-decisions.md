@@ -101,4 +101,15 @@ Decisiones tomadas por mí (a confirmar):
     inglés (los nombres de carpeta, en cualquier idioma); los resultados de carpetas no sincronizadas conservan sus flags
     hasta volver a buscarse. **Conflicto de esquema:** T20 y T18a subían ambos Room a v4; T20 se renumera a v5 apilada
     sobre la #33. X-GM-RAW no se ha probado contra Gmail real; GreenMail no prueba subcadenas ni frases con espacios.
+26. **Exportar e importar cuentas (T26, PR #35).** Decididas por el agente: contenedor propio `UMBK` (cabecera con versión,
+    parámetros de la derivación de clave, sal y nonce; cifrado AES-256-GCM con la cabecera entera como datos asociados,
+    así que tocar cualquier byte falla como una contraseña errónea); clave por PBKDF2-HMAC-SHA256 con 600.000 iteraciones
+    (al leer se aceptan entre 100.000 y 5.000.000 para que una cabecera hostil no debilite la clave ni cuelgue el móvil);
+    tope de 1 MiB; JSON escrito a mano porque `org.json` no está en los tests y kotlinx-serialization no es dependencia;
+    siempre hay frase de contraseña (no existe la exportación sin cifrar); credenciales solo si se marca, con frase de
+    8+ caracteres; la misma dirección con otro servidor IMAP se salta como "dirección ocupada" (añadido por el agente);
+    la ventana offline se ajusta a la opción fija más cercana; los ajustes del dispositivo solo se importan si se marca;
+    el idioma nunca se exporta. **Hueco detectado:** no hay pantalla para volver a iniciar sesión en una cuenta ya creada
+    (una cuenta importada sin credenciales o con el token revocado solo muestra "Vuelve a iniciar sesión" en el menú, sin
+    acción). Se añade como tarea **T27** (pantalla de reautenticación), lanzada.
 
