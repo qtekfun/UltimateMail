@@ -19,8 +19,11 @@ private val LightColors = lightColorScheme(primary = Blue40, secondary = Teal40,
 private val DarkColors = darkColorScheme(primary = Blue80, secondary = Teal80, tertiary = Amber80)
 
 /** The color scheme: the wallpaper colors where they exist (Android 12+), else the palette. */
-fun colorSchemeFor(dark: Boolean, dynamicLight: ColorScheme?, dynamicDark: ColorScheme?): ColorScheme =
-    (if (dark) dynamicDark else dynamicLight) ?: if (dark) DarkColors else LightColors
+fun colorSchemeFor(
+    dark: Boolean,
+    dynamicLight: ColorScheme?,
+    dynamicDark: ColorScheme?
+): ColorScheme = (if (dark) dynamicDark else dynamicLight) ?: if (dark) DarkColors else LightColors
 
 @Composable
 fun UltimateMailTheme(content: @Composable () -> Unit) {
