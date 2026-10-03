@@ -18,6 +18,7 @@ plugins {
     alias(libs.plugins.ktlint)
     alias(libs.plugins.kover)
     alias(libs.plugins.licensee)
+    alias(libs.plugins.room)
 }
 
 /**
@@ -127,6 +128,10 @@ kotlin {
         jvmTarget.set(JvmTarget.JVM_17)
         allWarningsAsErrors.set(true)
     }
+}
+
+room3 {
+    schemaDirectory("$projectDir/schemas")
 }
 
 detekt {
@@ -309,6 +314,9 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.core)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
+    implementation(libs.room.runtime)
+    ksp(libs.room.compiler)
+
     implementation(libs.angus.mail)
     implementation(libs.angus.gimap)
     implementation(libs.angus.activation)
@@ -324,4 +332,6 @@ dependencies {
     testImplementation(libs.turbine)
     testImplementation(libs.mockk)
     testImplementation(libs.greenmail)
+    // Host JVM build of the bundled SQLite, so Room runs in local unit tests.
+    testImplementation(libs.sqlite.bundled.jvm)
 }
