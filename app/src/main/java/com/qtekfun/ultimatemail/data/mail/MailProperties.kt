@@ -13,19 +13,32 @@ import java.util.Properties
  * certificate and host name checks on; nothing here can turn validation off.
  */
 internal object MailProperties {
-    /** The store protocol: "gimap" behaves as plain IMAP and adds Gmail's extensions. */
-    const val IMAP_PROTOCOL = "gimap"
+    /** Angus' "gimap" store behaves as plain IMAP and adds Gmail's extensions, but is TLS-only. */
+    private const val GMAIL_IMAP_PROTOCOL = "gimap"
+    private const val PLAIN_IMAP_PROTOCOL = "imap"
     const val SMTP_PROTOCOL = "smtp"
     private const val TLS_PROTOCOLS = "TLSv1.2 TLSv1.3"
     private const val XOAUTH2 = "XOAUTH2"
     private const val PASSWORD_MECHANISMS = "PLAIN LOGIN"
 
-    fun imap(server: MailServer, credentials: MailCredentials, config: MailClientConfig) =
-        build("mail.$IMAP_PROTOCOL", server, credentials, config).apply {
+    /** The store protocol: with implicit TLS the Gmail-aware one, with STARTTLS the plain one. */
+    fun imapProtocol(server: MailServer): String = when (server.security) {
+        TransportSecurity.TLS -> GMAIL_IMAP_PROTOCOL
+        TransportSecurity.STARTTLS -> PLAIN_IMAP_PROTOCOL
+    }
+
+    fun imap(
+        server: MailServer,
+        credentials: MailCredentials,
+        config: MailClientConfig
+    ): Properties {
+        val prefix = "mail.${imapProtocol(server)}"
+        return build(prefix, server, credentials, config).apply {
             // Reading a body must not mark the message as seen.
-            put("mail.$IMAP_PROTOCOL.peek", "true")
+            put("$prefix.peek", "true")
             put("mail.mime.decodefilename", "true")
         }
+    }
 
     fun smtp(server: MailServer, credentials: MailCredentials?, config: MailClientConfig) =
         build("mail.$SMTP_PROTOCOL", server, credentials, config).apply {
@@ -45,6 +58,7 @@ internal object MailProperties {
         put("$prefix.ssl.protocols", TLS_PROTOCOLS)
         when (server.security) {
             TransportSecurity.TLS -> put("$prefix.ssl.enable", "true")
+
             TransportSecurity.STARTTLS -> {
                 put("$prefix.starttls.enable", "true")
                 put("$prefix.starttls.required", "true")
@@ -56,10 +70,7 @@ internal object MailProperties {
             is MailCredentials.Password -> put("$prefix.auth.mechanisms", PASSWORD_MECHANISMS)
             null -> Unit
         }
-        // Which of the two keys is read depends on how the library decides to use SSL; set both.
-        config.sslSocketFactory?.let {
-            put("$prefix.ssl.socketFactory", it)
-            put("$prefix.socketFactory", it)
-        }
+        // Only the ssl.* key: ".socketFactory" would make STARTTLS connections start with TLS.
+        config.sslSocketFactory?.let { put("$prefix.ssl.socketFactory", it) }
     }
 }

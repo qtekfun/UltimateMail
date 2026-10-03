@@ -32,7 +32,7 @@ class AngusMailConnector @Inject constructor(
         return try {
             runInterruptible(io) {
                 val session = Session.getInstance(MailProperties.imap(server, credentials, config))
-                val opened = session.getStore(MailProperties.IMAP_PROTOCOL) as IMAPStore
+                val opened = session.getStore(MailProperties.imapProtocol(server)) as IMAPStore
                 store = opened
                 opened.connect(server.host, server.port, credentials.username, credentials.secret())
             }

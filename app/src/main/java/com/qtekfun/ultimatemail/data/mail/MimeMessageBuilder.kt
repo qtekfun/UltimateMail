@@ -35,9 +35,24 @@ internal object MimeMessageBuilder {
             }
         }
         mime.setFrom(message.from.toInternet())
-        mime.setRecipients(Message.RecipientType.TO, message.to.map { it.toInternet() }.toTypedArray())
-        mime.setRecipients(Message.RecipientType.CC, message.cc.map { it.toInternet() }.toTypedArray())
-        mime.setRecipients(Message.RecipientType.BCC, message.bcc.map { it.toInternet() }.toTypedArray())
+        mime.setRecipients(
+            Message.RecipientType.TO,
+            message.to.map {
+                it.toInternet()
+            }.toTypedArray()
+        )
+        mime.setRecipients(
+            Message.RecipientType.CC,
+            message.cc.map {
+                it.toInternet()
+            }.toTypedArray()
+        )
+        mime.setRecipients(
+            Message.RecipientType.BCC,
+            message.bcc.map {
+                it.toInternet()
+            }.toTypedArray()
+        )
         mime.setSubject(message.subject, CHARSET)
         message.inReplyTo?.let { mime.setHeader("In-Reply-To", it) }
         if (message.references.isNotEmpty()) {
@@ -51,20 +66,33 @@ internal object MimeMessageBuilder {
     private fun MimeMessage.setContentOf(message: OutgoingMessage) {
         if (message.attachments.isEmpty()) {
             val html = message.html
-            if (html == null) setText(message.text, CHARSET) else setContent(alternative(message.text, html))
+            if (html ==
+                null
+            ) {
+                setText(message.text, CHARSET)
+            } else {
+                setContent(alternative(message.text, html))
+            }
             return
         }
         val mixed = MimeMultipart("mixed")
         mixed.addBodyPart(
             MimeBodyPart().apply {
                 val html = message.html
-                if (html == null) setText(message.text, CHARSET) else setContent(alternative(message.text, html))
+                if (html ==
+                    null
+                ) {
+                    setText(message.text, CHARSET)
+                } else {
+                    setContent(alternative(message.text, html))
+                }
             }
         )
         message.attachments.forEach { attachment ->
             mixed.addBodyPart(
                 MimeBodyPart().apply {
-                    dataHandler = DataHandler(ByteArrayDataSource(attachment.content, attachment.mimeType))
+                    dataHandler =
+                        DataHandler(ByteArrayDataSource(attachment.content, attachment.mimeType))
                     fileName = attachment.fileName
                     disposition = Part.ATTACHMENT
                     attachment.contentId?.let { setContentID(it) }
