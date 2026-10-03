@@ -7,6 +7,8 @@ import com.qtekfun.ultimatemail.data.local.dao.FolderDao
 import com.qtekfun.ultimatemail.data.local.entity.AccountEntity
 import com.qtekfun.ultimatemail.data.local.entity.FolderEntity
 import com.qtekfun.ultimatemail.data.local.model.FolderRole
+import com.qtekfun.ultimatemail.domain.backup.NoPendingFolderChoices
+import com.qtekfun.ultimatemail.domain.backup.PendingFolderChoices
 import com.qtekfun.ultimatemail.domain.mail.MailFolder
 import com.qtekfun.ultimatemail.domain.mail.MailFolderRole
 import com.qtekfun.ultimatemail.domain.mail.MailResult
@@ -14,7 +16,10 @@ import com.qtekfun.ultimatemail.domain.mail.MailSession
 import javax.inject.Inject
 
 /** Keeps the folders of an account in Room equal to the ones the server lists (RF-02). */
-class FolderCatalog @Inject constructor(private val folders: FolderDao) {
+class FolderCatalog @Inject constructor(
+    private val folders: FolderDao,
+    private val pendingChoices: PendingFolderChoices = NoPendingFolderChoices
+) {
     /** Returns the failure if the server could not list its folders; Room is then untouched. */
     // Each failure leaves early; guard clauses keep the normal path flat.
     @Suppress("ReturnCount")
@@ -34,8 +39,23 @@ class FolderCatalog @Inject constructor(private val folders: FolderDao) {
             val isLabel = gmail && role == FolderRole.OTHER
             folders.updateDescription(account.id, it.path, it.name, role, isLabel)
         }
+        applyPendingChoices(account.id, listed)
         folders.deleteAllExcept(account.id, listed.map { it.path })
         return null
+    }
+
+    /**
+     * The folder choices of an imported backup (RF-12) wait until the folders exist; this is the
+     * first listing that has them. The Inbox and containers keep their rule, and a path the
+     * server does not list any more is dropped.
+     */
+    private suspend fun applyPendingChoices(accountId: Long, listed: List<MailFolder>) {
+        val choices = pendingChoices.peek(accountId)
+        if (choices.isEmpty()) return
+        listed.filter { it.selectable && it.role != MailFolderRole.INBOX }.forEach {
+            choices[it.path]?.let { enabled -> folders.setSyncEnabled(accountId, it.path, enabled) }
+        }
+        pendingChoices.clear(accountId)
     }
 
     private fun MailFolder.toEntity(accountId: Long, gmail: Boolean): FolderEntity {

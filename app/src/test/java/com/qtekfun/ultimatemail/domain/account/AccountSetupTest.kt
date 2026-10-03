@@ -168,4 +168,29 @@ class AccountSetupTest {
         assertEquals(ConnectionTestResult.Failure(ConnectionFailure.UNKNOWN), result)
         coVerify(exactly = 0) { tester.test(any()) }
     }
+
+    @Test
+    fun `an account awaiting sign in is stored without credentials`() = runTest {
+        val result = setup.createAwaitingSignIn(
+            accountInput(credentials = AccountCredentials(password = "ignored"))
+        )
+
+        val id = (result as CreateAccountResult.Created).accountId
+        assertEquals("ana@example.test", db.accountDao().get(id)!!.email)
+        assertTrue(vault.saved.isEmpty())
+    }
+
+    @Test
+    fun `an account awaiting sign in is still validated and still unique`() = runTest {
+        val invalid = setup.createAwaitingSignIn(accountInput(email = "nope"))
+        setup.createAwaitingSignIn(accountInput())
+        val duplicate = setup.createAwaitingSignIn(accountInput(email = "ANA@example.test"))
+
+        assertEquals(CreateAccountResult.Invalid(listOf(AccountInputError.InvalidEmail)), invalid)
+        assertEquals(
+            CreateAccountResult.Invalid(listOf(AccountInputError.DuplicateAccount)),
+            duplicate
+        )
+        assertEquals(1, db.accountDao().observeAll().first().size)
+    }
 }
