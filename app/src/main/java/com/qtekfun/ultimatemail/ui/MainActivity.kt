@@ -9,7 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import com.qtekfun.ultimatemail.ui.account.AddAccountViewModel
-import com.qtekfun.ultimatemail.ui.folders.FolderListViewModel
+import com.qtekfun.ultimatemail.ui.drawer.DrawerViewModel
 import com.qtekfun.ultimatemail.ui.inbox.InboxViewModel
 import com.qtekfun.ultimatemail.ui.nav.AppNavigator
 import com.qtekfun.ultimatemail.ui.theme.UltimateMailTheme
@@ -19,7 +19,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     // Activity-scoped view models: hilt-navigation-compose is not a dependency of the project.
     private val navigator: AppNavigator by viewModels()
-    private val folders: FolderListViewModel by viewModels()
+    private val drawer: DrawerViewModel by viewModels()
     private val addAccount: AddAccountViewModel by viewModels()
     private val inbox: InboxViewModel by viewModels()
 
@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             UltimateMailTheme {
-                AppRoot(navigator, folders, addAccount, inbox)
+                AppRoot(navigator, drawer, addAccount, inbox)
             }
         }
     }

@@ -14,7 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,7 +46,7 @@ import com.qtekfun.ultimatemail.domain.inbox.ConversationItem
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
 import com.qtekfun.ultimatemail.ui.components.ConversationRow
 import com.qtekfun.ultimatemail.ui.components.rememberMessageTimeFormatter
-import com.qtekfun.ultimatemail.ui.folders.displayName
+import com.qtekfun.ultimatemail.ui.drawer.displayName
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 
@@ -58,7 +58,7 @@ private const val PREFETCH_DISTANCE = 10
 
 /** What the conversation list screen can do. */
 data class InboxActions(
-    val onBack: () -> Unit,
+    val onOpenMenu: () -> Unit,
     val onRefresh: () -> Unit,
     val onLoadMore: () -> Unit,
     val onFilterChange: (InboxFilter) -> Unit,
@@ -85,12 +85,12 @@ fun InboxScreen(
                 title = { InboxTitle(scope, state.takeIf { ready }) },
                 navigationIcon = {
                     IconButton(
-                        onClick = actions.onBack,
+                        onClick = actions.onOpenMenu,
                         modifier = Modifier.heightIn(min = MinTouchTarget)
                     ) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back)
+                            Icons.Filled.Menu,
+                            contentDescription = stringResource(R.string.drawer_open)
                         )
                     }
                 }
