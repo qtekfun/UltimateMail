@@ -14,7 +14,12 @@ import com.qtekfun.ultimatemail.domain.account.AccountValidator
 import com.qtekfun.ultimatemail.domain.account.ConnectionFailure
 import com.qtekfun.ultimatemail.domain.account.ConnectionTestResult
 import com.qtekfun.ultimatemail.domain.account.CreateAccountResult
+import com.qtekfun.ultimatemail.domain.account.OAuthTokens
 import com.qtekfun.ultimatemail.domain.account.ServerAutodetector
+import com.qtekfun.ultimatemail.domain.oauth.MemoryClientIds
+import com.qtekfun.ultimatemail.domain.oauth.OAuthBrowserResult
+import com.qtekfun.ultimatemail.domain.oauth.OAuthConfigs
+import com.qtekfun.ultimatemail.domain.oauth.OAuthSignIn
 import com.qtekfun.ultimatemail.sync.engine.SyncScheduler
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -43,7 +48,14 @@ class AddAccountViewModelTest {
     private val scheduler = mockk<SyncScheduler>(relaxed = true)
     private val validator = AccountValidator()
     private val detector = ServerAutodetector()
+    private val clientIds = MemoryClientIds()
     private lateinit var viewModel: AddAccountViewModel
+
+    private fun newViewModel() = AddAccountViewModel(
+        setup,
+        scheduler,
+        OAuthSignIn(clientIds, OAuthConfigs(clientIds, "com.example.mail", ""))
+    )
 
     @BeforeEach
     fun setUp() {
@@ -51,7 +63,7 @@ class AddAccountViewModelTest {
         // The real rules, so these tests also notice a change in what the domain accepts.
         every { setup.detectServers(any()) } answers { detector.detect(firstArg()) }
         every { setup.validate(any()) } answers { validator.validate(firstArg()) }
-        viewModel = AddAccountViewModel(setup, scheduler)
+        viewModel = newViewModel()
     }
 
     @AfterEach
@@ -294,5 +306,225 @@ class AddAccountViewModelTest {
         viewModel.reset()
 
         assertEquals(AddAccountState(), viewModel.state.value)
+    }
+
+    private val guid = "0a1b2c3d-4e5f-6789-abcd-ef0123456789"
+
+    private fun idToken(claims: String): String {
+        val payload = java.util.Base64.getUrlEncoder().withoutPadding()
+            .encodeToString(claims.toByteArray())
+        return "h.$payload.s"
+    }
+
+    private fun microsoftSuccess(claims: String = """{"preferred_username":"ana@contoso.test"}""") =
+        OAuthBrowserResult.Success(
+            OAuthTokens("access", "refresh", null),
+            idToken(claims)
+        )
+
+    private fun startMicrosoftSignIn() {
+        viewModel.onTextChange(FormInput.EMAIL, "ana@outlook.com")
+        viewModel.onTextChange(FormInput.CLIENT_ID, guid)
+        viewModel.onSignInClick()
+    }
+
+    @Test
+    fun `Gmail and Microsoft servers offer their sign-in, other servers do not`() {
+        viewModel.onTextChange(FormInput.EMAIL, "ana@gmail.com")
+        assertEquals(AuthType.OAUTH_GOOGLE, viewModel.state.value.oauthType)
+
+        viewModel.onTextChange(FormInput.EMAIL, "ana@outlook.com")
+        assertEquals(AuthType.OAUTH_MICROSOFT, viewModel.state.value.oauthType)
+
+        viewModel.onTextChange(FormInput.EMAIL, "ana@example.test")
+        assertNull(viewModel.state.value.oauthType)
+    }
+
+    @Test
+    fun `a work account on its own domain gets Microsoft sign-in from the server field`() {
+        viewModel.onTextChange(FormInput.EMAIL, "ana@contoso.test")
+        viewModel.onTextChange(FormInput.IMAP_HOST, "outlook.office365.com")
+
+        assertEquals(AuthType.OAUTH_MICROSOFT, viewModel.state.value.oauthType)
+    }
+
+    @Test
+    fun `the client ID field edits the current provider's ID and starts with the saved ones`() {
+        clientIds.savedGoogle = "123-abc.apps.googleusercontent.com"
+        viewModel = newViewModel()
+        assertEquals("123-abc.apps.googleusercontent.com", viewModel.state.value.googleClientId)
+
+        viewModel.onTextChange(FormInput.EMAIL, "ana@outlook.com")
+        viewModel.onTextChange(FormInput.CLIENT_ID, guid)
+
+        assertEquals(guid, viewModel.state.value.microsoftClientId)
+        assertEquals(guid, viewModel.state.value.clientIdText)
+        assertEquals("123-abc.apps.googleusercontent.com", viewModel.state.value.googleClientId)
+    }
+
+    @Test
+    fun `signing in without a valid client ID shows a field error and opens no browser`() {
+        viewModel.onTextChange(FormInput.EMAIL, "ana@outlook.com")
+
+        viewModel.onSignInClick()
+        assertEquals(
+            R.string.error_client_id_missing,
+            viewModel.state.value.errorFor(FormField.CLIENT_ID)?.message
+        )
+
+        viewModel.onTextChange(FormInput.CLIENT_ID, "nope")
+        viewModel.onSignInClick()
+        assertEquals(
+            R.string.error_client_id_invalid_microsoft,
+            viewModel.state.value.errorFor(FormField.CLIENT_ID)?.message
+        )
+
+        viewModel.onTextChange(FormInput.EMAIL, "ana@gmail.com")
+        viewModel.onTextChange(FormInput.CLIENT_ID, "nope")
+        viewModel.onSignInClick()
+        assertEquals(
+            R.string.error_client_id_invalid_google,
+            viewModel.state.value.errorFor(FormField.CLIENT_ID)?.message
+        )
+        assertNull(viewModel.state.value.oauthRequest)
+        assertEquals(AddAccountProgress.IDLE, viewModel.state.value.progress)
+    }
+
+    @Test
+    fun `signing in without an OAuth server does nothing`() {
+        viewModel.onTextChange(FormInput.EMAIL, "ana@example.test")
+
+        viewModel.onSignInClick()
+
+        assertNull(viewModel.state.value.oauthRequest)
+        assertEquals(AddAccountProgress.IDLE, viewModel.state.value.progress)
+    }
+
+    @Test
+    fun `a valid client ID asks the screen for the browser and is remembered`() {
+        startMicrosoftSignIn()
+
+        val state = viewModel.state.value
+        assertEquals(AddAccountProgress.SIGNING_IN, state.progress)
+        assertEquals(guid, state.oauthRequest?.config?.clientId)
+        assertEquals(AuthType.OAUTH_MICROSOFT, state.oauthRequest?.authType)
+        assertEquals(guid, clientIds.microsoft())
+
+        viewModel.onOAuthLaunched()
+        assertNull(viewModel.state.value.oauthRequest)
+        assertEquals(AddAccountProgress.SIGNING_IN, viewModel.state.value.progress)
+    }
+
+    @Test
+    fun `a second tap while signing in does not open another browser`() {
+        startMicrosoftSignIn()
+        viewModel.onOAuthLaunched()
+
+        viewModel.onSignInClick()
+
+        assertNull(viewModel.state.value.oauthRequest)
+    }
+
+    @Test
+    fun `a Microsoft sign-in creates an OAuth account named by the ID token`() = runTest {
+        val tested = slot<AccountInput>()
+        val created = slot<AccountInput>()
+        coEvery { setup.testConnection(capture(tested)) } returns ConnectionTestResult.Success
+        coEvery { setup.create(capture(created)) } returns CreateAccountResult.Created(9)
+        startMicrosoftSignIn()
+        viewModel.onOAuthLaunched()
+
+        viewModel.events.test {
+            viewModel.onOAuthResult(microsoftSuccess())
+            assertEquals(AddAccountEvent.Created(9), awaitItem())
+        }
+
+        listOf(tested.captured, created.captured).forEach { input ->
+            assertEquals("ana@contoso.test", input.email)
+            assertEquals("ana@contoso.test", input.username)
+            assertEquals(AuthType.OAUTH_MICROSOFT, input.authType)
+            assertEquals("outlook.office365.com", input.imap.host)
+            assertEquals("access", input.credentials.oauth?.accessToken)
+            assertNull(input.credentials.password)
+        }
+        verify { scheduler.requestSync(9L, userInitiated = true) }
+    }
+
+    @Test
+    fun `a failed XOAUTH2 login after sign-in shows the connection failure`() = runTest {
+        coEvery { setup.testConnection(any()) } returns
+            ConnectionTestResult.Failure(ConnectionFailure.AUTHENTICATION_FAILED)
+        startMicrosoftSignIn()
+
+        viewModel.onOAuthResult(microsoftSuccess())
+
+        assertEquals(
+            AddAccountFailure.Connection(ConnectionFailure.AUTHENTICATION_FAILED),
+            viewModel.state.value.failure
+        )
+        assertEquals(AddAccountProgress.IDLE, viewModel.state.value.progress)
+        coVerify(exactly = 0) { setup.create(any()) }
+    }
+
+    @Test
+    fun `an ID token without an address cannot create the account`() = runTest {
+        startMicrosoftSignIn()
+
+        viewModel.onOAuthResult(microsoftSuccess("""{"sub":"1"}"""))
+
+        assertEquals(AddAccountFailure.SignInNoAddress, viewModel.state.value.failure)
+        coVerify(exactly = 0) { setup.testConnection(any()) }
+    }
+
+    @Test
+    fun `a cancelled or failed browser sign-in is reported and can be retried`() {
+        startMicrosoftSignIn()
+        viewModel.onOAuthResult(OAuthBrowserResult.Cancelled)
+        assertEquals(AddAccountFailure.SignInCancelled, viewModel.state.value.failure)
+        assertEquals(AddAccountProgress.IDLE, viewModel.state.value.progress)
+
+        viewModel.onSignInClick()
+        viewModel.onOAuthResult(OAuthBrowserResult.Failed)
+        assertEquals(AddAccountFailure.SignInFailed, viewModel.state.value.failure)
+    }
+
+    @Test
+    fun `a sign-in result that arrives after cancelling is ignored`() = runTest {
+        startMicrosoftSignIn()
+        viewModel.cancel()
+
+        viewModel.onOAuthResult(microsoftSuccess())
+
+        assertEquals(AddAccountProgress.IDLE, viewModel.state.value.progress)
+        assertNull(viewModel.state.value.failure)
+        coVerify(exactly = 0) { setup.testConnection(any()) }
+    }
+
+    @Test
+    fun `a duplicate account from the token is reported on the form`() = runTest {
+        coEvery { setup.testConnection(any()) } returns ConnectionTestResult.Success
+        coEvery { setup.create(any()) } returns
+            CreateAccountResult.Invalid(listOf(AccountInputError.DuplicateAccount))
+        startMicrosoftSignIn()
+
+        viewModel.onOAuthResult(microsoftSuccess())
+
+        assertEquals(
+            R.string.error_account_duplicate,
+            viewModel.state.value.errorFor(FormField.GENERAL)?.message
+        )
+    }
+
+    @Test
+    fun `an address that the validation rejects is reported without testing`() = runTest {
+        startMicrosoftSignIn()
+
+        viewModel.onOAuthResult(microsoftSuccess("""{"email":"a@b"}"""))
+
+        assertEquals(
+            R.string.error_email_invalid,
+            viewModel.state.value.errorFor(FormField.EMAIL)?.message
+        )
+        coVerify(exactly = 0) { setup.testConnection(any()) }
     }
 }
