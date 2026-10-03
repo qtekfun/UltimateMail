@@ -36,7 +36,17 @@ private fun NoticeKind.messageRes(): Int = when (this) {
     NoticeKind.NO_TRASH_FOLDER -> R.string.notice_no_trash
     NoticeKind.MOVE_SOON -> R.string.notice_move_soon
     NoticeKind.CUSTOM -> error("a custom notice carries its text")
-    NoticeKind.COMPOSE_SOON -> R.string.notice_compose_soon
+    NoticeKind.COMPOSE_FAILED -> R.string.notice_compose_failed
+    NoticeKind.SENDING -> R.string.notice_sending
+    NoticeKind.DRAFT_SAVED -> R.string.notice_draft_saved
+    NoticeKind.SEND_FAILED -> R.string.notice_send_failed
+    NoticeKind.SEND_PROBLEM -> R.string.notice_send_problem
+    NoticeKind.ATTACHMENTS_SKIPPED -> R.string.notice_attachments_skipped
+    else -> attachmentMessageRes()
+}
+
+@StringRes
+private fun NoticeKind.attachmentMessageRes(): Int = when (this) {
     NoticeKind.ATTACHMENT_FAILED -> R.string.notice_attachment_failed
     NoticeKind.ATTACHMENT_GONE -> R.string.notice_attachment_gone
     NoticeKind.ATTACHMENT_SAVED -> R.string.notice_attachment_saved

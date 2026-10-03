@@ -101,12 +101,17 @@ fun InboxScreen(
     scope: InboxScope,
     state: InboxState,
     actions: InboxActions,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** The Compose button; hidden while rows are selected. */
+    floatingActionButton: @Composable () -> Unit = {}
 ) {
     // The state can still belong to the previous scope for a frame after navigating.
     val ready = state.loaded && state.scope == scope
     Scaffold(
         modifier = modifier,
+        floatingActionButton = {
+            if (!(ready && state.selection.active)) floatingActionButton()
+        },
         topBar = {
             if (ready && state.selection.active) {
                 SelectionTopBar(state, actions.selection)

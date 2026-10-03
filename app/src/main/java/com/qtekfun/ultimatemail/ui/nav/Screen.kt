@@ -78,6 +78,19 @@ sealed interface Screen {
         override val route = "import-accounts"
     }
 
+    /**
+     * The composer (T18b) on the draft [draftId]. The draft lives in Room, so this id is all that
+     * has to survive process death.
+     */
+    data class Compose(val draftId: Long) : Screen {
+        override val route = COMPOSE_PREFIX + draftId
+    }
+
+    /** The messages waiting to be sent or failed (T18b), reached from the side menu. */
+    data object Outbox : Screen {
+        override val route = "outbox"
+    }
+
     /** Search (T20), opened from the top bar of the conversation list in [initialScope]. */
     data class Search(val initialScope: SearchScope) : Screen {
         override val route = SEARCH_PREFIX + initialScope.key
@@ -85,6 +98,7 @@ sealed interface Screen {
 
     companion object {
         private const val REAUTH_PREFIX = "reauth:"
+        private const val COMPOSE_PREFIX = "compose:"
         private const val SEARCH_PREFIX = "search:"
         private const val INBOX_PREFIX = "inbox:"
         private const val CONVERSATION_PREFIX = "conversation:"
@@ -103,7 +117,7 @@ sealed interface Screen {
             }
 
         @Suppress("CyclomaticComplexMethod") // One branch per screen, by design.
-        private fun otherFromRoute(route: String?): Screen = when {
+        private fun otherFromRoute(route: String?): Screen = composeFromRoute(route) ?: when {
             route == AddAccount.route -> AddAccount
 
             route == Settings.route -> Settings
@@ -129,6 +143,16 @@ sealed interface Screen {
         private fun reauthFromRoute(route: String?): Screen =
             route?.removePrefix(REAUTH_PREFIX)?.takeIf { route.startsWith(REAUTH_PREFIX) }
                 ?.toLongOrNull()?.let(::Reauth) ?: Home
+
+        /** The composer and the outbox (T18b); null for any other route. */
+        private fun composeFromRoute(route: String?): Screen? = when {
+            route == Outbox.route -> Outbox
+
+            route != null && route.startsWith(COMPOSE_PREFIX) ->
+                route.removePrefix(COMPOSE_PREFIX).toLongOrNull()?.let(::Compose) ?: Home
+
+            else -> null
+        }
 
         private fun conversationFromRoute(text: String): Conversation? {
             val parts = text.split(':')

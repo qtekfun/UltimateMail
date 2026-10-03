@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.asStateFlow
 class AppNavigator @Inject constructor(private val savedState: SavedStateHandle) : ViewModel() {
     private val current = MutableStateFlow(Screen.fromRoute(savedState.get<String>(KEY)))
     private var cameFrom: Screen? = savedState.get<String>(CAME_FROM_KEY)?.let(Screen::fromRoute)
+    private var composeFrom: Screen? =
+        savedState.get<String>(COMPOSE_FROM_KEY)?.let(Screen::fromRoute)
     private var searchFrom: Screen? =
         savedState.get<String>(SEARCH_FROM_KEY)?.let(Screen::fromRoute)
     private val drawer = MutableStateFlow(savedState.get<Boolean>(DRAWER_KEY) ?: false)
@@ -57,6 +59,20 @@ class AppNavigator @Inject constructor(private val savedState: SavedStateHandle)
             savedState[CAME_FROM_KEY] = current.value.route
         }
         open(Screen.Reauth(accountId))
+    }
+
+    /** Opens the composer on [draftId]; closing it returns to the screen it was opened from. */
+    fun openCompose(draftId: Long) {
+        if (current.value !is Screen.Compose) {
+            composeFrom = current.value
+            savedState[COMPOSE_FROM_KEY] = current.value.route
+        }
+        open(Screen.Compose(draftId))
+    }
+
+    /** The composer was left: back to where it came from (the reading screen, a folder). */
+    fun closeCompose() {
+        if (current.value is Screen.Compose) open(composeFrom ?: Screen.Home)
     }
 
     /** Opens the search in [scope]. Back returns to the screen it was opened from. */
@@ -97,6 +113,11 @@ class AppNavigator @Inject constructor(private val savedState: SavedStateHandle)
             true
         }
 
+        current.value is Screen.Compose -> {
+            closeCompose()
+            true
+        }
+
         current.value is Screen.Search -> {
             open(searchFrom ?: Screen.Home)
             true
@@ -121,6 +142,7 @@ class AppNavigator @Inject constructor(private val savedState: SavedStateHandle)
         const val KEY = "screen"
         const val DRAWER_KEY = "drawerOpen"
         const val CAME_FROM_KEY = "cameFrom"
+        const val COMPOSE_FROM_KEY = "composeFrom"
         const val SEARCH_FROM_KEY = "searchFrom"
     }
 }
