@@ -64,6 +64,7 @@ data class ConversationScreenActions(
     val onToggleDetails: (Long) -> Unit,
     val onToggleQuoted: (Long) -> Unit,
     val onAllowRemote: (Long) -> Unit,
+    val onToggleOriginalColors: (Long) -> Unit,
     val onRetryBody: (Long) -> Unit,
     val onAttachment: (id: Long, action: AttachmentAction) -> Unit
 )
@@ -200,7 +201,8 @@ private fun MessageThread(view: ConversationView, actions: ConversationScreenAct
                     body = BodyActions(
                         onRetry = { actions.onRetryBody(message.id) },
                         onToggleQuoted = { actions.onToggleQuoted(message.id) },
-                        onAllowRemote = { actions.onAllowRemote(message.id) }
+                        onAllowRemote = { actions.onAllowRemote(message.id) },
+                        onToggleOriginalColors = { actions.onToggleOriginalColors(message.id) }
                     ),
                     onAttachment = actions.onAttachment
                 )

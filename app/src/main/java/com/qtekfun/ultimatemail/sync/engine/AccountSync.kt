@@ -29,6 +29,8 @@ class AccountSync @Inject internal constructor(
     private val catalog: FolderCatalog,
     private val puller: FolderPuller,
     private val queue: OperationQueue,
+    private val cleaner: AttachmentFileCleaner,
+    private val bodies: BodyDownloader,
     private val clock: Clock
 ) {
     suspend fun run(accountId: Long): AccountSyncResult {
@@ -64,6 +66,11 @@ class AccountSync @Inject internal constructor(
                 }
             }
         }
+        // Pruning, expunges and moves have dropped rows; drop the files that belonged to them.
+        cleaner.clean(account.id)
+        // Headers first, so the lists are complete before the (slow, budgeted) body downloads.
+        val downloaded = bodies.run(session, account)
+        if (downloaded is BodyOutcome.Stopped) return failed(downloaded.failure)
         return firstFailure?.let { failed(it) } ?: AccountSyncResult.Synced(counts)
     }
 
@@ -82,8 +89,4 @@ class AccountSync @Inject internal constructor(
         } else {
             AccountSyncResult.Failed(failure.toProblem())
         }
-
-    private val MailResult.Failure.endsRun: Boolean
-        get() = this == MailResult.NetworkUnavailable || this == MailResult.Timeout ||
-            this == MailResult.AuthenticationFailed || this == MailResult.CertificateRejected
 }

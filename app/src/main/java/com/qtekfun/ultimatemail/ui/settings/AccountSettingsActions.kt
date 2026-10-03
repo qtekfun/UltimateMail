@@ -14,6 +14,7 @@ data class AccountSettingsActions(
     val onBeforeQuoteChange: (Boolean) -> Unit,
     val onSave: () -> Unit,
     val onOfflineWindowChange: (OfflineWindow) -> Unit,
+    val onDownloadForOfflineChange: (Boolean) -> Unit,
     val onFolderSyncChange: (path: String, enabled: Boolean) -> Unit,
     val onRequestRemoval: () -> Unit,
     val onDismissRemoval: () -> Unit,

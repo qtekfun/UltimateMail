@@ -3,13 +3,9 @@
 
 package com.qtekfun.ultimatemail.sync.engine
 
-import com.qtekfun.ultimatemail.data.local.dao.AttachmentDao
 import com.qtekfun.ultimatemail.data.local.dao.MessageDao
-import com.qtekfun.ultimatemail.data.local.entity.AttachmentEntity
 import com.qtekfun.ultimatemail.data.local.entity.MessageEntity
-import com.qtekfun.ultimatemail.domain.conversation.ContentIds
 import com.qtekfun.ultimatemail.domain.mail.MailResult
-import com.qtekfun.ultimatemail.domain.mail.MessageBody
 import javax.inject.Inject
 
 /** The outcome of [LoadMessageBody]. */
@@ -26,14 +22,15 @@ sealed interface BodyResult {
 }
 
 /**
- * Bodies and attachments stay on the server until a message is opened (RF-10). This fetches the
- * body of a message once, caches it in Room and lists its attachments (their content is fetched
- * separately, on demand).
+ * Reading is cache-first (RF-10): a body that sync already downloaded ([BodyDownloader]) is
+ * returned from Room without touching the network. Only a message without a cached body (outside
+ * the offline window, over the size cap, or not downloaded yet) is fetched here, once, cached in
+ * Room with the list of its attachments (their content is fetched separately, on demand).
  */
 class LoadMessageBody @Inject constructor(
     private val messages: MessageDao,
-    private val attachments: AttachmentDao,
-    private val sessions: AccountSessions
+    private val sessions: AccountSessions,
+    private val store: BodyStore
 ) {
     suspend operator fun invoke(messageId: Long): BodyResult {
         val message = messages.getById(messageId)
@@ -56,9 +53,14 @@ class LoadMessageBody @Inject constructor(
         }
         return when (leased) {
             is Leased.Ok -> when (val fetched = leased.value) {
-                is MailResult.Success -> save(message, fetched.value)
+                is MailResult.Success -> store.save(message, fetched.value).let {
+                    BodyResult.Loaded(it.text, it.html)
+                }
+
                 MailResult.NotFound -> BodyResult.NotFound
+
                 MailResult.AuthenticationFailed -> BodyResult.AuthenticationRequired
+
                 is MailResult.Failure -> BodyResult.Failed(fetched.toProblem())
             }
 
@@ -68,25 +70,5 @@ class LoadMessageBody @Inject constructor(
 
             Leased.NoAccount -> BodyResult.NotFound
         }
-    }
-
-    private suspend fun save(message: MessageEntity, body: MessageBody): BodyResult {
-        // A message without any text still counts as fetched: the empty string says so.
-        val text = body.text ?: if (body.html == null) "" else null
-        messages.setBody(message.accountId, message.folderPath, message.uid, text, body.html)
-        attachments.insert(
-            body.attachments.map {
-                AttachmentEntity(
-                    messageId = message.id,
-                    partId = it.partId,
-                    fileName = it.fileName.orEmpty(),
-                    mimeType = it.mimeType,
-                    size = it.size,
-                    contentId = it.contentId?.let(ContentIds::normalize),
-                    inline = it.inline
-                )
-            }
-        )
-        return BodyResult.Loaded(text, body.html)
     }
 }

@@ -10,6 +10,7 @@ import com.qtekfun.ultimatemail.sync.engine.SyncScheduler
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
@@ -18,7 +19,9 @@ data class AccountSettings(
     val id: Long,
     val email: String,
     val profile: AccountProfile,
-    val offlineWindow: OfflineWindow
+    val offlineWindow: OfflineWindow,
+    /** Sync also downloads the full bodies inside the offline window (RF-10). */
+    val downloadForOffline: Boolean
 )
 
 /** One folder in the list where the user picks what to sync (RF-10). */
@@ -47,27 +50,30 @@ sealed interface SaveResult {
 class AccountSettingsStore @Inject constructor(
     database: UltimateMailDatabase,
     private val scheduler: SyncScheduler,
+    private val downloads: OfflineDownloads,
     @IoDispatcher private val io: CoroutineDispatcher
 ) {
     private val accounts = database.accountDao()
     private val folders = database.folderDao()
 
     /** The settings of [accountId], or null when there is no such account (any more). */
-    fun observe(accountId: Long): Flow<AccountSettings?> = accounts.observe(accountId).map {
-        it?.let { account ->
-            AccountSettings(
-                id = account.id,
-                email = account.email,
-                profile = AccountProfile(
-                    displayName = account.displayName,
-                    signature = account.signature,
-                    signatureEnabled = account.signatureEnabled,
-                    signatureBeforeQuote = account.signatureBeforeQuote
-                ),
-                offlineWindow = OfflineWindow.fromDays(account.offlineWindowDays)
-            )
+    fun observe(accountId: Long): Flow<AccountSettings?> =
+        combine(accounts.observe(accountId), downloads.observe(accountId)) { stored, download ->
+            stored?.let { account ->
+                AccountSettings(
+                    id = account.id,
+                    email = account.email,
+                    profile = AccountProfile(
+                        displayName = account.displayName,
+                        signature = account.signature,
+                        signatureEnabled = account.signatureEnabled,
+                        signatureBeforeQuote = account.signatureBeforeQuote
+                    ),
+                    offlineWindow = OfflineWindow.fromDays(account.offlineWindowDays),
+                    downloadForOffline = download
+                )
+            }
         }
-    }
 
     /** The folders of [accountId], by path, with whether each is synced. */
     fun observeFolders(accountId: Long): Flow<List<FolderSync>> =
@@ -101,6 +107,17 @@ class AccountSettingsStore @Inject constructor(
      */
     suspend fun setOfflineWindow(accountId: Long, window: OfflineWindow) = withContext(io) {
         accounts.get(accountId)?.let { accounts.update(it.copy(offlineWindowDays = window.days)) }
+    }
+
+    /**
+     * Turns the download of message bodies for offline reading on or off for [accountId]; turning
+     * it on syncs the account right away so the download starts.
+     */
+    suspend fun setDownloadForOffline(accountId: Long, enabled: Boolean) {
+        val exists = withContext(io) { accounts.get(accountId) != null }
+        if (!exists) return
+        downloads.setEnabled(accountId, enabled)
+        if (enabled) scheduler.requestSync(accountId)
     }
 
     /** Turns the sync of one folder on or off; turning it on syncs the account right away. */
