@@ -12,6 +12,7 @@ import com.qtekfun.ultimatemail.domain.account.AccountCredentials
 import com.qtekfun.ultimatemail.domain.account.CredentialVault
 import com.qtekfun.ultimatemail.domain.account.OAuthRefreshResult
 import com.qtekfun.ultimatemail.domain.account.OAuthTokenSource
+import com.qtekfun.ultimatemail.domain.compose.FakeOutboxStorage
 import com.qtekfun.ultimatemail.domain.mail.MailConnector
 import com.qtekfun.ultimatemail.domain.mail.MailCredentials
 import com.qtekfun.ultimatemail.domain.mail.MailResult
@@ -109,6 +110,16 @@ class EngineHarness(scope: TestScope, authType: AuthType = AuthType.PASSWORD) {
     val credentials = MailCredentialsProvider(vault, oauth, clock)
     val sessions = AccountSessions(db.accountDao(), credentials, connector, status)
     val marker = PendingSyncMarker(db.messageDao(), db.pendingOperationDao())
+    val outboxFiles = FakeOutboxStorage()
+    val outbox =
+        OutboxOperations(
+            db.draftDao(),
+            db.folderDao(),
+            db.messageDao(),
+            outboxFiles,
+            notices,
+            clock
+        )
     val executor = MailOperationExecutor(
         db.accountDao(),
         db.folderDao(),
@@ -118,7 +129,8 @@ class EngineHarness(scope: TestScope, authType: AuthType = AuthType.PASSWORD) {
         sender,
         marker,
         status,
-        notices
+        notices,
+        outbox
     )
     val queue = OperationQueue(
         db.pendingOperationDao(),

@@ -17,6 +17,7 @@ import com.qtekfun.ultimatemail.domain.account.AccountCredentials
 import com.qtekfun.ultimatemail.domain.account.AccountListing
 import com.qtekfun.ultimatemail.domain.account.AccountRemoval
 import com.qtekfun.ultimatemail.domain.account.CredentialVault
+import com.qtekfun.ultimatemail.domain.compose.FakeOutboxStorage
 import com.qtekfun.ultimatemail.domain.folder.FolderListing
 import com.qtekfun.ultimatemail.domain.folder.SyncLine
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
@@ -73,7 +74,13 @@ class DrawerViewModelTest {
     private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) = DrawerViewModel(
         AccountListing(db),
         FolderListing(db),
-        AccountRemoval(db, vault, FakeAttachmentStorage(), Dispatchers.Unconfined),
+        AccountRemoval(
+            db,
+            vault,
+            FakeAttachmentStorage(),
+            FakeOutboxStorage(),
+            Dispatchers.Unconfined
+        ),
         status,
         scheduler,
         saved
