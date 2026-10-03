@@ -98,6 +98,7 @@ class OutgoingPayloadTest {
         assertNull(OutgoingPayload.decode(""))
         assertNull(OutgoingPayload.decode("garbage"))
         assertNull(OutgoingPayload.decode("version:v2"))
+        assertNull(OutgoingPayload.decode("version:v9"))
         assertNull(OutgoingPayload.decode("version:v1\nfrom:!!!notbase64"))
         assertNull(OutgoingPayload.decode("version:v1"))
     }

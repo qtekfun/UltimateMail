@@ -8,6 +8,7 @@ import jakarta.mail.FetchProfile
 import jakarta.mail.Message
 import org.eclipse.angus.mail.gimap.GmailFolder
 import org.eclipse.angus.mail.gimap.GmailMessage
+import org.eclipse.angus.mail.gimap.GmailRawSearchTerm
 import org.eclipse.angus.mail.gimap.GmailStore
 import org.eclipse.angus.mail.imap.IMAPFolder
 import org.eclipse.angus.mail.imap.IMAPStore
@@ -34,6 +35,11 @@ class GmailExtensions : ProviderExtensions {
             messageId = it.msgId,
             labels = it.labels.orEmpty().toList()
         )
+    }
+
+    override fun rawSearch(folder: IMAPFolder, query: String): List<Message> {
+        val gmailFolder = checkNotNull(folder as? GmailFolder) { "Not a Gmail folder" }
+        return gmailFolder.search(GmailRawSearchTerm(query)).toList()
     }
 
     override fun changeLabels(

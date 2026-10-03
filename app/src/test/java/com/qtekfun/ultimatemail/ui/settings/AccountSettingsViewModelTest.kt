@@ -16,6 +16,7 @@ import com.qtekfun.ultimatemail.data.local.model.FolderRole
 import com.qtekfun.ultimatemail.domain.account.AccountCredentials
 import com.qtekfun.ultimatemail.domain.account.AccountRemoval
 import com.qtekfun.ultimatemail.domain.account.CredentialVault
+import com.qtekfun.ultimatemail.domain.compose.FakeOutboxStorage
 import com.qtekfun.ultimatemail.domain.settings.AccountSettingsStore
 import com.qtekfun.ultimatemail.domain.settings.MemoryOfflineDownloads
 import com.qtekfun.ultimatemail.domain.settings.OfflineWindow
@@ -81,7 +82,13 @@ class AccountSettingsViewModelTest {
             MemoryOfflineDownloads(),
             Dispatchers.Unconfined
         ),
-        AccountRemoval(db, vault, FakeAttachmentStorage(), Dispatchers.Unconfined),
+        AccountRemoval(
+            db,
+            vault,
+            FakeAttachmentStorage(),
+            FakeOutboxStorage(),
+            Dispatchers.Unconfined
+        ),
         syncStatus,
         saved
     ).also { created += it }
