@@ -22,6 +22,7 @@ import javax.net.ssl.SSLException
 import javax.net.ssl.SSLPeerUnverifiedException
 import org.eclipse.angus.mail.iap.BadCommandException
 import org.eclipse.angus.mail.iap.CommandFailedException
+import org.eclipse.angus.mail.iap.ConnectionException
 import org.eclipse.angus.mail.iap.ProtocolException
 import org.eclipse.angus.mail.smtp.SMTPAddressFailedException
 import org.eclipse.angus.mail.smtp.SMTPSendFailedException
@@ -40,6 +41,7 @@ internal object MailErrorMapper {
     fun map(error: Throwable): MailResult.Failure {
         val chain = generateSequence(error) { it.cause }.take(MAX_CHAIN).toList()
         return mapAuthentication(chain)
+            ?: mapMissingStartTls(chain)
             ?: mapCertificate(chain)
             ?: mapTimeout(chain)
             ?: mapRejection(chain)
@@ -49,6 +51,12 @@ internal object MailErrorMapper {
 
     private fun mapAuthentication(chain: List<Throwable>): MailResult.Failure? =
         MailResult.AuthenticationFailed.takeIf { chain.any { it is AuthenticationFailedException } }
+
+    /** STARTTLS is required, so a server without it is refused rather than used in clear text. */
+    private fun mapMissingStartTls(chain: List<Throwable>): MailResult.Failure? =
+        MailResult.Unsupported("STARTTLS").takeIf {
+            chain.any { it is MessagingException && it.message.orEmpty().startsWith(STARTTLS_REQUIRED) }
+        }
 
     private fun mapCertificate(chain: List<Throwable>): MailResult.Failure? = when {
         chain.any { it is CertificateException || it is SSLPeerUnverifiedException } ->
@@ -77,6 +85,7 @@ internal object MailErrorMapper {
                 is SMTPAddressFailedException -> smtp(cause.returnCode)
                 is SMTPSenderFailedException -> smtp(cause.returnCode)
                 is FolderNotFoundException -> MailResult.NotFound
+                is ConnectionException -> MailResult.NetworkUnavailable
                 is ProtocolException -> MailResult.Protocol
                 else -> null
             }
@@ -111,5 +120,6 @@ internal object MailErrorMapper {
 
     private const val MAX_CHAIN = 16
     private const val TIMED_OUT = "timed out"
+    private const val STARTTLS_REQUIRED = "STARTTLS is required"
     private const val UNTRUSTED_SERVER = "Server is not trusted"
 }

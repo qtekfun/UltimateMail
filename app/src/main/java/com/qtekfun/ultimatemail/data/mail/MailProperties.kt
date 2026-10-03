@@ -56,6 +56,10 @@ internal object MailProperties {
             is MailCredentials.Password -> put("$prefix.auth.mechanisms", PASSWORD_MECHANISMS)
             null -> Unit
         }
-        config.sslSocketFactory?.let { put("$prefix.ssl.socketFactory", it) }
+        // Which of the two keys is read depends on how the library decides to use SSL; set both.
+        config.sslSocketFactory?.let {
+            put("$prefix.ssl.socketFactory", it)
+            put("$prefix.socketFactory", it)
+        }
     }
 }
