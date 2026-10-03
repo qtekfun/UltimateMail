@@ -68,6 +68,16 @@ sealed interface Screen {
         override val route = REAUTH_PREFIX + accountId
     }
 
+    /** Export accounts and settings to an encrypted file (T26), reached from [Settings]. */
+    data object ExportAccounts : Screen {
+        override val route = "export-accounts"
+    }
+
+    /** Import accounts and settings from a backup file (T26), reached from [Settings]. */
+    data object ImportAccounts : Screen {
+        override val route = "import-accounts"
+    }
+
     /** Search (T20), opened from the top bar of the conversation list in [initialScope]. */
     data class Search(val initialScope: SearchScope) : Screen {
         override val route = SEARCH_PREFIX + initialScope.key
@@ -92,10 +102,15 @@ sealed interface Screen {
                 otherFromRoute(route)
             }
 
+        @Suppress("CyclomaticComplexMethod") // One branch per screen, by design.
         private fun otherFromRoute(route: String?): Screen = when {
             route == AddAccount.route -> AddAccount
 
             route == Settings.route -> Settings
+
+            route == ExportAccounts.route -> ExportAccounts
+
+            route == ImportAccounts.route -> ImportAccounts
 
             route != null && route.startsWith(CONVERSATION_PREFIX) ->
                 conversationFromRoute(route.removePrefix(CONVERSATION_PREFIX)) ?: Home

@@ -76,6 +76,7 @@ fun SettingsScreen(state: SettingsState, actions: SettingsActions, modifier: Mod
             GesturesSection(state, actions)
             PrivacySection(state, actions)
             AccountsSection(state, actions)
+            BackupSection(actions)
             AboutSection()
         }
     }
@@ -200,6 +201,21 @@ private fun AccountsSection(state: SettingsState, actions: SettingsActions) {
             )
         }
     }
+}
+
+@Composable
+private fun BackupSection(actions: SettingsActions) {
+    SectionHeader(stringResource(R.string.backup_section))
+    InfoRow(
+        title = stringResource(R.string.backup_export_title),
+        value = stringResource(R.string.backup_export_summary),
+        onClick = actions.onExportAccounts
+    )
+    InfoRow(
+        title = stringResource(R.string.backup_import_title),
+        value = stringResource(R.string.backup_import_summary),
+        onClick = actions.onImportAccounts
+    )
 }
 
 @Composable
