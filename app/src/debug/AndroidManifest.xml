@@ -6,6 +6,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application>
+        <!-- Debug-only entry point to try the OAuth sign-in (T02); it has its own launcher icon. -->
+        <activity
+            android:name=".ui.debug.OAuthDebugActivity"
+            android:exported="true"
+            android:label="@string/oauth_debug_label">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <!--
           Debug builds only: shows built-in sample messages in the safe HTML view. It ignores
           every extra, so being exported (to start it from adb) exposes nothing.

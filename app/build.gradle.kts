@@ -51,6 +51,12 @@ android {
         targetSdk = 37
         versionCode = versionCodeOf(appVersion)
         versionName = appVersion
+        // Redirect scheme captured by AppAuth for the OAuth sign-in (T02).
+        manifestPlaceholders["appAuthRedirectScheme"] = "com.qtekfun.ultimatemail"
+        // Client ID of the Google OAuth client; empty when the build has none (T02). It is public,
+        // not a secret, and forks bring their own: -PUM_GOOGLE_CLIENT_ID=... or gradle.properties.
+        val googleClientId = providers.gradleProperty("UM_GOOGLE_CLIENT_ID").getOrElse("")
+        buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
     }
 
     signingConfigs {
@@ -317,6 +323,7 @@ dependencies {
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)
 
+    implementation(libs.appauth)
     implementation(libs.angus.mail)
     implementation(libs.angus.gimap)
     implementation(libs.angus.activation)
