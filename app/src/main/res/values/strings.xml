@@ -105,4 +105,29 @@
         <item quantity="one">%d message</item>
         <item quantity="other">%d messages</item>
     </plurals>
+    <string name="picker_title_move">Move to</string>
+    <string name="picker_title_labels">Label as</string>
+    <string name="picker_search_hint_folders">Search folders</string>
+    <string name="picker_search_hint_labels">Search labels</string>
+    <string name="picker_search_clear">Clear search</string>
+    <string name="picker_close">Close</string>
+    <string name="picker_apply">Apply</string>
+    <string name="picker_section_recent">Recent</string>
+    <string name="picker_section_all_folders">All folders</string>
+    <string name="picker_section_all_labels">All labels</string>
+    <string name="picker_no_matches">No matches for “%1$s”</string>
+    <string name="picker_loading">Loading folders</string>
+    <string name="picker_unavailable">This account is no longer available.</string>
+    <string name="picker_state_checked">Selected</string>
+    <string name="picker_state_partial">Partially selected</string>
+    <string name="picker_state_unchecked">Not selected</string>
+    <string name="picker_desc_path">%1$s, in %2$s</string>
+    <string name="picker_desc_current">%1$s, current folder</string>
+    <plurals name="picker_result_moved">
+        <item quantity="one">Moved %1$d message to %2$s</item>
+        <item quantity="other">Moved %1$d messages to %2$s</item>
+    </plurals>
+    <string name="picker_result_labels">Labels updated</string>
+    <string name="picker_result_archived">Archived</string>
+    <string name="picker_undo">Undo</string>
 </resources>
