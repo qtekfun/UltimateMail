@@ -129,7 +129,8 @@ class RestartedApp(harness: EngineHarness, scope: TestScope) {
         harness.sender,
         marker,
         status,
-        notices
+        notices,
+        harness.outbox
     )
     val queue = OperationQueue(
         db.pendingOperationDao(),
