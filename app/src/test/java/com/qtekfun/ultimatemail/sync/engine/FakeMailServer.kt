@@ -10,6 +10,7 @@ import com.qtekfun.ultimatemail.domain.mail.MailFlag
 import com.qtekfun.ultimatemail.domain.mail.MailFolder
 import com.qtekfun.ultimatemail.domain.mail.MailFolderRole
 import com.qtekfun.ultimatemail.domain.mail.MailResult
+import com.qtekfun.ultimatemail.domain.mail.MailSearchCriteria
 import com.qtekfun.ultimatemail.domain.mail.MailSession
 import com.qtekfun.ultimatemail.domain.mail.MessageBody
 import com.qtekfun.ultimatemail.domain.mail.MessageFlags
@@ -51,6 +52,9 @@ class FakeMailServer {
     var failure: (call: String) -> MailResult.Failure? = { null }
 
     val appendedDrafts = mutableListOf<OutgoingMessage>()
+
+    /** When set, a search waits for it: holds a search in the middle of its run. */
+    var searchGate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
 
     /** Copies filed with appendSent, as (folder, message). */
     val appendedSent = mutableListOf<Pair<String, OutgoingMessage>>()
@@ -168,6 +172,34 @@ class FakeSession(private val server: FakeMailServer) : MailSession {
         inFolder(folder, "fetchHeaders $folder ${range.first}-${range.last}") {
             val last = range.last ?: Long.MAX_VALUE
             MailResult.Success(it.messages.subMap(range.first, true, last, true).values.toList())
+        }
+
+    /** A search over subjects only: every text term must be in the subject, ignoring case. */
+    override suspend fun search(
+        folder: String,
+        criteria: MailSearchCriteria,
+        limit: Int
+    ): MailResult<List<Long>> {
+        server.searchGate?.await()
+        return searchNow(folder, criteria, limit)
+    }
+
+    private fun searchNow(folder: String, criteria: MailSearchCriteria, limit: Int) =
+        inFolder(folder, "search $folder") { f ->
+            val hits = f.messages.values.filter { header ->
+                val subject = header.subject.orEmpty()
+                (criteria.text + criteria.subject).all {
+                    subject.contains(it, ignoreCase = true)
+                } &&
+                    criteria.excluded.none { subject.contains(it, ignoreCase = true) } &&
+                    (criteria.unseen == null || header.flags.seen != criteria.unseen)
+            }
+            MailResult.Success(hits.map { it.uid }.sortedDescending().take(limit))
+        }
+
+    override suspend fun fetchHeadersByUid(folder: String, uids: Set<Long>) =
+        inFolder(folder, "fetchHeadersByUid $folder ${uids.sorted()}") { f ->
+            MailResult.Success(uids.sorted().mapNotNull { f.messages[it] })
         }
 
     override suspend fun fetchBody(folder: String, uid: Long) =

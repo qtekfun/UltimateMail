@@ -119,6 +119,100 @@ class MigrationTest {
         }
     }
 
+    /** The exported statements of [version] that start with [prefix], as Room runs them. */
+    private fun exportedSql(version: Int, prefix: String): List<String> =
+        File(schemas, "$version.json").readLines().map { it.trim().trimEnd(',') }
+            .filter { it.startsWith("\"createSql\": \"$prefix") || it.startsWith("\"$prefix") }
+            .map { it.removePrefix("\"createSql\": ").unquote() }
+            .map { it.replace("\${TABLE_NAME}", "message_fts") }
+
+    private fun String.unquote() = removePrefix("\"").removeSuffix("\"")
+
+    /** Normalized like SQLite stores them: no IF NOT EXISTS, single spaces. */
+    private fun normalized(sql: String) =
+        sql.replace(" IF NOT EXISTS", "").replace(Regex("\\s+"), " ")
+
+    private fun matches(connection: SQLiteConnection, query: String): Int =
+        connection.prepare("SELECT docid FROM message_fts WHERE message_fts MATCH '$query'")
+            .use { statement ->
+                var count = 0
+                while (statement.step()) count++
+                count
+            }
+
+    private fun storedSql(connection: SQLiteConnection, type: String): List<String> =
+        connection.prepare(
+            "SELECT sql FROM sqlite_master WHERE type = '$type' AND sql LIKE '%message_fts%' ORDER BY name"
+        )
+            .use { statement ->
+                buildList {
+                    while (statement.step()) add(normalized(statement.getText(0)))
+                }
+            }
+
+    @Test
+    fun `migrating 4 to 5 re-indexes with accent folding and keeps the triggers`() = runTest {
+        val connection = BundledSQLiteDriver().open(":memory:")
+        connection.use {
+            connection.execSQL(messageTableSql(4))
+            exportedSql(4, "CREATE VIRTUAL TABLE").forEach { connection.execSQL(it) }
+            exportedSql(4, "CREATE TRIGGER").forEach { connection.execSQL(it) }
+            connection.execSQL(
+                "INSERT INTO message (accountId, folderPath, uid, threadId, subject, " +
+                    "senderName, senderAddress, toAddresses, ccAddresses, sentAt, snippet, " +
+                    "seen, flagged, answered, draft, hasAttachments, size, labels, " +
+                    "referenceIds, pendingSync, bodyText) VALUES (1, 'INBOX', 7, 't', " +
+                    "'El ñandú', 'Ana', 'ana@example.test', '', '', 0, '', 0, 0, 0, 0, 0, " +
+                    "0, '', '', 0, 'cuerpo del mensaje')"
+            )
+            // The index of version 4 only folds ASCII: it cannot find the word without accents.
+            assertEquals(0, matches(connection, "nandu"))
+
+            MIGRATION_4_5.migrate(connection)
+
+            // Existing messages are indexed again, with the new rules.
+            assertEquals(1, matches(connection, "nandu"))
+            assertEquals(1, matches(connection, "ÑANDÚ"))
+            assertEquals(1, matches(connection, "cuerpo"))
+            // The triggers still keep the index in step with the table.
+            connection.execSQL("UPDATE message SET subject = 'La jirafa' WHERE uid = 7")
+            assertEquals(0, matches(connection, "nandu"))
+            assertEquals(1, matches(connection, "JIRAFA"))
+            connection.execSQL("DELETE FROM message WHERE uid = 7")
+            assertEquals(0, matches(connection, "jirafa"))
+            connection.execSQL(
+                "INSERT INTO message (accountId, folderPath, uid, threadId, subject, " +
+                    "senderName, senderAddress, toAddresses, ccAddresses, sentAt, snippet, " +
+                    "seen, flagged, answered, draft, hasAttachments, size, labels, " +
+                    "referenceIds, pendingSync) VALUES (1, 'INBOX', 8, 't', 'Árbol', 'Ana', " +
+                    "'ana@example.test', '', '', 0, '', 0, 0, 0, 0, 0, 0, '', '', 0)"
+            )
+            assertEquals(1, matches(connection, "arbol"))
+        }
+    }
+
+    @Test
+    fun `migrating 4 to 5 leaves exactly the index and triggers of the exported schema`() =
+        runTest {
+            val connection = BundledSQLiteDriver().open(":memory:")
+            connection.use {
+                connection.execSQL(messageTableSql(4))
+                exportedSql(4, "CREATE VIRTUAL TABLE").forEach { connection.execSQL(it) }
+                exportedSql(4, "CREATE TRIGGER").forEach { connection.execSQL(it) }
+
+                MIGRATION_4_5.migrate(connection)
+
+                assertEquals(
+                    exportedSql(5, "CREATE VIRTUAL TABLE").map(::normalized),
+                    storedSql(connection, "table").filter { it.startsWith("CREATE VIRTUAL TABLE") }
+                )
+                assertEquals(
+                    exportedSql(5, "CREATE TRIGGER").map(::normalized).sorted(),
+                    storedSql(connection, "trigger").sorted()
+                )
+            }
+        }
+
     private fun tableOf(sql: String) =
         if ("`kind`" in sql || "index_draft_" in sql) "draft" else "outgoing_attachment"
 
@@ -195,6 +289,74 @@ class MigrationTest {
             connection.prepare("SELECT COUNT(*) FROM outgoing_attachment").use {
                 assertTrue(it.step())
                 assertEquals(0L, it.getLong(0))
+            }
+        }
+    }
+
+    @Test
+    fun `migrating from 3 through 4 to 5 keeps the messages, adds the drafts and re-indexes`() =
+        runTest {
+            val connection = BundledSQLiteDriver().open(":memory:")
+            connection.use {
+                connection.execSQL(messageTableSql(3))
+                exportedSql(3, "CREATE VIRTUAL TABLE").forEach { connection.execSQL(it) }
+                exportedSql(3, "CREATE TRIGGER").forEach { connection.execSQL(it) }
+                connection.execSQL(
+                    "INSERT INTO message (accountId, folderPath, uid, threadId, subject, " +
+                        "senderName, senderAddress, toAddresses, ccAddresses, sentAt, snippet, " +
+                        "seen, flagged, answered, draft, hasAttachments, size, labels, " +
+                        "referenceIds, pendingSync, bodyText) VALUES (1, 'INBOX', 7, 't', " +
+                        "'El ñandú', 'Ana', 'ana@example.test', '', '', 0, '', 0, 0, 0, 0, 0, " +
+                        "0, '', '', 0, 'cuerpo del mensaje')"
+                )
+                assertEquals(0, matches(connection, "nandu"))
+
+                MIGRATION_3_4.migrate(connection)
+                MIGRATION_4_5.migrate(connection)
+
+                assertEquals(1, matches(connection, "nandu"))
+                assertEquals(1, matches(connection, "cuerpo"))
+                connection.prepare("SELECT subject, uid FROM message").use {
+                    assertTrue(it.step())
+                    assertEquals("El ñandú", it.getText(0))
+                    assertEquals(7L, it.getLong(1))
+                }
+                // The draft tables of step 4 are there and empty.
+                connection.prepare("SELECT COUNT(*) FROM draft").use {
+                    assertTrue(it.step())
+                    assertEquals(0L, it.getLong(0))
+                }
+                connection.prepare("SELECT COUNT(*) FROM outgoing_attachment").use {
+                    assertTrue(it.step())
+                    assertEquals(0L, it.getLong(0))
+                }
+                assertEquals(
+                    exportedSql(5, "CREATE VIRTUAL TABLE").map(::normalized),
+                    storedSql(connection, "table").filter { it.startsWith("CREATE VIRTUAL TABLE") }
+                )
+            }
+        }
+
+    @Test
+    fun `migrating 4 to 5 leaves the draft tables alone`() = runTest {
+        val connection = BundledSQLiteDriver().open(":memory:")
+        connection.use {
+            connection.execSQL(messageTableSql(4))
+            exportedSql(4, "CREATE VIRTUAL TABLE").forEach { connection.execSQL(it) }
+            exportedSql(4, "CREATE TRIGGER").forEach { connection.execSQL(it) }
+            connection.execSQL("CREATE TABLE account (id INTEGER PRIMARY KEY AUTOINCREMENT)")
+            MIGRATION_3_4.migrate(connection)
+            connection.execSQL(
+                "INSERT INTO draft (`key`, accountId, kind, toAddresses, ccAddresses, " +
+                    "bccAddresses, subject, body, createdAt, updatedAt) " +
+                    "VALUES ('k', 1, 'NEW', '', '', '', 'keep me', '', 0, 0)"
+            )
+
+            MIGRATION_4_5.migrate(connection)
+
+            connection.prepare("SELECT subject FROM draft").use {
+                assertTrue(it.step())
+                assertEquals("keep me", it.getText(0))
             }
         }
     }

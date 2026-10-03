@@ -16,6 +16,21 @@ interface MailSession {
     /** Headers of the messages in [range], in UID order. Reading does not mark them as seen. */
     suspend fun fetchHeaders(folder: String, range: UidRange): MailResult<List<MessageHeader>>
 
+    /**
+     * The UIDs of the messages of [folder] that match [criteria], newest first, at most [limit]
+     * of them (RF-09). Gmail answers with its own search (X-GM-RAW); other servers with the
+     * IMAP SEARCH command, which this never replaces by downloading the folder: when the server
+     * refuses the search the result is a failure. Searching does not change any message.
+     */
+    suspend fun search(
+        folder: String,
+        criteria: MailSearchCriteria,
+        limit: Int = MailSearchCriteria.DEFAULT_LIMIT
+    ): MailResult<List<Long>>
+
+    /** Headers of the messages with these [uids], in UID order; missing ones are left out. */
+    suspend fun fetchHeadersByUid(folder: String, uids: Set<Long>): MailResult<List<MessageHeader>>
+
     /** The text and HTML parts and the attachment list of one message. */
     suspend fun fetchBody(folder: String, uid: Long): MailResult<MessageBody>
 
