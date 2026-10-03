@@ -65,6 +65,22 @@ class AccountSetup @Inject constructor(
         }
     }
 
+    /**
+     * Stores an account without credentials (an imported configuration, RF-12). It is valid
+     * apart from the missing secrets, and ends up in the "sign in again" state: nothing is
+     * stored in the vault, so the sync engine reports `ReauthenticationNeeded` for it.
+     * [AccountInput.credentials] is ignored.
+     */
+    suspend fun createAwaitingSignIn(input: AccountInput): CreateAccountResult = withContext(io) {
+        val errors = validator.validate(input)
+            .filterNot { it == AccountInputError.MissingCredentials } + duplicateErrors(input)
+        if (errors.isNotEmpty()) {
+            CreateAccountResult.Invalid(errors)
+        } else {
+            CreateAccountResult.Created(accounts.insert(input.toEntity()))
+        }
+    }
+
     private suspend fun duplicateErrors(input: AccountInput): List<AccountInputError> {
         val email = input.email.trim()
         val exists = accounts.observeAll().first().any { it.email.equals(email, ignoreCase = true) }
