@@ -25,8 +25,7 @@ data class DrawerDestination(
  */
 object DrawerDestinations {
     private val all = listOf(
-        // T21: flip to true when the settings screen exists.
-        DrawerDestination(Screen.Settings, R.string.drawer_settings, Icons.Filled.Settings, false)
+        DrawerDestination(Screen.Settings, R.string.drawer_settings, Icons.Filled.Settings, true)
     )
 
     val footer: List<DrawerDestination> = all.filter { it.available }
