@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import com.qtekfun.ultimatemail.R
 import com.qtekfun.ultimatemail.data.local.model.ConnectionSecurity
 import com.qtekfun.ultimatemail.domain.account.AccountInputError
+import com.qtekfun.ultimatemail.domain.oauth.OAuthBrowserResult
 
 private val FormPadding = 16.dp
 private val MinTouchTarget = 48.dp
@@ -57,6 +58,7 @@ fun AddAccountScreen(
     actions: AddAccountActions,
     modifier: Modifier = Modifier
 ) {
+    OAuthBrowserEffect(state.oauthRequest, actions.onOAuthLaunched, actions.onOAuthResult)
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -83,6 +85,7 @@ fun AddAccountScreen(
         ) {
             CredentialsFields(state, actions)
             ProviderHintText(state.hint)
+            OAuthSection(state, actions)
             AdvancedSection(state, actions)
             state.errorFor(FormField.GENERAL)?.let { ErrorText(stringResource(it.message)) }
             state.failure?.let { ErrorText(stringResource(it.toMessage())) }
@@ -98,7 +101,10 @@ data class AddAccountActions(
     val onSecurityChange: (AccountInputError.Server, ConnectionSecurity) -> Unit,
     val onAdvancedToggle: () -> Unit,
     val onSubmit: () -> Unit,
-    val onCancel: () -> Unit
+    val onCancel: () -> Unit,
+    val onSignIn: () -> Unit,
+    val onOAuthLaunched: () -> Unit,
+    val onOAuthResult: (OAuthBrowserResult) -> Unit
 )
 
 @Composable
@@ -281,10 +287,10 @@ private fun SecurityChoice(
 @Composable
 private fun SubmitArea(state: AddAccountState, actions: AddAccountActions) {
     if (state.busy) {
-        val progressText = if (state.progress == AddAccountProgress.TESTING) {
-            R.string.add_account_testing
-        } else {
-            R.string.add_account_saving
+        val progressText = when (state.progress) {
+            AddAccountProgress.SIGNING_IN -> R.string.add_account_signing_in
+            AddAccountProgress.TESTING -> R.string.add_account_testing
+            else -> R.string.add_account_saving
         }
         Column(
             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
@@ -293,7 +299,9 @@ private fun SubmitArea(state: AddAccountState, actions: AddAccountActions) {
             Text(stringResource(progressText))
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
-        if (state.progress == AddAccountProgress.TESTING) {
+        if (state.progress == AddAccountProgress.TESTING ||
+            state.progress == AddAccountProgress.SIGNING_IN
+        ) {
             OutlinedButton(
                 onClick = actions.onCancel,
                 modifier = Modifier
@@ -326,7 +334,7 @@ private fun ErrorText(text: String) {
 }
 
 @Composable
-private fun FormTextField(
+internal fun FormTextField(
     value: String,
     label: Int,
     error: FieldError?,
@@ -355,4 +363,4 @@ private fun FormTextField(
     )
 }
 
-private fun Modifier.minimumTouchTarget(): Modifier = heightIn(min = MinTouchTarget)
+internal fun Modifier.minimumTouchTarget(): Modifier = heightIn(min = MinTouchTarget)

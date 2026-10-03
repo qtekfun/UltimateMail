@@ -3,7 +3,6 @@
 
 package com.qtekfun.ultimatemail.domain.account
 
-import com.qtekfun.ultimatemail.data.auth.UnavailableOAuthTokenSource
 import com.qtekfun.ultimatemail.data.local.inMemoryDatabase
 import com.qtekfun.ultimatemail.data.local.model.AuthType
 import io.mockk.coEvery
@@ -16,7 +15,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -169,14 +167,5 @@ class AccountSetupTest {
 
         assertEquals(ConnectionTestResult.Failure(ConnectionFailure.UNKNOWN), result)
         coVerify(exactly = 0) { tester.test(any()) }
-    }
-
-    @Test
-    fun `the placeholder token source refreshes nothing`() = runTest {
-        assertEquals(
-            OAuthRefreshResult.Unavailable,
-            UnavailableOAuthTokenSource().refresh(AuthType.OAUTH_GOOGLE, "r")
-        )
-        assertInstanceOf(OAuthRefreshResult::class.java, OAuthRefreshResult.Revoked)
     }
 }

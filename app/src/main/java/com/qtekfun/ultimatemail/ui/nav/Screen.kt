@@ -49,15 +49,21 @@ sealed interface Screen {
         val ref: ConversationRef get() = ConversationRef(accountId, folderPath, threadId)
     }
 
-    /** Settings (T21). Reachable from the side menu once that screen exists. */
+    /** Settings (T21), reached from the side menu. */
     data object Settings : Screen {
         override val route = "settings"
+    }
+
+    /** The settings of one account (T21, T19), reached from [Settings]; Back returns there. */
+    data class AccountSettings(val accountId: Long) : Screen {
+        override val route = ACCOUNT_SETTINGS_PREFIX + accountId
     }
 
     companion object {
         private const val INBOX_PREFIX = "inbox:"
         private const val CONVERSATION_PREFIX = "conversation:"
         private const val CONVERSATION_PARTS = 3
+        private const val ACCOUNT_SETTINGS_PREFIX = "account-settings:"
 
         /** The screen for a saved [route]; anything unknown goes back to the start screen. */
         fun fromRoute(route: String?): Screen = when {
@@ -67,6 +73,9 @@ sealed interface Screen {
 
             route != null && route.startsWith(CONVERSATION_PREFIX) ->
                 conversationFromRoute(route.removePrefix(CONVERSATION_PREFIX)) ?: Home
+            route != null && route.startsWith(ACCOUNT_SETTINGS_PREFIX) ->
+                route.removePrefix(ACCOUNT_SETTINGS_PREFIX).toLongOrNull()
+                    ?.let(::AccountSettings) ?: Home
 
             route != null && route.startsWith(INBOX_PREFIX) ->
                 InboxScope.fromKey(route.removePrefix(INBOX_PREFIX))?.let(::Inbox) ?: Home
