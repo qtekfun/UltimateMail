@@ -111,7 +111,10 @@ private fun DraftList(state: DraftsUiState, actions: DraftsActions) {
                     val draft = item.draft
                     DraftRow(
                         subject = draft.subject,
-                        line = recipientsLine(draft.recipients.size, draft.recipients.firstOrNull()),
+                        line = recipientsLine(
+                            draft.recipients.size,
+                            draft.recipients.firstOrNull()
+                        ),
                         time = formatter.format(item.time),
                         onClick = { actions.onOpen(draft.id) },
                         onDelete = { actions.onRequestDelete(draft.id) }

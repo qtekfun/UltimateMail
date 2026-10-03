@@ -90,7 +90,11 @@ class OutboxViewModel @Inject constructor(
         composeState.observeOutbox().map { list -> list.map { it.toRow() } },
         prompt
     ) { rows, asking -> OutboxUiState(loaded = true, rows = rows, prompt = asking) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), OutboxUiState())
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            OutboxUiState()
+        )
 
     fun retry(draftId: Long) {
         viewModelScope.launch { actions.retry(draftId) }

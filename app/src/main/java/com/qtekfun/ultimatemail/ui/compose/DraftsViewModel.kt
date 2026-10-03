@@ -54,7 +54,11 @@ class DraftsViewModel @Inject constructor(
         account.flatMapLatest { composeState.observeDrafts(it) },
         confirming
     ) { items, asking -> DraftsUiState(loaded = true, items = items, confirmingDelete = asking) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), DraftsUiState())
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            DraftsUiState()
+        )
 
     /** Lists the drafts of [accountId]. */
     fun show(accountId: Long) {
@@ -65,12 +69,11 @@ class DraftsViewModel @Inject constructor(
     fun open(draftId: Long) = entry.request(ComposeStart.Draft(draftId))
 
     /** The conversation holding a draft that is only on the server, or null if it is gone. */
-    suspend fun serverDraft(item: DraftListItem.OnServer): ConversationRef? =
-        withContext(io) {
-            messages.getById(item.draft.messageRowId)?.let {
-                ConversationRef(it.accountId, it.folderPath, it.threadId)
-            }
+    suspend fun serverDraft(item: DraftListItem.OnServer): ConversationRef? = withContext(io) {
+        messages.getById(item.draft.messageRowId)?.let {
+            ConversationRef(it.accountId, it.folderPath, it.threadId)
         }
+    }
 
     fun requestDelete(draftId: Long) {
         confirming.value = draftId

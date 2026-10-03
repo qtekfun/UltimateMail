@@ -112,7 +112,9 @@ class IncomingParserTest {
 
     @Test
     fun `unknown actions and parameters are ignored`() {
-        assertNull(IncomingParser.parse(IncomingIntent("android.intent.action.VIEW", "mailto:a@b.test")))
+        assertNull(
+            IncomingParser.parse(IncomingIntent("android.intent.action.VIEW", "mailto:a@b.test"))
+        )
         assertNull(IncomingParser.parse(IncomingIntent(null)))
         val result = mailto("mailto:ana@example.test?x-evil=1&in-reply-to=%3Cx%3E&&=&subject")!!
         assertEquals("", result.subject)

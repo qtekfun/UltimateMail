@@ -33,9 +33,10 @@ fun ComposerRoute(
             viewModel.acknowledgeFinished()
         }
     }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) {
-        viewModel.attach(it.map { uri -> uri.toString() })
-    }
+    val picker =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) {
+            viewModel.attach(it.map { uri -> uri.toString() })
+        }
     // Back saves the draft like the close button does.
     BackHandler { viewModel.close() }
     ComposerScreen(

@@ -52,14 +52,23 @@ data class OutboxScreenActions(
 @StringRes
 internal fun OutboxReason.textRes(failed: Boolean): Int = when (this) {
     OutboxReason.NETWORK -> R.string.outbox_reason_network
+
     OutboxReason.TIMEOUT -> R.string.outbox_reason_timeout
+
     OutboxReason.AUTH_REQUIRED -> R.string.outbox_reason_auth_required
+
     OutboxReason.CERTIFICATE -> R.string.outbox_reason_certificate
+
     OutboxReason.SERVER_REJECTED -> R.string.outbox_reason_server_rejected
+
     OutboxReason.SERVER_BUSY -> R.string.outbox_reason_server_busy
+
     OutboxReason.CONFIRM_SENT -> R.string.outbox_reason_confirm_sent
+
     OutboxReason.ATTACHMENT_MISSING -> R.string.outbox_reason_attachment_missing
+
     OutboxReason.INTERNAL -> R.string.outbox_reason_internal
+
     OutboxReason.OTHER ->
         if (failed) R.string.outbox_reason_other_failed else R.string.outbox_reason_other_waiting
 }
@@ -71,7 +80,11 @@ internal fun OutboxReason.textRes(failed: Boolean): Int = when (this) {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OutboxScreen(state: OutboxUiState, actions: OutboxScreenActions, modifier: Modifier = Modifier) {
+fun OutboxScreen(
+    state: OutboxUiState,
+    actions: OutboxScreenActions,
+    modifier: Modifier = Modifier
+) {
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -150,7 +163,7 @@ private fun OutboxItem(row: OutboxRow, actions: OutboxScreenActions) {
         Text(
             statusText,
             style = MaterialTheme.typography.labelLarge,
-            color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+            color = with(MaterialTheme.colorScheme) { if (failed) error else primary }
         )
         if (reasonText != null) {
             Text(
