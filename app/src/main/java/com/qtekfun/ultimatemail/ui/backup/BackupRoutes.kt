@@ -34,7 +34,7 @@ fun ExportRoute(onBack: () -> Unit) {
 
 /** Connects the import screen to its view model; see [ExportRoute]. */
 @Composable
-fun ImportRoute(onBack: () -> Unit) {
+fun ImportRoute(onBack: () -> Unit, onSignIn: (Long) -> Unit = {}) {
     val viewModel: ImportViewModel = viewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
     DisposableEffect(viewModel) { onDispose { viewModel.reset() } }
@@ -46,7 +46,8 @@ fun ImportRoute(onBack: () -> Unit) {
             onOpen = viewModel::open,
             onToggle = viewModel::toggle,
             onImportSettingsChange = viewModel::onImportSettingsChange,
-            onImport = viewModel::import
+            onImport = viewModel::import,
+            onSignIn = onSignIn
         )
     )
 }

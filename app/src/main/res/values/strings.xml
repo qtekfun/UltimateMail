@@ -549,4 +549,5 @@
         <item quantity="one">%1$d message waiting to be sent</item>
         <item quantity="other">%1$d messages waiting to be sent</item>
     </plurals>
+    <string name="backup_result_sign_in_button">Sign in: %1$s</string>
 </resources>

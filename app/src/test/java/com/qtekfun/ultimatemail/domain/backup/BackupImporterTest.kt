@@ -151,7 +151,9 @@ class BackupImporterTest {
         val summary = importer.import(preview, setOf(0), withSettings = false)
 
         assertEquals(
-            listOf(ImportedAccount("ana@example.test", needsSignIn = false)),
+            listOf(
+                ImportedAccount(accounts().single().id, "ana@example.test", needsSignIn = false)
+            ),
             summary.imported
         )
         val stored = accounts().single()
@@ -529,6 +531,6 @@ class BackupImporterTest {
 
         assertFalse(preview.toString().contains("example"))
         assertFalse(preview.entries.single().toString().contains("example"))
-        assertFalse(ImportedAccount("ana@example.test", true).toString().contains("example"))
+        assertFalse(ImportedAccount(1, "ana@example.test", true).toString().contains("example"))
     }
 }

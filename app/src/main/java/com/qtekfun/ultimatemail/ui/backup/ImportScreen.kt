@@ -173,6 +173,12 @@ private fun SummaryStep(summary: ImportSummary, actions: ImportActions) {
                 needSignIn.joinToString(", ") { it.email }
             )
         )
+        needSignIn.forEach { account ->
+            BackupButton(
+                stringResource(R.string.backup_result_sign_in_button, account.email),
+                { actions.onSignIn(account.accountId) }
+            )
+        }
     }
     if (summary.imported.isNotEmpty()) BackupText(stringResource(R.string.backup_result_sync))
     BackupButton(stringResource(R.string.backup_done), actions.onBack)

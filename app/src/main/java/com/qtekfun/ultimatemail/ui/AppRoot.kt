@@ -130,7 +130,10 @@ fun AppRoot(
 
             Screen.ExportAccounts -> ExportRoute(onBack = { navigator.back() })
 
-            Screen.ImportAccounts -> ImportRoute(onBack = { navigator.back() })
+            Screen.ImportAccounts -> ImportRoute(
+                onBack = { navigator.back() },
+                onSignIn = navigator::openReauth
+            )
 
             is Screen.AccountSettings ->
                 AccountSettingsRoute(current.accountId, accountSettings, navigator)
