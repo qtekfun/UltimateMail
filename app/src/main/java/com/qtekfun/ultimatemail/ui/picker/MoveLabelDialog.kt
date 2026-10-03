@@ -41,6 +41,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -185,7 +187,7 @@ private fun PickerHeader(
                 if (labels) R.string.picker_title_labels else R.string.picker_title_move
             ),
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f).semantics { heading() }
         )
         if (labels) {
             TextButton(onClick = onApply, enabled = canApply) {

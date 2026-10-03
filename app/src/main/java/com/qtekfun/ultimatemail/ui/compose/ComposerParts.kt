@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -111,7 +112,10 @@ internal fun RecipientRow(
             stringResource(kind.labelRes()),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(LabelWidth).heightIn(min = MinTouchTarget).wrapContentHeight()
+            modifier = Modifier
+                .widthIn(min = LabelWidth)
+                .heightIn(min = MinTouchTarget)
+                .wrapContentHeight()
         )
         RecipientChips(
             chips = field.chips,
@@ -255,7 +259,9 @@ internal fun AttachmentsSection(state: ComposerState, onRemove: (Long) -> Unit) 
     Text(
         stringResource(R.string.composer_attachments),
         style = MaterialTheme.typography.titleSmall,
-        modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp)
+        modifier = Modifier
+            .padding(start = 16.dp, top = 12.dp, end = 16.dp)
+            .semantics { heading() }
     )
     state.attachments.forEach { attachment ->
         Row(
