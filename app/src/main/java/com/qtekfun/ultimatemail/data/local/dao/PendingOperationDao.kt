@@ -7,6 +7,7 @@ import androidx.room3.Dao
 import androidx.room3.Insert
 import androidx.room3.Query
 import com.qtekfun.ultimatemail.data.local.entity.PendingOperationEntity
+import com.qtekfun.ultimatemail.data.local.model.OperationType
 import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 
@@ -106,4 +107,30 @@ interface PendingOperationDao {
             "AND folderPath = :folderPath AND uid = :uid"
     )
     suspend fun countForMessage(accountId: Long, folderPath: String, uid: Long): Int
+
+    /** The SEND operations of the account, oldest first: the state of its outbox (RF-07). */
+    @Query(
+        "SELECT * FROM pending_operation WHERE accountId = :accountId AND type = 'SEND' ORDER BY id"
+    )
+    fun observeSends(accountId: Long): Flow<List<PendingOperationEntity>>
+
+    @Query("SELECT * FROM pending_operation WHERE type = 'SEND' ORDER BY id")
+    fun observeAllSends(): Flow<List<PendingOperationEntity>>
+
+    /** Drops the operations of [type] that belong to one draft (they use `uid` = draft id). */
+    @Query(
+        "DELETE FROM pending_operation WHERE accountId = :accountId AND folderPath = '' " +
+            "AND uid = :draftId AND type = :type"
+    )
+    suspend fun deleteForDraft(accountId: Long, draftId: Long, type: OperationType)
+
+    @Query(
+        "SELECT * FROM pending_operation WHERE accountId = :accountId AND folderPath = '' " +
+            "AND uid = :draftId AND type = :type ORDER BY id"
+    )
+    suspend fun forDraft(
+        accountId: Long,
+        draftId: Long,
+        type: OperationType
+    ): List<PendingOperationEntity>
 }

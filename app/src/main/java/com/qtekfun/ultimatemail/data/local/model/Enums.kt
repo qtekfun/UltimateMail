@@ -17,3 +17,9 @@ enum class OperationType { SET_FLAGS, MOVE, ADD_LABEL, REMOVE_LABEL, DELETE, SAV
 
 /** Where the content of an attachment is (RF-04). */
 enum class AttachmentState { REMOTE, DOWNLOADING, DOWNLOADED, FAILED }
+
+/** What a draft is a reply to (RF-07). */
+enum class DraftKind { NEW, REPLY, REPLY_ALL, FORWARD }
+
+/** Where a draft is in its life: still being written, or handed over to the send queue. */
+enum class DraftState { EDITING, OUTBOX }

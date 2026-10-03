@@ -292,4 +292,12 @@
     <string name="density_comfortable">Cómoda</string>
     <string name="density_default">Predeterminada</string>
     <string name="density_compact">Compacta</string>
+    <!-- Texto que se escribe en el cuerpo de una respuesta o un reenvío; el redactor rellena la fecha y el remitente. -->
+    <string name="compose_attribution">El %1$s, %2$s escribió:</string>
+    <string name="compose_forward_marker">---------- Mensaje reenviado ---------</string>
+    <string name="compose_header_from">De:</string>
+    <string name="compose_header_date">Fecha:</string>
+    <string name="compose_header_subject">Asunto:</string>
+    <string name="compose_header_to">Para:</string>
+    <string name="compose_header_cc">Cc:</string>
 </resources>

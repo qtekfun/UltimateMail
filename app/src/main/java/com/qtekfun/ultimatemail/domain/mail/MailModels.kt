@@ -62,7 +62,8 @@ data class UidRange(val first: Long, val last: Long? = null) {
     }
 }
 
-enum class MailFlag { SEEN, ANSWERED, FLAGGED, DELETED, DRAFT }
+/** [FORWARDED] is the `$Forwarded` keyword, which servers keep for the clients that set it. */
+enum class MailFlag { SEEN, ANSWERED, FLAGGED, DELETED, DRAFT, FORWARDED }
 
 data class MessageFlags(
     val seen: Boolean = false,

@@ -11,7 +11,7 @@ internal object ThreadKeys {
     private const val MAX_MESSAGE_ID_LENGTH = 512
 
     private val prefix = Regex(
-        """^[\s\p{Z}]*(?:re|fw|fwd|aw|wg|sv|vs|enc|tr|rv|reenvio|reenvío|env)""" +
+        """^[\s\p{Z}]*(?<word>re|fw|fwd|aw|wg|sv|vs|enc|tr|rv|reenvio|reenvío|env)""" +
             """(?:\[\d+]|\(\d+\))?[\s\p{Z}]*:[\s\p{Z}]*""",
         RegexOption.IGNORE_CASE
     )
@@ -35,6 +35,15 @@ internal object ThreadKeys {
         }
         val folded = whitespace.replace(text, " ").trim().lowercase(Locale.ROOT)
         return Subject(folded, hadPrefix)
+    }
+
+    /**
+     * The first reply or forward prefix of [raw] in lowercase ("re", "fwd", "aw", "rv"...), or null
+     * when the subject has none. The composer uses it to avoid stacking `Re: Re:`.
+     */
+    fun leadingPrefix(raw: String?): String? {
+        val text = Normalizer.normalize(raw.orEmpty(), Normalizer.Form.NFKC)
+        return prefix.find(text)?.groups?.get("word")?.value?.lowercase(Locale.ROOT)
     }
 
     /**
