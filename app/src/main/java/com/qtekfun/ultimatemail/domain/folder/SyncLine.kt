@@ -14,6 +14,9 @@ sealed interface SyncLine {
 
     data object Syncing : SyncLine
 
+    /** Headers are in; [done] of [total] message bodies are on the device. */
+    data class DownloadingMessages(val done: Int, val total: Int) : SyncLine
+
     data class LastSynced(val at: Instant) : SyncLine
 
     /** The credentials were refused; the user has to sign in again. */
@@ -27,6 +30,7 @@ sealed interface SyncLine {
             null -> NeverSynced
             is AccountSyncState.Idle -> state.lastSyncedAt?.let(::LastSynced) ?: NeverSynced
             AccountSyncState.Syncing -> Syncing
+            is AccountSyncState.DownloadingBodies -> DownloadingMessages(state.done, state.total)
             is AccountSyncState.Error -> Failed(state.problem)
             AccountSyncState.ReauthenticationNeeded -> SignInAgain
         }
