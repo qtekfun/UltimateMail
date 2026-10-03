@@ -11,7 +11,7 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
   - *Verificación:* demo manual con ambas cuentas; decisiones sobre clientes OAuth documentadas en `SPEC.md` (sección 9).
 - [x] **T03 Prototipo librería IMAP/SMTP**: evaluar candidatas (K-9/Thunderbird, Angus/Jakarta Mail) en licencia, mantenimiento, CONDSTORE/QRESYNC, extensiones Gmail, STARTTLS/TLS; listar carpetas, bajar cabeceras, mover y enviar.
   - *Verificación:* tabla comparativa y decisión en `SPEC.md`; pruebas contra Gmail, M365 y Dovecot. *(Hecho con GreenMail; la prueba contra Gmail y M365 reales queda ligada a T02.)*
-- [ ] **T04 Prototipo HTML seguro**: WebView aislado sin JS, bloqueo de remotos, corpus de correos hostiles.
+- [x] **T04 Prototipo HTML seguro**: WebView aislado sin JS, bloqueo de remotos, corpus de correos hostiles.
   - *Verificación:* tests/manual con el corpus; decisión documentada.
 
 ## Fase 1 — Datos y cuentas
