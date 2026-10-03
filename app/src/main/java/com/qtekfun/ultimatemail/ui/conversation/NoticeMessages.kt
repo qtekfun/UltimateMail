@@ -10,6 +10,7 @@ import com.qtekfun.ultimatemail.R
 
 /** The text of a snackbar message; the ones about conversations say how many. */
 fun Resources.noticeText(notice: ConversationNotice): String {
+    notice.text?.let { return it }
     val plural = notice.kind.pluralRes()
     return if (plural != null) {
         getQuantityString(plural, notice.count, notice.count)
@@ -34,6 +35,7 @@ private fun NoticeKind.messageRes(): Int = when (this) {
     NoticeKind.NO_ARCHIVE_FOLDER -> R.string.notice_no_archive
     NoticeKind.NO_TRASH_FOLDER -> R.string.notice_no_trash
     NoticeKind.MOVE_SOON -> R.string.notice_move_soon
+    NoticeKind.CUSTOM -> error("a custom notice carries its text")
     NoticeKind.COMPOSE_SOON -> R.string.notice_compose_soon
     NoticeKind.ATTACHMENT_FAILED -> R.string.notice_attachment_failed
     NoticeKind.ATTACHMENT_GONE -> R.string.notice_attachment_gone
