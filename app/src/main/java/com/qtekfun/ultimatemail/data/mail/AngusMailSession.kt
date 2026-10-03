@@ -272,6 +272,14 @@ class AngusMailSession(
             imap.appendUIDMessages(arrayOf<Message>(mime))?.firstOrNull()?.uid
         }
 
+    override suspend fun appendSent(folder: String, message: OutgoingMessage): MailResult<Long?> =
+        call {
+            val mime = MimeMessageBuilder.build(message)
+            mime.setFlag(Flags.Flag.SEEN, true)
+            val imap = store.getFolder(folder) as IMAPFolder
+            imap.appendUIDMessages(arrayOf<Message>(mime))?.firstOrNull()?.uid
+        }
+
     override suspend fun close() {
         withContext(NonCancellable) {
             mutex.withLock {
@@ -305,15 +313,14 @@ class AngusMailSession(
 
     private fun Set<MailFlag>.toJakarta() = Flags().also { result ->
         forEach {
-            result.add(
-                when (it) {
-                    MailFlag.SEEN -> Flags.Flag.SEEN
-                    MailFlag.ANSWERED -> Flags.Flag.ANSWERED
-                    MailFlag.FLAGGED -> Flags.Flag.FLAGGED
-                    MailFlag.DELETED -> Flags.Flag.DELETED
-                    MailFlag.DRAFT -> Flags.Flag.DRAFT
-                }
-            )
+            when (it) {
+                MailFlag.SEEN -> result.add(Flags.Flag.SEEN)
+                MailFlag.ANSWERED -> result.add(Flags.Flag.ANSWERED)
+                MailFlag.FLAGGED -> result.add(Flags.Flag.FLAGGED)
+                MailFlag.DELETED -> result.add(Flags.Flag.DELETED)
+                MailFlag.DRAFT -> result.add(Flags.Flag.DRAFT)
+                MailFlag.FORWARDED -> result.add(FORWARDED_KEYWORD)
+            }
         }
     }
 
@@ -334,5 +341,6 @@ class AngusMailSession(
     private companion object {
         val WHITESPACE = Regex("\\s+")
         const val GMAIL_LABELS = "gmail-labels"
+        const val FORWARDED_KEYWORD = "\$Forwarded"
     }
 }

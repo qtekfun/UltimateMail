@@ -8,6 +8,7 @@ import androidx.room3.Insert
 import androidx.room3.OnConflictStrategy
 import androidx.room3.Query
 import com.qtekfun.ultimatemail.data.local.entity.MessageEntity
+import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 
 // A DAO is a flat list of queries, one function each; splitting it would only scatter them.
@@ -198,6 +199,35 @@ interface MessageDao {
         messageId: String?,
         gmailMessageId: Long?
     ): List<IdentifiedMessage>
+
+    /** The messages of the account's Drafts folders: the drafts kept on the server. */
+    @Query(
+        "SELECT m.* FROM message m JOIN folder f ON f.accountId = m.accountId " +
+            "AND f.path = m.folderPath WHERE m.accountId = :accountId AND f.role = 'DRAFTS' " +
+            "AND m.uid > 0 ORDER BY m.sentAt DESC, m.id DESC"
+    )
+    fun observeServerDrafts(accountId: Long): Flow<List<MessageEntity>>
+
+    @Query(
+        "SELECT m.* FROM message m JOIN folder f ON f.accountId = m.accountId " +
+            "AND f.path = m.folderPath WHERE f.role = 'DRAFTS' AND m.uid > 0 " +
+            "ORDER BY m.sentAt DESC, m.id DESC"
+    )
+    fun observeAllServerDrafts(): Flow<List<MessageEntity>>
+
+    /**
+     * The participants of the newest [limit] messages of the account, for recipient suggestions
+     * (RF-07). The to and cc lists are unpacked by the caller; SQLite cannot split them.
+     */
+    @Query(
+        "SELECT m.senderName, m.senderAddress, m.toAddresses, m.ccAddresses, m.sentAt, " +
+            "(f.role = 'SENT') AS fromUser FROM message m JOIN folder f " +
+            "ON f.accountId = m.accountId AND f.path = m.folderPath " +
+            "WHERE m.accountId = :accountId AND m.draft = 0 " +
+            "AND f.role NOT IN ('DRAFTS', 'JUNK', 'TRASH') " +
+            "ORDER BY m.sentAt DESC LIMIT :limit"
+    )
+    suspend fun addressSamples(accountId: Long, limit: Int): List<AddressSample>
 }
 
 /** What a search on the server needs to know about a stored message (T20). */
@@ -245,4 +275,14 @@ data class IdentifiedMessage(
     val messageId: String?,
     val gmailMessageId: Long?,
     val labels: List<String>
+)
+
+/** One message's participants, as stored. [fromUser] is true for mail in a Sent folder. */
+data class AddressSample(
+    val senderName: String,
+    val senderAddress: String,
+    val toAddresses: List<String>,
+    val ccAddresses: List<String>,
+    val sentAt: Instant,
+    val fromUser: Boolean
 )

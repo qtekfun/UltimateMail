@@ -15,6 +15,7 @@ import jakarta.mail.internet.MimeBodyPart
 import jakarta.mail.internet.MimeMessage
 import jakarta.mail.internet.MimeMultipart
 import jakarta.mail.util.ByteArrayDataSource
+import java.util.Date
 import java.util.Properties
 import java.util.UUID
 
@@ -54,6 +55,8 @@ internal object MimeMessageBuilder {
             }.toTypedArray()
         )
         mime.setSubject(message.subject, CHARSET)
+        // Without a Date header the copy kept in Sent would show no time.
+        mime.sentDate = Date()
         message.inReplyTo?.let { mime.setHeader("In-Reply-To", it) }
         if (message.references.isNotEmpty()) {
             mime.setHeader("References", message.references.joinToString(" "))
