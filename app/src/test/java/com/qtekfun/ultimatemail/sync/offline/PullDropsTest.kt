@@ -41,7 +41,9 @@ class PullDropsTest {
         server.changeFlags("Archive", 1, MessageFlags(seen = true))
     }
 
-    private suspend fun TestScope.reference(second: Boolean): Pair<RoomState, Map<String, List<String>>> {
+    private suspend fun TestScope.reference(
+        second: Boolean
+    ): Pair<RoomState, Map<String, List<String>>> {
         val h = start {}
         h.engine.sync(h.accountId)
         if (second) {
@@ -91,7 +93,7 @@ class PullDropsTest {
         runTest { sweep(second = true) }
 
     @Test
-    fun `a drop right after listing the folders leaves Room without messages and the next run fills it`() =
+    fun `a drop right after listing the folders keeps the list and the next run fills it`() =
         runTest {
             val h = start {}
             val net = FlakyNetwork(h)

@@ -136,45 +136,43 @@ class ProcessDeathTest {
         }
 
     @Test
-    fun `body downloads resume after a kill without fetching the stored bodies again`() =
-        runTest {
-            val h = start(synced = false)
-            val killer = Killer(h)
-            // Calls: listFolders, 3 x (status, headers), then the bodies, newest first.
-            killer.killBefore(9)
-            assertTrue(killer.died { h.engine.sync(h.accountId) })
-            killer.disarm()
-            val stored = h.roomState().messages.count { !it.contains("text=null") }
-            assertTrue(stored in 1..6, "some bodies are stored, not all: $stored")
-            h.server.log.clear()
+    fun `body downloads resume after a kill without fetching the stored bodies again`() = runTest {
+        val h = start(synced = false)
+        val killer = Killer(h)
+        // Calls: listFolders, 3 x (status, headers), then the bodies, newest first.
+        killer.killBefore(9)
+        assertTrue(killer.died { h.engine.sync(h.accountId) })
+        killer.disarm()
+        val stored = h.roomState().messages.count { !it.contains("text=null") }
+        assertTrue(stored in 1..6, "some bodies are stored, not all: $stored")
+        h.server.log.clear()
 
-            val result = RestartedApp(h, this).engine.sync(h.accountId)
+        val result = RestartedApp(h, this).engine.sync(h.accountId)
 
-            assertTrue(result is AccountSyncResult.Synced)
-            assertEquals(7 - stored, h.server.logged("fetchBody").size, "only what was missing")
-            assertEquals(0, h.roomState().messages.count { it.contains("text=null") })
-        }
+        assertTrue(result is AccountSyncResult.Synced)
+        assertEquals(7 - stored, h.server.logged("fetchBody").size, "only what was missing")
+        assertEquals(0, h.roomState().messages.count { it.contains("text=null") })
+    }
 
     @Test
-    fun `cancelling the sync in the middle of the bodies keeps what came and a new engine ends it`() =
-        runTest {
-            val h = start(synced = false)
-            lateinit var job: Job
-            var fetches = 0
-            h.server.failure = { name ->
-                if (name.startsWith("fetchBody") && ++fetches == 3) job.cancel()
-                null
-            }
-            job = launch { h.engine.sync(h.accountId) }
-            job.join()
-            assertTrue(job.isCancelled)
-            h.server.failure = { null }
-            assertTrue(h.roomState().messages.any { it.contains("text=null") })
-            assertTrue(h.operations.all(h.accountId).isEmpty())
-
-            val result = RestartedApp(h, this).engine.sync(h.accountId)
-
-            assertTrue(result is AccountSyncResult.Synced)
-            assertEquals(0, h.roomState().messages.count { it.contains("text=null") })
+    fun `cancelling mid bodies keeps what came and a new engine ends the job`() = runTest {
+        val h = start(synced = false)
+        lateinit var job: Job
+        var fetches = 0
+        h.server.failure = { name ->
+            if (name.startsWith("fetchBody") && ++fetches == 3) job.cancel()
+            null
         }
+        job = launch { h.engine.sync(h.accountId) }
+        job.join()
+        assertTrue(job.isCancelled)
+        h.server.failure = { null }
+        assertTrue(h.roomState().messages.any { it.contains("text=null") })
+        assertTrue(h.operations.all(h.accountId).isEmpty())
+
+        val result = RestartedApp(h, this).engine.sync(h.accountId)
+
+        assertTrue(result is AccountSyncResult.Synced)
+        assertEquals(0, h.roomState().messages.count { it.contains("text=null") })
+    }
 }
