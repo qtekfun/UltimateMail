@@ -4,8 +4,8 @@
 package com.qtekfun.ultimatemail.data.compose
 
 import android.content.Context
-import android.net.Uri
 import android.provider.OpenableColumns
+import androidx.core.net.toUri
 import com.qtekfun.ultimatemail.domain.compose.AttachmentSource
 import com.qtekfun.ultimatemail.domain.compose.SourceInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -16,7 +16,7 @@ import javax.inject.Inject
 class ContentResolverSource @Inject constructor(@ApplicationContext private val context: Context) :
     AttachmentSource {
     override fun describe(uri: String): SourceInfo? = runCatching {
-        val parsed = Uri.parse(uri)
+        val parsed = uri.toUri()
         val type = context.contentResolver.getType(parsed)
         context.contentResolver.query(
             parsed,
@@ -35,5 +35,5 @@ class ContentResolverSource @Inject constructor(@ApplicationContext private val 
     }.getOrNull()
 
     override fun open(uri: String): InputStream? =
-        runCatching { context.contentResolver.openInputStream(Uri.parse(uri)) }.getOrNull()
+        runCatching { context.contentResolver.openInputStream(uri.toUri()) }.getOrNull()
 }
