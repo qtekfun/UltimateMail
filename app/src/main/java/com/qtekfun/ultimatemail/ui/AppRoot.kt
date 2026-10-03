@@ -6,20 +6,32 @@ package com.qtekfun.ultimatemail.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.qtekfun.ultimatemail.R
 import com.qtekfun.ultimatemail.domain.folder.ShellScope
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
 import com.qtekfun.ultimatemail.ui.account.AddAccountActions
 import com.qtekfun.ultimatemail.ui.account.AddAccountEvent
 import com.qtekfun.ultimatemail.ui.account.AddAccountScreen
 import com.qtekfun.ultimatemail.ui.account.AddAccountViewModel
+import com.qtekfun.ultimatemail.ui.conversation.ConversationRoute
+import com.qtekfun.ultimatemail.ui.conversation.ConversationViewModel
+import com.qtekfun.ultimatemail.ui.conversation.messageRes
 import com.qtekfun.ultimatemail.ui.drawer.DrawerActions
 import com.qtekfun.ultimatemail.ui.drawer.DrawerViewModel
 import com.qtekfun.ultimatemail.ui.inbox.InboxActions
@@ -37,7 +49,8 @@ fun AppRoot(
     navigator: AppNavigator,
     drawer: DrawerViewModel,
     addAccount: AddAccountViewModel,
-    inbox: InboxViewModel
+    inbox: InboxViewModel,
+    conversation: ConversationViewModel
 ) {
     val screen by navigator.screen.collectAsStateWithLifecycle()
     val menuOpen by navigator.drawerOpen.collectAsStateWithLifecycle()
@@ -61,12 +74,40 @@ fun AppRoot(
         when (val current = screen) {
             Screen.AddAccount -> AddAccountRoute(addAccount, navigator)
 
+            is Screen.Conversation -> ConversationRoute(current, conversation, navigator::back)
+
             // One call site for every screen with the side menu, so the menu keeps its state
             // (and its closing animation) while the folder changes.
             Screen.Home, is Screen.Inbox, Screen.Settings ->
                 // T21: Settings is not reachable yet; it will get its own branch.
                 ShellRoute((current as? Screen.Inbox)?.scope, navigator, drawer, inbox)
         }
+        // Messages about what was done (archived, deleted, with Undo) outlive the screen.
+        NoticeHost(conversation)
+    }
+}
+
+/** Shows the snackbar for the notices of [conversation], whichever screen is on. */
+@Composable
+private fun NoticeHost(conversation: ConversationViewModel) {
+    val notice by conversation.notice.collectAsStateWithLifecycle()
+    val host = remember { SnackbarHostState() }
+    val resources = LocalResources.current
+    LaunchedEffect(notice?.id) {
+        val current = notice ?: return@LaunchedEffect
+        val result = host.showSnackbar(
+            message = resources.getString(current.kind.messageRes()),
+            actionLabel = if (current.undoable) resources.getString(R.string.notice_undo) else null,
+            duration = if (current.undoable) SnackbarDuration.Long else SnackbarDuration.Short
+        )
+        when {
+            !current.undoable -> conversation.noticeShown(current.id)
+            result == SnackbarResult.ActionPerformed -> conversation.undo(current.id)
+            else -> conversation.commit(current.id)
+        }
+    }
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+        SnackbarHost(host, modifier = Modifier.navigationBarsPadding())
     }
 }
 
@@ -121,8 +162,9 @@ private fun ShellRoute(
                 onRefresh = inbox::refresh,
                 onLoadMore = inbox::loadMore,
                 onFilterChange = inbox::setFilter,
-                // Reading a conversation arrives with T15.
-                onOpenConversation = {},
+                onOpenConversation = {
+                    navigator.openConversation(it.accountId, it.folderPath, it.threadId)
+                },
                 onScrolled = inbox::onScrolled,
                 savedScroll = inbox::savedScroll
             )

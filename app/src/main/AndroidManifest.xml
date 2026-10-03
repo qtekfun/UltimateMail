@@ -39,6 +39,20 @@
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             tools:node="merge" />
 
+        <!--
+          Downloaded attachments are handed to other apps (open, share) as content:// URIs of
+          this provider, with a one-off read grant. Only res/xml/file_paths.xml is reachable.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!-- WorkManager is configured by UltimateMailApp (Configuration.Provider). -->
         <provider
             android:name="androidx.startup.InitializationProvider"

@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import com.qtekfun.ultimatemail.ui.account.AddAccountViewModel
+import com.qtekfun.ultimatemail.ui.conversation.ConversationViewModel
 import com.qtekfun.ultimatemail.ui.drawer.DrawerViewModel
 import com.qtekfun.ultimatemail.ui.inbox.InboxViewModel
 import com.qtekfun.ultimatemail.ui.nav.AppNavigator
@@ -22,13 +23,14 @@ class MainActivity : ComponentActivity() {
     private val drawer: DrawerViewModel by viewModels()
     private val addAccount: AddAccountViewModel by viewModels()
     private val inbox: InboxViewModel by viewModels()
+    private val conversation: ConversationViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             UltimateMailTheme {
-                AppRoot(navigator, drawer, addAccount, inbox)
+                AppRoot(navigator, drawer, addAccount, inbox, conversation)
             }
         }
     }
