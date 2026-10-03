@@ -29,4 +29,10 @@
     <string name="debug_demo_seed">Insert demo data</string>
     <string name="debug_demo_remove">Remove demo data</string>
     <string name="debug_demo_done">Done. Open UltimateMail to see it.</string>
+    <string name="debug_picker_label">Move / label picker demo (debug)</string>
+    <string name="debug_picker_explanation">Made-up accounts ending in @seed.invalid with plenty of folders. Select messages, open the picker and try the search: accents, case, parts of a path. Nothing here touches a real account.</string>
+    <string name="debug_picker_folders_account">Folders account</string>
+    <string name="debug_picker_labels_account">Labels account</string>
+    <string name="debug_picker_open">Move or label selected</string>
+    <string name="debug_picker_pending">Waiting to sync</string>
 </resources>
