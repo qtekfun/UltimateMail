@@ -90,4 +90,15 @@ Decisiones tomadas por mí (a confirmar):
     la cola cuando acaba el aviso), guardar el borrador automáticamente al salir (se descarta solo con una orden
     explícita y confirmación), botón flotante "Redactar" en la bandeja, vista de Salida en el menú con insignia y
     reintentar/editar/descartar, y filtros de intención para `mailto:` y compartir desde otras apps.
+25. **Búsqueda (T20, PR #34).** Decididas por el agente: soporta `from:`, `to:`, `subject:`, `label:`/`in:`, `has:attachment`,
+    `is:unread`/`is:read`/`is:starred`, `before:`/`after:`, frases entre comillas y exclusión con `-`; todo término llega a
+    FTS4 como frase entrecomillada (lo que escribas nunca se convierte en sintaxis de consulta; probado con cadenas
+    hostiles en SQLite real); el índice de texto pasa al tokenizador `unicode61` para ignorar mayúsculas y acentos
+    (requiere migración); un mensaje de Gmail en varias carpetas sale una sola vez; Papelera y Spam solo se buscan al
+    pedirlo; la búsqueda en servidor solo se ejecuta al tocar (se ofrece más destacada con menos de 5 resultados locales)
+    y los resultados solo del servidor se guardan como mensajes normales de su carpeta (solo cabeceras) sin tocar
+    UIDNEXT ni HIGHESTMODSEQ, así que la siguiente sincronización los respeta; los roles de `in:` se reconocen solo en
+    inglés (los nombres de carpeta, en cualquier idioma); los resultados de carpetas no sincronizadas conservan sus flags
+    hasta volver a buscarse. **Conflicto de esquema:** T20 y T18a subían ambos Room a v4; T20 se renumera a v5 apilada
+    sobre la #33. X-GM-RAW no se ha probado contra Gmail real; GreenMail no prueba subcadenas ni frases con espacios.
 
