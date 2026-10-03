@@ -1,0 +1,20 @@
+UltimateMail is a free-software mail client for any IMAP/SMTP account, inspired by iOS Mail and the Gmail app. It works offline first: what you see comes from a local database, and your changes are synced later by a queue that survives restarts.
+
+IMPORTANT: UltimateMail is in early development. It is not ready to replace your daily mail app yet. Reading messages, composing, search, swipe gestures and settings are still being built.
+
+What works today:
+* Adding an account with a password or app password, with automatic server settings and a connection test.
+* Folders and labels, a conversation list with a unified inbox, and background sync.
+* Credentials encrypted with the Android Keystore.
+
+Planned:
+* Reading conversations with safe HTML (remote content blocked by default).
+* Composing, drafts and an offline send queue.
+* Configurable swipe gestures with undo, and a move/label picker with live search.
+* Local and server search, per-account signatures, settings.
+* Sign-in with Google (own OAuth client) and Microsoft.
+
+Principles:
+* No telemetry, no analytics, no ads, no Google services. Your mail only travels between your device and your mail servers.
+* Free software under the GPL-3.0-or-later license.
+* English and Spanish.

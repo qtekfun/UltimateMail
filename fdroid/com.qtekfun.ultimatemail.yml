@@ -1,0 +1,36 @@
+# DRAFT, NOT SUBMITTED. There is no release tag yet, so every value marked REPLACE_ below is a
+# placeholder. Before submitting this file to fdroiddata (metadata/com.qtekfun.ultimatemail.yml),
+# fill them in as RELEASING.md says and delete these comment lines: fdroiddata's tools remove
+# comments anyway.
+Categories:
+  - Internet
+License: GPL-3.0-or-later
+AuthorName: qtekfun
+SourceCode: https://github.com/qtekfun/UltimateMail
+IssueTracker: https://github.com/qtekfun/UltimateMail/issues
+Changelog: https://github.com/qtekfun/UltimateMail/blob/HEAD/CHANGELOG.md
+
+AutoName: UltimateMail
+
+RepoType: git
+Repo: https://github.com/qtekfun/UltimateMail.git
+Binaries: https://github.com/qtekfun/UltimateMail/releases/download/v%v/UltimateMail-%v.apk
+
+Builds:
+  - versionName: 0.1.0
+    versionCode: 10099
+    commit: REPLACE_WITH_FULL_SHA_OF_THE_v0.1.0_TAG
+    subdir: app
+    sudo:
+      - apt-get update
+      - apt-get install -y openjdk-21-jdk-headless
+      - update-java-alternatives -a
+    gradle:
+      - yes
+
+AllowedAPKSigningKeys: REPLACE_WITH_SHA256_OF_THE_RELEASE_CERTIFICATE
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+\.[0-9]+$
+CurrentVersion: 0.1.0
+CurrentVersionCode: 10099
