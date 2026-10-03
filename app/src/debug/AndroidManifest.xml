@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: 2026 UltimateMail contributors
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!--
+          Debug builds only: shows built-in sample messages in the safe HTML view. It ignores
+          every extra, so being exported (to start it from adb) exposes nothing.
+        -->
+        <activity
+            android:name=".ui.html.SafeHtmlDebugActivity"
+            android:exported="true"
+            android:label="@string/debug_safe_html_title">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
