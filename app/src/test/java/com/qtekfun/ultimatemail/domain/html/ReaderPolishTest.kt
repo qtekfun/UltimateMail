@@ -23,7 +23,7 @@ class ReaderPolishTest {
             "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" in page
         )
         assertTrue("img{max-width:100%;height:auto}" in page)
-        assertTrue("table{max-width:100%}" in page)
+        assertTrue("table{max-width:calc(100vw - 24px)}" in page)
         assertTrue("overflow-wrap:anywhere" in page)
         assertTrue("pre{white-space:pre-wrap}" in page)
     }
