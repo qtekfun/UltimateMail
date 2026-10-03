@@ -15,11 +15,13 @@ import com.qtekfun.ultimatemail.domain.account.ConnectionFailure
 import com.qtekfun.ultimatemail.domain.account.ConnectionTestResult
 import com.qtekfun.ultimatemail.domain.account.CreateAccountResult
 import com.qtekfun.ultimatemail.domain.account.ServerAutodetector
+import com.qtekfun.ultimatemail.sync.engine.SyncScheduler
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -38,6 +40,7 @@ import org.junit.jupiter.api.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class AddAccountViewModelTest {
     private val setup = mockk<AccountSetup>()
+    private val scheduler = mockk<SyncScheduler>(relaxed = true)
     private val validator = AccountValidator()
     private val detector = ServerAutodetector()
     private lateinit var viewModel: AddAccountViewModel
@@ -48,7 +51,7 @@ class AddAccountViewModelTest {
         // The real rules, so these tests also notice a change in what the domain accepts.
         every { setup.detectServers(any()) } answers { detector.detect(firstArg()) }
         every { setup.validate(any()) } answers { validator.validate(firstArg()) }
-        viewModel = AddAccountViewModel(setup)
+        viewModel = AddAccountViewModel(setup, scheduler)
     }
 
     @AfterEach
@@ -158,6 +161,7 @@ class AddAccountViewModelTest {
         viewModel.events.test {
             viewModel.submit()
             assertEquals(AddAccountEvent.Created(7), awaitItem())
+            verify { scheduler.requestSync(7L, userInitiated = true) }
         }
 
         assertEquals("ana@example.test", tested.captured.username)
