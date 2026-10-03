@@ -288,4 +288,9 @@
     <string name="folders_sync_summary">Folders that are turned off are not synced and keep no mail on this device.</string>
     <string name="folders_sync_always">Always synced</string>
     <string name="folders_sync_none">The folders will appear here after the first sync.</string>
+    <string name="settings_density">Display density</string>
+    <string name="settings_density_summary">Controls how much fits on screen in the side menu and the conversation list. Compact shows more but its rows are smaller than the recommended touch size.</string>
+    <string name="density_comfortable">Comfortable</string>
+    <string name="density_default">Default</string>
+    <string name="density_compact">Compact</string>
 </resources>
