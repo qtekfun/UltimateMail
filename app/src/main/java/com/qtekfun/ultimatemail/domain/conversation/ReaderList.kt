@@ -26,14 +26,15 @@ data class ReaderList(val scope: InboxScope, val unreadOnly: Boolean = false) {
 
         /** The list for a [key] made by [ReaderList.key]; null when it is not one. */
         fun fromKey(key: String?): ReaderList? {
-            if (key == null || key.length <= ALL_MARK.length) return null
-            val unread = when (key.take(ALL_MARK.length)) {
+            val unread = when (key?.take(ALL_MARK.length)) {
                 ALL_MARK -> false
                 UNREAD_MARK -> true
-                else -> return null
+                else -> null
             }
-            return InboxScope.fromKey(key.substring(ALL_MARK.length))
-                ?.let { ReaderList(it, unread) }
+            return unread?.let { flag ->
+                InboxScope.fromKey(key?.substring(ALL_MARK.length))
+                    ?.let { ReaderList(it, flag) }
+            }
         }
     }
 }
@@ -50,24 +51,35 @@ class ReaderNeighbours @Inject constructor(database: UltimateMailDatabase) {
     private val conversations = database.conversationDao()
 
     fun observe(ref: ConversationRef, list: ReaderList?): Flow<Neighbours> {
-        if (list == null) return flowOf(Neighbours())
-        val unread = if (list.unreadOnly) 1 else 0
-        val (newer, older) = when (val scope = list.scope) {
-            is InboxScope.Folder -> conversations.observeNewerInFolder(
-                scope.accountId, scope.path, ref.accountId, ref.folderPath, ref.threadId, unread
-            ) to conversations.observeOlderInFolder(
-                scope.accountId, scope.path, ref.accountId, ref.folderPath, ref.threadId, unread
-            )
+        val unread = if (list?.unreadOnly == true) 1 else 0
+        val pair = when (val scope = list?.scope) {
+            // A conversation of a folder list is in that folder; anything else is not ours.
+            is InboxScope.Folder ->
+                if (scope.accountId == ref.accountId && scope.path == ref.folderPath) {
+                    inFolder(ref, unread)
+                } else {
+                    null
+                }
 
-            InboxScope.Unified -> conversations.observeNewerInUnified(
-                ref.accountId, ref.folderPath, ref.threadId, unread
-            ) to conversations.observeOlderInUnified(
-                ref.accountId, ref.folderPath, ref.threadId, unread
-            )
+            InboxScope.Unified -> inUnified(ref, unread)
+
+            null -> null
         }
-        return combine(newer, older) { above, below ->
-            Neighbours(above?.toRef(), below?.toRef())
-        }.distinctUntilChanged()
+        return pair?.let { (newer, older) ->
+            combine(newer, older) { above, below ->
+                Neighbours(above?.toRef(), below?.toRef())
+            }.distinctUntilChanged()
+        } ?: flowOf(Neighbours())
+    }
+
+    private fun inFolder(ref: ConversationRef, unread: Int) = with(ref) {
+        conversations.observeNewerInFolder(accountId, folderPath, threadId, unread) to
+            conversations.observeOlderInFolder(accountId, folderPath, threadId, unread)
+    }
+
+    private fun inUnified(ref: ConversationRef, unread: Int) = with(ref) {
+        conversations.observeNewerInUnified(accountId, folderPath, threadId, unread) to
+            conversations.observeOlderInUnified(accountId, folderPath, threadId, unread)
     }
 
     private fun ConversationKey.toRef() = ConversationRef(accountId, folderPath, threadId)

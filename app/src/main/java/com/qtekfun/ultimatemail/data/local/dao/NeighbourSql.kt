@@ -3,15 +3,14 @@
 
 package com.qtekfun.ultimatemail.data.local.dao
 
-/** The key of a conversation: enough to open it. */
-data class ConversationKey(val accountId: Long, val folderPath: String, val threadId: String)
-
 /*
  * The previous and next conversation of a list, for the arrows of the reading screen. A
  * conversation sits in the list where its newest visible message sits, so the neighbour is the
  * nearest conversation by (sentAt, id) of that message, found with one indexed step instead of
- * loading the list. ANCHOR is that position for the conversation `:accountId`, `:folderPath`,
- * `:threadId`; when none of its messages is visible any more it is null and nothing matches.
+ * loading the list. A conversation opened from a folder list is in that folder, so the folder
+ * queries need no more than the conversation itself. ANCHOR is that position for the
+ * conversation `:accountId`, `:folderPath`, `:threadId`; when none of its messages is visible
+ * any more it is null and nothing matches.
  * Constants, so the query plan can be tested.
  */
 private const val ANCHOR = "(SELECT t.sentAt, t.id FROM message t INDEXED BY $THREAD_INDEX " +
@@ -28,7 +27,7 @@ private const val IS_UNREAD = "AND (:unreadOnly = 0 OR EXISTS (SELECT 1 FROM mes
 
 private const val NEIGHBOUR_SELECT = "SELECT m.accountId, m.folderPath, m.threadId FROM message m "
 
-private const val IN_FOLDER = "WHERE m.accountId = :listAccountId AND m.folderPath = :listFolder "
+private const val IN_FOLDER = "WHERE m.accountId = :accountId AND m.folderPath = :folderPath "
 
 private const val IN_UNIFIED = "JOIN folder f ON f.accountId = m.accountId " +
     "AND f.path = m.folderPath WHERE f.role = 'INBOX' "

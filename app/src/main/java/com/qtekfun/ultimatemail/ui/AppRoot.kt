@@ -109,7 +109,9 @@ fun AppRoot(
                     conversation,
                     list,
                     navigator::back,
-                    onOpen = { navigator.openConversation(it.accountId, it.folderPath, it.threadId) }
+                    onOpen = {
+                        navigator.openConversation(it.accountId, it.folderPath, it.threadId)
+                    }
                 )
             }
 
