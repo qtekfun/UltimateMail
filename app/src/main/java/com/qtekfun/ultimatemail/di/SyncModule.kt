@@ -3,7 +3,9 @@
 
 package com.qtekfun.ultimatemail.di
 
+import com.qtekfun.ultimatemail.sync.engine.LastSyncLog
 import com.qtekfun.ultimatemail.sync.engine.MailOperationExecutor
+import com.qtekfun.ultimatemail.sync.engine.PreferenceLastSyncLog
 import com.qtekfun.ultimatemail.sync.engine.SyncScheduler
 import com.qtekfun.ultimatemail.sync.engine.SyncStatus
 import com.qtekfun.ultimatemail.sync.engine.SyncStatusStore
@@ -23,6 +25,9 @@ abstract class SyncModule {
 
     @Binds
     abstract fun syncStatus(impl: SyncStatusStore): SyncStatus
+
+    @Binds
+    abstract fun lastSyncLog(impl: PreferenceLastSyncLog): LastSyncLog
 
     @Binds
     abstract fun syncScheduler(impl: WorkManagerSyncScheduler): SyncScheduler
