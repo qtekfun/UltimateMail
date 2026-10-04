@@ -71,16 +71,20 @@ internal class OperationMerger(private val dao: PendingOperationDao, private val
     ): Long =
         if (dao.replacePayload(earlier.id, operation.payload) > 0) earlier.id else insert(operation)
 
-    private suspend fun insert(operation: NewOperation): Long = dao.enqueue(
-        PendingOperationEntity(
-            accountId = operation.accountId,
-            type = operation.type,
-            folderPath = operation.folderPath,
-            uid = operation.uid,
-            payload = operation.payload,
-            createdAt = clock.instant()
+    private suspend fun insert(operation: NewOperation): Long {
+        val now = clock.instant()
+        return dao.enqueue(
+            PendingOperationEntity(
+                accountId = operation.accountId,
+                type = operation.type,
+                folderPath = operation.folderPath,
+                uid = operation.uid,
+                payload = operation.payload,
+                createdAt = now,
+                nextAttemptAt = now.plus(operation.holdFor)
+            )
         )
-    )
+    }
 
     private fun List<PendingOperationEntity>.lastOfType(type: OperationType) =
         lastOrNull { it.type == type }

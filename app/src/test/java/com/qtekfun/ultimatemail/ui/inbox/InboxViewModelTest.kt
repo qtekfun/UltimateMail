@@ -21,6 +21,7 @@ import com.qtekfun.ultimatemail.domain.inbox.InboxListing
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
 import com.qtekfun.ultimatemail.domain.inbox.RefreshTrigger
 import com.qtekfun.ultimatemail.ui.conversation.NoticeCenter
+import com.qtekfun.ultimatemail.ui.conversation.noticeCenter
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -67,7 +68,7 @@ class InboxViewModelTest {
         SettingsRepository(FakePreferenceStore()),
         RowActionRunner(
             ConversationBulkActions(db.messageDao(), mockk(relaxed = true)),
-            NoticeCenter(RecordingScheduler()),
+            noticeCenter(RecordingScheduler()),
             mockk(relaxed = true)
         )
     )

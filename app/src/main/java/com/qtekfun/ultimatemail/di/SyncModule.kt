@@ -9,7 +9,9 @@ import com.qtekfun.ultimatemail.sync.engine.PreferenceLastSyncLog
 import com.qtekfun.ultimatemail.sync.engine.SyncScheduler
 import com.qtekfun.ultimatemail.sync.engine.SyncStatus
 import com.qtekfun.ultimatemail.sync.engine.SyncStatusStore
+import com.qtekfun.ultimatemail.sync.queue.HeldOperations
 import com.qtekfun.ultimatemail.sync.queue.OperationExecutor
+import com.qtekfun.ultimatemail.sync.queue.OperationQueue
 import com.qtekfun.ultimatemail.sync.worker.WorkManagerSyncScheduler
 import dagger.Binds
 import dagger.Module
@@ -22,6 +24,9 @@ import dagger.hilt.components.SingletonComponent
 abstract class SyncModule {
     @Binds
     abstract fun operationExecutor(impl: MailOperationExecutor): OperationExecutor
+
+    @Binds
+    abstract fun heldOperations(impl: OperationQueue): HeldOperations
 
     @Binds
     abstract fun syncStatus(impl: SyncStatusStore): SyncStatus

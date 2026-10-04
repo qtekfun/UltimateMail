@@ -125,6 +125,7 @@ class ConcurrentChangesTest {
     fun `a move of a message the server deleted is dropped and announced`() = runTest {
         val h = start()
         h.actions().move(listOf(h.id("INBOX", 3)), "Archive")
+        h.undoWindowPasses()
         h.server.expunge("INBOX", 3)
 
         h.syncUntilDone()
@@ -139,6 +140,7 @@ class ConcurrentChangesTest {
         runTest {
             val h = start()
             h.actions().move(listOf(h.id("INBOX", 3)), "Archive")
+            h.undoWindowPasses()
             // The other client moves it to Archive first.
             val header = h.server.folder("INBOX").messages.getValue(3)
             h.server.expunge("INBOX", 3)
@@ -163,6 +165,7 @@ class ConcurrentChangesTest {
         h.server.folder("Other")
         h.engine.sync(h.accountId)
         h.actions().move(listOf(h.id("INBOX", 3)), "Archive")
+        h.undoWindowPasses()
         val header = h.server.folder("INBOX").messages.getValue(3)
         h.server.expunge("INBOX", 3)
         h.server.deliverWithBody("Other", "in-3", flags = header.flags)

@@ -124,7 +124,14 @@ class ConversationActions @Inject constructor(
             .filter { it.uid > 0 && it.folderPath != target }
         val inverse = moved.map { row ->
             queue.enqueue(
-                NewOperation(row.accountId, OperationType.MOVE, row.folderPath, row.uid, target)
+                NewOperation(
+                    row.accountId,
+                    OperationType.MOVE,
+                    row.folderPath,
+                    row.uid,
+                    target,
+                    holdFor = NewOperation.UNDO_HOLD
+                )
             )
             // Back to where it was: the folder it is in now.
             NewOperation(row.accountId, OperationType.MOVE, row.folderPath, row.uid, row.folderPath)

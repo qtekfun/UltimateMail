@@ -18,6 +18,7 @@ import com.qtekfun.ultimatemail.domain.conversation.ComposeRequest
 import com.qtekfun.ultimatemail.domain.mail.MailAddress
 import com.qtekfun.ultimatemail.ui.conversation.NoticeCenter
 import com.qtekfun.ultimatemail.ui.conversation.NoticeKind
+import com.qtekfun.ultimatemail.ui.conversation.noticeCenter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -60,7 +61,7 @@ class EntryAndListsTest {
     )
 
     private fun entryOf(h: ComposeHarness): Entry {
-        val notices = NoticeCenter(h.scheduler)
+        val notices = noticeCenter(h.scheduler)
         val entry = ComposeEntry()
         val vm = ComposeEntryViewModel(
             entry,
