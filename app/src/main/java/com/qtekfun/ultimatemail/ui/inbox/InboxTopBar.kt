@@ -38,6 +38,9 @@ private val MinTouchTarget = 48.dp
 /** Height of the large bar when it is expanded at the default font size. */
 private val ExpandedHeight = 152.dp
 
+/** How much of a font scale above 1 the expanded bar grows (the system scales big text down). */
+private const val FONT_GROWTH = 0.3f
+
 /** What the title of the list says: the mailbox, and a line under it. */
 internal class TitleInfo(val state: InboxState?, val syncLine: StateFlow<SyncLine>)
 
@@ -55,7 +58,8 @@ internal fun InboxTopBar(
 ) {
     // The expanded height is in dp, so it has to grow with a large font for the two lines to fit
     // (text grows less than the font scale: the system scales large sizes down).
-    val expanded = ExpandedHeight * (1f + (LocalDensity.current.fontScale - 1f).coerceAtLeast(0f) * 0.3f)
+    val extra = (LocalDensity.current.fontScale - 1f).coerceAtLeast(0f) * FONT_GROWTH
+    val expanded = ExpandedHeight * (1f + extra)
     LargeTopAppBar(
         title = { InboxTitle(scope, info, scrollBehavior) },
         navigationIcon = {

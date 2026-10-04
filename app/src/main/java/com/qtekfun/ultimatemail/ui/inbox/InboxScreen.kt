@@ -121,6 +121,11 @@ fun InboxScreen(
     val activity = LocalActivity.current
     LaunchedEffect(ready) { if (ready) activity?.reportFullyDrawn() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    // An empty list cannot be scrolled to bring the large title back, so it starts expanded.
+    val nothingToScroll = ready && state.conversations.isEmpty()
+    LaunchedEffect(nothingToScroll) {
+        if (nothingToScroll) scrollBehavior.state.heightOffset = 0f
+    }
     var barHeightPx by remember { mutableIntStateOf(0) }
     val selecting = ready && state.selection.active
     Scaffold(
