@@ -11,6 +11,7 @@ import com.qtekfun.ultimatemail.domain.compose.ComposeEngine
 import com.qtekfun.ultimatemail.domain.compose.ComposeState
 import com.qtekfun.ultimatemail.domain.compose.DraftListItem
 import com.qtekfun.ultimatemail.domain.conversation.ConversationRef
+import com.qtekfun.ultimatemail.ui.conversation.NoticeKind
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
@@ -45,15 +46,23 @@ class DraftsViewModel @Inject constructor(
     private val engine: ComposeEngine,
     private val messages: MessageDao,
     private val entry: ComposeEntry,
-    @IoDispatcher private val io: CoroutineDispatcher
+    @IoDispatcher private val io: CoroutineDispatcher,
+    private val swiped: SwipeDiscards
 ) : ViewModel() {
     private val account = MutableStateFlow<Long?>(null)
     private val confirming = MutableStateFlow<Long?>(null)
 
     val state: StateFlow<DraftsUiState> = combine(
         account.flatMapLatest { composeState.observeDrafts(it) },
-        confirming
-    ) { items, asking -> DraftsUiState(loaded = true, items = items, confirmingDelete = asking) }
+        confirming,
+        swiped.ids
+    ) { items, asking, hidden ->
+        DraftsUiState(
+            loaded = true,
+            items = items.filterNot { it is DraftListItem.Local && it.draft.id in hidden },
+            confirmingDelete = asking
+        )
+    }
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
@@ -87,6 +96,17 @@ class DraftsViewModel @Inject constructor(
         val id = confirming.value ?: return
         confirming.value = null
         viewModelScope.launch { engine.discard(id) }
+    }
+
+    /**
+     * A swipe on a draft: it leaves the list now and is thrown away (with its copy on the server,
+     * through the operation queue) when the Undo window ends. Undo only shows it again.
+     */
+    fun swipeDelete(draftId: Long) {
+        swiped.hide(draftId)
+        swiped.offerUndo(draftId, NoticeKind.DRAFT_DISCARDED) {
+            engine.discard(draftId, onlyEditing = true)
+        }
     }
 
     private companion object {

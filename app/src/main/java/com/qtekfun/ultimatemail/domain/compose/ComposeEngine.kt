@@ -182,11 +182,18 @@ class ComposeEngine @Inject constructor(
         }
     }
 
-    /** Throws the draft away: its row, its attachment files and any waiting server save. */
-    suspend fun discard(id: Long) {
-        val draft = repository.get(id) ?: return
+    /**
+     * Throws the draft away: its row, its attachment files, any waiting server save and (through
+     * the operation queue) its copy on the server. With [onlyEditing], a message that already
+     * went to the outbox is left alone (it is the send queue's business, see `OutboxActions`):
+     * the list swipe uses that. Returns whether a draft was thrown away.
+     */
+    suspend fun discard(id: Long, onlyEditing: Boolean = false): Boolean {
+        val draft = repository.get(id)?.takeIf { !onlyEditing || it.state == DraftState.EDITING }
+            ?: return false
         serverSync.forgetServerCopy(draft)
         repository.delete(id)
+        return true
     }
 
     companion object {

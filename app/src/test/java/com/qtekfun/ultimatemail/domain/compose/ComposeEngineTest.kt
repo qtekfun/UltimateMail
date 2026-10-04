@@ -310,6 +310,38 @@ class ComposeEngineTest {
     }
 
     @Test
+    fun `discarding a draft being written also queues the delete of its server copy`() = runTest {
+        val h = start()
+        val draft = h.writeTo("bob@example.test")
+        h.db.draftDao().markUploaded(draft.id, "<um-draft.k.1@example.test>", 0)
+        h.db.messageDao().upsert(
+            listOf(
+                message(h.accountId, 4, "Drafts")
+                    .copy(messageId = "<um-draft.k.1@example.test>")
+            )
+        )
+
+        assertTrue(h.engine.discard(draft.id, onlyEditing = true))
+
+        assertNull(h.repository.get(draft.id))
+        val queued = h.db.pendingOperationDao().all(h.accountId).single()
+        assertEquals(OperationType.DELETE, queued.type)
+        assertEquals("Drafts" to 4L, queued.folderPath to queued.uid)
+    }
+
+    @Test
+    fun `a message already in the outbox or gone is not discarded as a draft`() = runTest {
+        val h = start()
+        val draft = h.writeTo("bob@example.test")
+        h.send(draft.id)
+
+        assertFalse(h.engine.discard(draft.id, onlyEditing = true))
+        assertFalse(h.engine.discard(999, onlyEditing = true))
+
+        assertNotNull(h.repository.get(draft.id))
+    }
+
+    @Test
     fun `observing a draft follows its edits`() = runTest {
         val h = start()
         val draft = h.engine.newMessage(h.accountId)!!
