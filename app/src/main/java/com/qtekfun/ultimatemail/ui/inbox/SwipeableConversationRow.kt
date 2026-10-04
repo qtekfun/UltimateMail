@@ -151,11 +151,13 @@ private fun SwipeEffects(state: SwipeToDismissBoxState, swipe: SwipeRow) {
         // A row that comes back to the list (Undo) can get its saved "already swiped" state
         // back; that is not a new swipe, so it only has to return to its place.
         var first = true
-        snapshotFlow { state.currentValue }.collect { value ->
+        // settledValue, not currentValue: the latter flips while the release animation is still
+        // running, and a reset then is refused (the row stayed swiped away for good).
+        snapshotFlow { state.settledValue }.collect { value ->
             val restored = first && value != SwipeToDismissBoxValue.Settled
             first = false
             if (restored) {
-                state.reset()
+                state.springBack()
                 return@collect
             }
             val direction = when (value) {
@@ -164,7 +166,7 @@ private fun SwipeEffects(state: SwipeToDismissBoxState, swipe: SwipeRow) {
                 SwipeToDismissBoxValue.Settled -> null
             }
             // The row stays unless the action takes it out of the list: spring it back.
-            if (direction != null && !onSwipe(direction)) state.reset()
+            if (direction != null && !onSwipe(direction)) state.springBack()
         }
     }
     LaunchedEffect(state) {
@@ -174,9 +176,15 @@ private fun SwipeEffects(state: SwipeToDismissBoxState, swipe: SwipeRow) {
         }
     }
     LaunchedEffect(swipe.restoreToken) {
-        if (swipe.restoreToken > 0) state.reset()
+        if (swipe.restoreToken > 0) state.springBack()
     }
 }
+
+private suspend fun SwipeToDismissBoxState.springBack() = springBack(
+    isAway = { settledValue != SwipeToDismissBoxValue.Settled },
+    reset = { reset() },
+    snap = { snapTo(SwipeToDismissBoxValue.Settled) }
+)
 
 /** The colour and icon of the action being revealed. */
 @Composable

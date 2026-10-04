@@ -178,3 +178,11 @@ Decisiones tomadas por mí (a confirmar):
       (cambia cómo se listan las etiquetas). Son los dos pasos siguientes si la primera sincronización sigue lenta. Un
       fallo suelto al bajar el cuerpo de algún mensaje (`MimePartDataSource.getInputStream`) sigue ahí: afecta solo a ese
       mensaje, que se reintenta 3 veces y se salta.
+32. **Fila deslizada que se quedaba fuera (2026-10-04, PR #53).** Motivo: el usuario vio una fila de la bandeja
+    atascada con el fondo de color y sin volver, y yo la reproduje en el móvil con las cuentas de demostración: un
+    deslizamiento que no saca la fila de la lista (marcar leído/no leído, estrella) se quedaba fuera aunque la acción se
+    aplicaba. Causa: el efecto observaba `currentValue`, que cambia mientras la animación de soltar aún corre, y el
+    `reset()` que lanzaba entonces lo rechaza la animación en curso con una cancelación que no es la nuestra; esa
+    excepción cortaba el `collect` y la fila ya no se recuperaba hasta recomponerla (cambiar de filtro). Decidido por el
+    agente: observar `settledValue` (ya asentado) y volver con `springBack`, que reintenta si el reset se rechaza y como
+    último recurso coloca la fila con `snapTo`, sin tragarse la cancelación del propio efecto. Test de JVM de `springBack`.
