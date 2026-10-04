@@ -583,4 +583,15 @@
     <string name="inbox_bar_archive">Archive</string>
     <string name="inbox_bar_trash">Move to Trash</string>
     <string name="inbox_bar_move">Move</string>
+    <string name="settings_section_background">Background sync</string>
+    <string name="background_battery_off">Not allowed: Android may stop the sync or cut the network when the screen is off, and mail will arrive late. Tap to allow.</string>
+    <string name="background_allow">Allow</string>
+    <string name="background_all_ok">Everything looks fine: the sync can run with the screen off.</string>
+    <string name="background_vendor_title">%1$s phones close background apps aggressively</string>
+    <string name="background_vendor_steps">In the system settings open Battery for UltimateMail and allow background activity and autostart, and lock the app in the recents screen.</string>
+    <string name="background_open_app_settings">App settings</string>
+    <string name="battery_hint_title">Keep your mail syncing</string>
+    <string name="battery_hint_message">So mail keeps arriving with the screen off, Android has to exempt UltimateMail from battery optimisation. Without it the sync can be stopped and mail arrives late. You can change this later in Settings.</string>
+    <string name="battery_hint_allow">Allow</string>
+    <string name="battery_hint_later">Not now</string>
 </resources>
