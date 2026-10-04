@@ -52,6 +52,9 @@ class FolderTree private constructor(
         return shown
     }
 
+    /** True when [path] is a row of the tree (not a special folder shown above it). */
+    fun inTree(path: String): Boolean = path in byPath
+
     /** The paths of the rows above [path] in the tree, nearest first; empty for the others. */
     fun ancestorsOf(path: String): List<String> {
         val chain = ArrayList<String>()

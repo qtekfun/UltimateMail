@@ -17,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
@@ -67,9 +66,7 @@ import com.qtekfun.ultimatemail.ui.shell.MainShell
 import com.qtekfun.ultimatemail.ui.shell.NoAccountsScreen
 import com.qtekfun.ultimatemail.ui.shell.ShellActions
 import com.qtekfun.ultimatemail.ui.shell.ShellCompose
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 
 internal fun inboxActions(
     inbox: InboxViewModel,
@@ -102,18 +99,13 @@ internal fun inboxActions(
 internal fun drawerActions(
     drawer: DrawerViewModel,
     navigator: AppNavigator,
-    coroutines: CoroutineScope,
     show: (InboxScope) -> Unit
 ) = DrawerActions(
-    onSelectAccount = { id -> coroutines.launch { show(drawer.switchAccount(id)) } },
-    onAddAccount = { navigator.open(Screen.AddAccount) },
     onOpenUnified = { show(InboxScope.Unified) },
     onOpenFolder = { accountId, path -> show(InboxScope.Folder(accountId, path)) },
     onToggleFolder = drawer::toggleFolder,
+    onToggleSection = drawer::toggleSection,
     onRefresh = drawer::refresh,
-    onRequestRemoval = drawer::requestRemoval,
-    onDismissRemoval = drawer::dismissRemoval,
-    onConfirmRemoval = drawer::confirmRemoval,
     onOpenDestination = navigator::open,
     onReauthenticate = navigator::openReauth
 )

@@ -246,6 +246,35 @@ Decisiones tomadas por mí (a confirmar):
       fila sale desactivada. Esto cierra el punto abierto de la decisión 13. Los otros [Gmail]/... siguen sin ofrecerse.
     - Datos de demostración (debug): carpetas Drafts, Trash y Spam, y dos borradores locales por cuenta demo.
 
+35. **Menú de hamburguesa como pantalla de buzones de iOS (2026-10-04, fase 2 de `docs/ios-mail-design.md`).** Decidido
+    por el agente, siguiendo la sección "Buzones" del diseño. **Estructura:** arriba "Todas las bandejas" (con la suma
+    de no leídos) y la Bandeja de entrada de cada cuenta con su contador; con una sola cuenta es una sola fila
+    "Recibidos" (lo unificado y la bandeja serían la misma lista). Debajo, una tarjeta con los buzones especiales de la
+    cuenta activa en este orden: Destacados, Borradores, Enviados, Archivo, Todos los mensajes, Spam, Papelera, y
+    Bandeja de salida solo si hay algo pendiente. Luego una sección por cuenta, **plegada por defecto**, con sus carpetas
+    y etiquetas (el árbol de siempre con sus padres plegables); con muchas etiquetas el menú sigue corto porque una
+    sección cerrada no genera filas. Abajo, una línea de estado de sincronización (los mismos textos, con el botón de
+    sincronizar y el aviso "inicia sesión de nuevo") y Ajustes. Estilo: tarjetas redondeadas con separador con sangría,
+    icono en el color de acento, contador a la derecha en color secundario, títulos de sección en mayúsculas pequeñas;
+    todo con componentes de Material y sin recursos de Apple. La altura de fila sigue el ajuste de densidad (48 dp /
+    40 dp), los contadores tienen `contentDescription`, la fila abierta va marcada como seleccionada y los botones de
+    plegar dicen qué pliegan. **Buzones especiales de una sola cuenta:** la bandeja unificada solo tiene las Recibidos
+    de todas las cuentas, no hay carpeta unificada de Enviados, Papelera, etc., así que esa tarjeta es la de la cuenta
+    "activa", que es la última cuenta cuya carpeta se abrió (la primera al empezar). Con varias cuentas la tarjeta lleva
+    como título el correo de esa cuenta para que no haya dudas; para ver los de otra se abre su Recibidos (o cualquiera
+    de sus carpetas). Destacados solo sale si el servidor tiene una carpeta de ese tipo (Gmail); no hay un ámbito
+    "destacados" que valga para el resto. **Cuentas:** se quita el selector de cuenta del encabezado. *Quitar cuenta*
+    ya estaba también en Ajustes, Cuentas, la cuenta (se quita del menú); *Añadir cuenta* solo estaba en el selector, así
+    que ahora hay una fila "Añadir cuenta" al final de la sección Cuentas de Ajustes (y sigue el botón de la pantalla
+    sin cuentas). **Estado recordado:** `FolderExpansion` guarda también qué secciones están abiertas (con una clave
+    reservada que no puede ser una ruta, porque lleva un carácter NUL), y se salva igual que antes; abrir una carpeta
+    desde la lista (por ejemplo al restaurar) abre su sección y sus padres, pero abrir un buzón especial no abre la
+    sección. **Pruebas:** `MailboxMenuTest` (orden, contadores, secciones cerradas y abiertas, sin cuenta activa),
+    `FolderExpansionTest` y `DrawerViewModelTest` (cuenta activa, secciones, estado recordado). Se ajustaron los tests
+    de interfaz que abrían el selector de cuenta o buscaban una carpeta propia (no se pueden ejecutar en el móvil del
+    usuario). **No hecho:** buscador de etiquetas, botón Editar para elegir qué buzones se ven, VIP, y una línea de
+    estado por cuenta (la línea sigue la cuenta activa).
+
 36. **Fila de la lista al estilo de Mail de iOS (2026-10-04, fase 1 de `docs/ios-mail-design.md`).** Decidido por el
     agente. **Ajustes nuevos (globales, en Ajustes > Apariencia):** "Vista previa" (`PreviewLines`: ninguna, 1 a 5
     líneas, 2 por defecto; se guarda como el nombre del valor, como la densidad) y "Mostrar avatares" (apagado por
