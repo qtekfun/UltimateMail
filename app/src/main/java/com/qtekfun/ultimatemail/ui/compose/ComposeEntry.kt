@@ -23,6 +23,9 @@ sealed interface ComposeStart {
     /** An existing draft (the Drafts list, the outbox, or Undo). */
     data class Draft(val draftId: Long) : ComposeStart
 
+    /** A draft that is only in the server's Drafts folder, by the row id of its message. */
+    data class ServerDraft(val messageRowId: Long) : ComposeStart
+
     /** A message another app asked for (mailto, share). */
     data class Incoming(val incoming: IncomingCompose) : ComposeStart
 }
