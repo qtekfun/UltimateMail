@@ -79,6 +79,19 @@ class BodyDownloaderTest {
     }
 
     @Test
+    fun `a downloaded body leaves the start of its text as the snippet of the list`() = runTest {
+        val h = start()
+        h.deliver(1, body = MessageBody("Hello  Ana,\n\nlunch on Friday?", null, emptyList()))
+
+        h.engine.sync(h.accountId)
+
+        assertEquals(
+            "Hello Ana, lunch on Friday?",
+            h.messages.get(h.accountId, "INBOX", 1)!!.snippet
+        )
+    }
+
+    @Test
     fun `messages outside the offline window are not downloaded`() = runTest {
         val h = start()
         val recent = h.deliver(1)
