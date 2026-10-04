@@ -66,13 +66,27 @@ class DraftAttachments @Inject constructor(
         val draft = dao.get(draftId) ?: return@withContext AddAttachmentResult.DraftMissing
         if (draft.state != DraftState.EDITING) return@withContext AddAttachmentResult.NotEditable
         val info = source.describe(uri) ?: return@withContext AddAttachmentResult.Unreadable
+        store(draftId, info) { source.open(uri) }
+    }
+
+    /**
+     * Copies a stream into the draft: what [add] does once it knows what the file is. [open] is
+     * called once, only after the size check, and its stream is closed here.
+     */
+    internal suspend fun store(
+        draftId: Long,
+        info: SourceInfo,
+        open: () -> java.io.InputStream?
+    ): AddAttachmentResult = withContext(io) {
+        val draft = dao.get(draftId) ?: return@withContext AddAttachmentResult.DraftMissing
+        if (draft.state != DraftState.EDITING) return@withContext AddAttachmentResult.NotEditable
         val used = dao.attachmentBytes(draftId)
         val room = AttachmentLimits.MAX_BYTES - used
         if (info.size != null && info.size > room) {
             return@withContext AddAttachmentResult.TooLarge(AttachmentLimits.MAX_BYTES)
         }
         val name = AttachmentFileNames.safe(info.name, DEFAULT_NAME)
-        val stream = source.open(uri) ?: return@withContext AddAttachmentResult.Unreadable
+        val stream = open() ?: return@withContext AddAttachmentResult.Unreadable
         when (val stored = stream.use { files.write(draftId, name, it, room) }) {
             StoreResult.TooLarge -> AddAttachmentResult.TooLarge(AttachmentLimits.MAX_BYTES)
 

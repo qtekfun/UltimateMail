@@ -33,6 +33,12 @@ interface DraftDao {
     @Query("SELECT * FROM draft WHERE `key` = :key")
     suspend fun getByKey(key: String): DraftEntity?
 
+    /** The draft that remembers [serverMessageId] as its copy in the server's Drafts folder. */
+    @Query(
+        "SELECT * FROM draft WHERE accountId = :accountId AND serverMessageId = :serverMessageId"
+    )
+    suspend fun getByServerMessageId(accountId: Long, serverMessageId: String): DraftEntity?
+
     @Query(DRAFTS_BY_STATE_SQL)
     fun observeByState(accountId: Long, state: DraftState): Flow<List<DraftEntity>>
 
