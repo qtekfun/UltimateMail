@@ -1,9 +1,9 @@
 UltimateMail is a free-software mail client for any IMAP/SMTP account, inspired by iOS Mail and the Gmail app. It works offline first: what you see comes from a local database, and your changes are synced later by a queue that survives restarts.
 
-First version (0.1). It reads, writes, searches and syncs mail and has been used with Gmail. Sign-in with Microsoft and a review with TalkBack are not verified yet.
+First version (0.1). It reads, writes, searches and syncs mail and has been used with Gmail. A review with TalkBack has not been done yet.
 
 What it does:
-* Accounts: automatic server settings and connection test; password or app password; sign-in with Google or Microsoft using your own OAuth client; export and import accounts as an encrypted file (no mail inside).
+* Accounts: automatic server settings and connection test; password or app password (Gmail needs an app password); export and import accounts as an encrypted file (no mail inside).
 * Reading: conversations with safe HTML (remote content blocked by default, link destinations confirmed), attachments on demand, bodies kept for offline reading.
 * Writing: reply, reply all, forward with attachments, drafts, a send queue with undo that works offline, one signature per account.
 * Organising: swipe gestures you configure, quick selection, undo, a move and label picker with live search, Gmail labels.
