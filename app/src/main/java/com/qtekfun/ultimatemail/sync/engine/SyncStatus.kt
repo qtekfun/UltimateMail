@@ -43,19 +43,31 @@ interface SyncStatus {
     fun observe(accountId: Long): Flow<AccountSyncState>
 }
 
-/** The in-memory [SyncStatus]; the engine and the mail sessions write to it. */
+/**
+ * The [SyncStatus] of the process; the engine and the mail sessions write to it. The time of the
+ * last good sync also goes to [lastSync], and an account heard of for the first time since the
+ * app started is idle with that time.
+ */
 @Singleton
-class SyncStatusStore @Inject constructor() : SyncStatus {
+class SyncStatusStore @Inject constructor(private val lastSync: LastSyncLog) : SyncStatus {
+    /** A store that remembers nothing beyond the process. */
+    constructor() : this(LastSyncLog.None)
+
     private val current = MutableStateFlow<Map<Long, AccountSyncState>>(emptyMap())
 
     override val states: StateFlow<Map<Long, AccountSyncState>> = current.asStateFlow()
 
     override fun observe(accountId: Long): Flow<AccountSyncState> =
-        current.map { it[accountId] ?: AccountSyncState.Idle() }
+        current.map { it[accountId] ?: idle(accountId) }
 
-    fun get(accountId: Long): AccountSyncState = current.value[accountId] ?: AccountSyncState.Idle()
+    fun get(accountId: Long): AccountSyncState = current.value[accountId] ?: idle(accountId)
 
-    fun set(accountId: Long, state: AccountSyncState) = current.update { it + (accountId to state) }
+    fun set(accountId: Long, state: AccountSyncState) {
+        if (state is AccountSyncState.Idle) state.lastSyncedAt?.let { lastSync.put(accountId, it) }
+        current.update { it + (accountId to state) }
+    }
+
+    private fun idle(accountId: Long) = AccountSyncState.Idle(lastSync.get(accountId))
 
     fun remove(accountId: Long) = current.update { it - accountId }
 
