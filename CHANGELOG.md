@@ -64,7 +64,7 @@ with Gmail; some parts are not verified yet (see Known limitations).
   (about every 15 minutes) or when you open the app or pull to refresh.
 - The composer is plain text only; no PGP or S/MIME.
 - Microsoft sign-in has not been tried against a real account.
-- A review with TalkBack has not been done yet.
+- The app has not been reviewed with TalkBack by a person (touch targets, descriptions and font scaling are covered by code and tests).
 - The first sync of a mailbox with hundreds of labels takes a few minutes.
 
 [Unreleased]: https://github.com/qtekfun/UltimateMail/compare/v0.1.0...HEAD

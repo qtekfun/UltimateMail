@@ -86,7 +86,10 @@ warning and the exception are kept as they are.
 * Dynamic colour (wallpaper) schemes are produced by the system (Material You) and are not
   audited here.
 
-## Needs a human with TalkBack on the phone
+## Needs a human with TalkBack on the phone (skipped by decision, 2026-10-04)
+
+The maintainer does not use a screen reader and chose not to do this pass. The list below is kept
+for anyone who wants to do it.
 
 1. Inbox: swipe through three rows with TalkBack on. Each row must be read once ("unread, from
    ..., subject ..., N messages, attachment, starred"), then offer the actions (select,
