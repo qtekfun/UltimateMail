@@ -38,7 +38,9 @@ class FakeMailbox(val address: String, val password: String) {
         subject: String,
         sentAt: Instant,
         from: MailAddress = MailAddress("bob@example.com", "Bob"),
-        body: String = "Body of $subject"
+        body: String = "Body of $subject",
+        flags: MessageFlags = MessageFlags(),
+        hasAttachments: Boolean = false
     ): Long = synchronized(lock) {
         val folder = folder(path)
         val uid = folder.nextUid++
@@ -50,9 +52,9 @@ class FakeMailbox(val address: String, val password: String) {
             to = listOf(MailAddress(address)),
             cc = emptyList(),
             date = sentAt,
-            flags = MessageFlags(),
+            flags = flags,
             size = body.length.toLong(),
-            hasAttachments = false
+            hasAttachments = hasAttachments
         )
         folder.bodies[uid] = MessageBody(text = body, html = null, attachments = emptyList())
         uid

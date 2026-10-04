@@ -63,6 +63,13 @@ interface MessageDao {
         html: String?
     )
 
+    /** The preview the list shows under the subject; it comes with the body. */
+    @Query(
+        "UPDATE message SET snippet = :snippet " +
+            "WHERE accountId = :accountId AND folderPath = :folderPath AND uid = :uid"
+    )
+    suspend fun setSnippet(accountId: Long, folderPath: String, uid: Long, snippet: String)
+
     @Query(
         "DELETE FROM message WHERE accountId = :accountId AND folderPath = :folderPath " +
             "AND uid = :uid"
