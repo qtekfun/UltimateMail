@@ -1,0 +1,1 @@
+Sign-in with Google and Microsoft is hidden: add accounts with a password or an app password (Gmail needs an app password). Everything else is as in 0.1.0.

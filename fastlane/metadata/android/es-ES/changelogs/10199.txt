@@ -1,0 +1,1 @@
+El acceso con Google y Microsoft queda oculto: añade las cuentas con contraseña o contraseña de aplicación (Gmail necesita una contraseña de aplicación). Todo lo demás es igual que en la 0.1.0.
