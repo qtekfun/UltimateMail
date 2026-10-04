@@ -48,10 +48,7 @@ class MoveWithSearchUiTest : UiTestBase() {
 
         compose.onNode(row(lunch)).performTouchInput { longClick() }
         waitForText(plural(R.plurals.inbox_selection_count, 1, 1))
-        compose.onNodeWithContentDescription(text(R.string.inbox_selection_more)).performClick()
-        compose.onNode(
-            hasText(text(R.string.inbox_action_move)) and hasClickAction()
-        ).performClick()
+        compose.onNodeWithContentDescription(text(R.string.inbox_bar_move)).performClick()
 
         // The picker lists every folder at first.
         waitForText(text(R.string.picker_title_move))

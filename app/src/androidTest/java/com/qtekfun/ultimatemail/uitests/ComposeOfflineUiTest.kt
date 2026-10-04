@@ -44,7 +44,7 @@ class ComposeOfflineUiTest : UiTestBase() {
         launchApp()
         waitFor(hasContentDescription("Something to read", substring = true))
 
-        compose.onNode(hasText(text(R.string.compose_fab)) and hasClickAction()).performClick()
+        compose.onNodeWithContentDescription(text(R.string.compose_fab)).performClick()
         waitForText(text(R.string.compose_title_new))
         compose.onNode(hasSetTextAction() and hasContentDescription(text(R.string.composer_to)))
             .performTextInput(recipient)

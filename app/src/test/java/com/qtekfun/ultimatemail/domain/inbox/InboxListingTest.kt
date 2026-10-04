@@ -9,6 +9,7 @@ import com.qtekfun.ultimatemail.data.local.folder
 import com.qtekfun.ultimatemail.data.local.inMemoryDatabase
 import com.qtekfun.ultimatemail.data.local.message
 import com.qtekfun.ultimatemail.data.local.model.FolderRole
+import com.qtekfun.ultimatemail.sync.engine.SyncStatusStore
 import java.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -27,7 +28,7 @@ class InboxListingTest {
     @BeforeEach
     fun setUp() {
         db = inMemoryDatabase()
-        listing = InboxListing(db)
+        listing = InboxListing(db, SyncStatusStore())
     }
 
     @AfterEach

@@ -11,6 +11,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isPopup
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -44,7 +45,7 @@ class SignaturePerAccountUiTest : UiTestBase() {
     private fun inPopup(matcher: SemanticsMatcher) = matcher and hasAnyAncestor(isPopup())
 
     private fun startNewMessage() {
-        compose.onNode(hasText(text(R.string.compose_fab)) and hasClickAction()).performClick()
+        compose.onNodeWithContentDescription(text(R.string.compose_fab)).performClick()
         waitForText(text(R.string.compose_title_new))
     }
 

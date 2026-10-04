@@ -295,6 +295,40 @@ Decisiones tomadas por mí (a confirmar):
     mezclar con el significado de "destacado" del resto de la app; el azul de iOS no se aplica a más cosas que al
     punto (el ajuste de acento llega en otra fase); los ajustes nuevos no entran en la exportación de copias.
 
+37. **Pantalla de la lista al estilo de Mail de iOS (2026-10-04, fase 3 de `docs/ios-mail-design.md`).** Decidido por el
+    agente. **Barra superior:** `LargeTopAppBar` con `exitUntilCollapsedScrollBehavior` (el título grande se encoge al
+    desplazar); hamburguesa a la izquierda y texto **Editar** a la derecha; el icono de lupa se quita. Debajo del título
+    va un subtítulo pequeño que se desvanece al plegar: "Filtrado por: No leídos" si hay filtro y, si no, el progreso de
+    sincronización o "Actualizado 12:03". La línea sale de `SyncStatus` (misma fuente que el pie del menú) y se
+    calcula en `InboxListing.observeSync` + `InboxSyncLine`: en la unificada gana lo más urgente (iniciar sesión,
+    error, sincronización en curso) y, en reposo, la hora **más antigua** entre cuentas (la más honesta); si alguna
+    cuenta nunca sincronizó no se muestra hora. Va en un `StateFlow` aparte (`InboxViewModel.syncLine`), no dentro de
+    `InboxState`, para que el progreso de sincronización (frecuente) no reconstruya la lista. En la altura expandida
+    se suma el 30 % del exceso de escala de fuente para que quepan las dos líneas al 200 %. **Barra inferior flotante**
+    (`InboxBottomBar`): cápsula con `surfaceContainerHigh`, elevación tonal y sombra (sin desenfoque), por encima de la
+    barra de navegación (relleno del `Scaffold`) y del teclado (`imePadding`); es una capa sobre la lista (no el
+    `bottomBar` del `Scaffold`, que encogería la lista) y la lista deja un relleno inferior igual a la altura medida
+    de la barra para que la última fila se pueda alcanzar. `[filtro] [Buscar] [redactar]`: filtro = botón con menú
+    (Todos, No leídos, Destacados, Con adjuntos; icono relleno si hay filtro activo), campo falso de solo lectura que
+    abre la búsqueda a pantalla completa en el mismo ámbito que antes, y botón redondo de redactar con un icono propio
+    (hoja con lápiz, `BarIcons`, dibujado con trazos propios, sin recursos de Apple). Todos los botones tienen
+    `contentDescription` y 48 dp; con fuente grande el campo de búsqueda es lo que se encoge (el texto se recorta), y el
+    grupo de la barra tiene `traversalIndex` 1 para que TalkBack la recorra después de la lista. **Filtros:**
+    `InboxFilter` pasa a ALL, UNREAD, STARRED, ATTACHMENTS con `matches(item)`; se filtra en memoria como el filtro de
+    no leídos (con el mismo paginado automático `growWhileFilteredListIsShort`), así que no hay consulta nueva; el
+    estado vacío por filtro tiene su texto. Se quita el `FilterChip`. **Selección:** `Selection` gana `editing`:
+    **Editar** entra en el modo con 0 seleccionadas (y no sale al quitar la última marca; solo "Listo" o una acción), la
+    pulsación larga sigue como antes (salir al quitar la última). Arriba "Seleccionar todo", la cuenta (zona viva) y
+    "Listo" (con fuente >= 1,3 la cuenta baja a una segunda línea porque no caben tres cosas en una fila); abajo la
+    misma cápsula pasa a las acciones: Marcar (menú: leído/no leído y destacar/quitar, según `BulkAvailability`),
+    Mover, Archivar y Papelera, desactivadas sin selección. Se reutilizan `RowChange` y el selector de mover. **Se quita
+    el botón de redactar que se oculta al desplazar** (`FabScrollTracker`, `ComposeButtonScroll`, `ScreenReader.kt` y su
+    test) porque la barra siempre es visible y ya nadie los usa. **Gestos por defecto** (solo instalaciones nuevas; lo
+    guardado no cambia): derecha = marcar leído/no leído, izquierda = papelera. **Se pierde** el correo de la cuenta como
+    subtítulo del título en carpetas de una cuenta (el menú ya indica la cuenta). **No hecho / límites:** los tests de
+    interfaz Compose (androidTest) se actualizaron para el botón de redactar y el de mover pero no se pueden ejecutar
+    en el móvil del usuario; la barra no se oculta nunca (ni al leer, ni al desplazar). **Medidas** (PGEM10, compilación de producción con R8 firmada con la clave de depuración, más las actividades de demostración añadidas solo para medir; 50.000 conversaciones sembradas con `seed-bulk`; unificada): arranque en frío (`am start -W`, `TotalTime`, 10 veces, tras `compile -m speed`) 145-174 ms, mediana 155 ms (umbral 1.500 ms); 3 tandas de 30 gestos de desplazamiento (`gfxinfo`): 1,77 % / 1,77 % / 1,38 % de fotogramas lentos (umbral 5 %), p90 de 11 / 13 / 12 ms y p99 de 26 / 31 / 28 ms. La barra inferior no depende del desplazamiento (solo mide su altura una vez por cambio de tamaño) y el título grande lee `collapsedFraction` dentro de `graphicsLayer`; mientras el título colapsa el `Scaffold` vuelve a medir su contenido, que es el patrón estándar, y las medidas ya lo incluyen. Con la fuente al 200 % se revisó en el móvil la barra, el título y la selección (se corrigió que la cuenta de seleccionadas se rompía en vertical). Con el sistema en oscuro, colores dinámicos. No medido: TalkBack real, modo claro y AMOLED en el móvil, ni la sincronización en marcha durante el desplazamiento.
+
 38. **Barra de la pantalla de lectura al estilo de Mail de iOS (2026-10-04, fase 4 de `docs/ios-mail-design.md`).**
     Decidido por el agente. **Arriba:** flecha atrás con el nombre del buzón en pequeño (nombre localizado por rol, o el
     del servidor; recortado a 112 dp con puntos suspensivos; TalkBack lee "Volver a Bandeja de entrada" y la zona
