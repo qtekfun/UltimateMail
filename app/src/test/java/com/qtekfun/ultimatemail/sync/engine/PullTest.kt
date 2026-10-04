@@ -181,6 +181,8 @@ class PullTest {
             repeat(300) { server.deliver("INBOX", sentAt = clock.now.minus(Duration.ofDays(500))) }
             repeat(450) { server.deliver("INBOX", sentAt = clock.now.minus(Duration.ofDays(1))) }
         }
+        // A 30-day window is a single phase, so only the first pass reads the folder.
+        h.db.accountDao().update(h.db.accountDao().get(h.accountId)!!.copy(offlineWindowDays = 30))
 
         h.sync()
 
