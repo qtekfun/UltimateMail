@@ -29,6 +29,8 @@ class FakeAttachmentStorage : AttachmentStorage {
 
     override fun exists(path: String) = path in files
 
+    override fun open(path: String) = files[path]?.inputStream()
+
     override fun stored(accountId: Long) = files.keys.filter { it.startsWith("/files/$accountId/") }
         .map { StoredAttachment(it.substringAfterLast('/').toLong(), it) }
 

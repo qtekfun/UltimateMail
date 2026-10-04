@@ -186,3 +186,32 @@ Decisiones tomadas por mí (a confirmar):
     excepción cortaba el `collect` y la fila ya no se recuperaba hasta recomponerla (cambiar de filtro). Decidido por el
     agente: observar `settledValue` (ya asentado) y volver con `springBack`, que reintenta si el reset se rechaza y como
     último recurso coloca la fila con `snapTo`, sin tragarse la cancelación del propio efecto. Test de JVM de `springBack`.
+
+33. **Redactar: adjuntos al reenviar y borradores solo del servidor (2026-10-04, completa lo que la entrada 27 dejó
+    como "no hecho").** Decidido por el agente. **Reenviar:** `ForwardAttachments` copia los adjuntos del mensaje
+    original al almacenamiento de salida con el mismo camino que un archivo elegido por el usuario
+    (`DraftAttachments.store`), así que salen como chips, se pueden quitar y valen los mismos límites (aviso a 20 MiB,
+    rechazo a 25 MiB). Los que ya están en el móvil se copian; los que no, se bajan antes con `DownloadAttachment` (el
+    camino de siempre, que además los deja en el lector), con un tope de 30 s en total para que un móvil sin conexión o
+    una red lenta no impidan abrir el redactor. Lo que no llega, no cabe o se pasa del tiempo se omite y se avisa con
+    el aviso ya existente ("Algunos archivos no se pudieron adjuntar"); el redactor se abre igualmente. No se adjuntan
+    las partes `inline` (imágenes `cid:` del cuerpo): en texto plano no se verían. Responder no lleva adjuntos. Se
+    decidió bajar al abrir y no al enviar porque así el usuario ve y puede quitar lo que va a salir. El tamaño del
+    mensaje (codificado) no se usa para rechazar: manda el límite al copiar los bytes reales. **Borradores solo del
+    servidor:** tocar uno en Borradores ya no abre el lector: `ServerDraftImport` carga el texto (si no está en el
+    móvil lo baja; si no puede, no guarda nada y sale "No se pudo empezar el mensaje"), y crea un borrador local
+    editable con texto, destinatarios, Cc, asunto, In-Reply-To y References, que recuerda la copia del servidor en
+    `serverMessageId` (sin cambio de esquema; solo una consulta nueva del DAO). Una copia hecha por esta app
+    conserva su clave (un solo borrador para todos los dispositivos); una de otra app recibe clave nueva. Abrir la
+    misma copia dos veces da el mismo borrador. **Sin duplicados:** el ejecutor de `SAVE_DRAFT` y el de `SEND` ahora
+    también reconocen como copia del borrador la que coincide con `serverMessageId` (antes solo por clave en el
+    Message-ID), así que guardar reemplaza la copia original aunque la escribiera otra app y enviar la borra. Para
+    que solo abrir y cerrar no toque nada: el borrador importado tiene `revision = 1` (con 0 el redactor descartaría
+    "un borrador nuevo sin tocar" y encolaría el borrado de la copia del servidor) y el redactor, al salir sin tocar
+    nada de un borrador limpio, ya no fuerza la subida (`DraftServerSync.request` sigue igual). **No hecho / límites:**
+    Bcc de la copia del servidor no se recupera (Room no lo guarda); el borrador se abre como mensaje nuevo, aunque
+    conserve el hilo, así que al enviarlo no se marca el original como respondido ni reenviado; el texto es el plano
+    (o una lectura plana del HTML), de modo que un borrador con HTML de otra app pierde el formato al guardarlo; la
+    copia de otra app aparece unos instantes también en la lista hasta que el sync quita la fila vieja; un reenvío
+    de adjuntos grandes tarda en abrir el redactor hasta 30 s sin indicador de progreso; nada probado contra
+    servidores reales.
