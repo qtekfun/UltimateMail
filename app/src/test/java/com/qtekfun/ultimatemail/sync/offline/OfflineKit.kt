@@ -282,6 +282,12 @@ suspend fun EngineHarness.userActs() {
     actions.move(listOf(id("INBOX", 3)), "Archive")
     queue.enqueue(NewOperation(accountId, OperationType.DELETE, "INBOX", 4, ""))
     actions.markRead(id("Archive", 1))
+    undoWindowPasses()
+}
+
+/** The seconds in which the user could still undo a move are over, so the move may be sent. */
+fun EngineHarness.undoWindowPasses() {
+    clock.now = clock.now.plus(NewOperation.UNDO_HOLD)
 }
 
 /** The process dies right here: nothing after this call runs, no cleanup of the app's own. */

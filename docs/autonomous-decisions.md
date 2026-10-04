@@ -136,3 +136,13 @@ Decisiones tomadas por mí (a confirmar):
     - **No se migra el índice 5→6** (opcional): el FTS ya funciona y una migración sin necesidad real es riesgo.
     - Con la cuenta real del usuario en el móvil solo se hacen pruebas de lectura/navegación: no se envía correo, no se
       archiva ni se borra nada del servidor.
+29. **Deshacer un archivado fallaba (2026-10-04, PR #49).** Causa: el movimiento se encolaba al instante y el deshacer
+    solo lo cancelaba si seguía sin enviar; cualquier sincronización en marcha (la app sincroniza al abrir) lo enviaba
+    en los 10 s del aviso y entonces no había forma de cancelarlo. Decidido por el agente: los movimientos que se
+    pueden deshacer (lector, listas y selector de carpetas) se encolan retenidos 15 s (`NewOperation.holdFor`); al
+    acabar el aviso `NoticeCenter` los libera (`OperationQueue.releaseHeld`: solo los que nunca se intentaron) y pide la
+    sincronización; si la app muere antes, pasan solos a los 15 s. Las etiquetas y las marcas no cambian (su deshacer es
+    una operación inversa que funciona aunque ya se hubiera enviado). **Límite que sigue:** un movimiento ya enviado
+    (por ejemplo tras soltar el aviso y volver a abrirlo) no se puede deshacer desde la app, habría que conocer el UID
+    nuevo que le da el servidor (COPYUID); un correo archivado antes de este arreglo y cuyo deshacer falló está en
+    "Todos los mensajes" y hay que devolverlo a Recibidos a mano.

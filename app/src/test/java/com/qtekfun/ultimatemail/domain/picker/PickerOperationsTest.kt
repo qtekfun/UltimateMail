@@ -30,6 +30,10 @@ class PickerOperationsTest {
     private fun op(type: OperationType, folder: String, uid: Long, payload: String) =
         NewOperation(7, type, folder, uid, payload)
 
+    /** A move the user can still undo is held back (see `NewOperation.holdFor`). */
+    private fun held(type: OperationType, folder: String, uid: Long, payload: String) =
+        op(type, folder, uid, payload).copy(holdFor = NewOperation.UNDO_HOLD)
+
     @Test
     fun `a request needs messages`() {
         assertThrows(IllegalArgumentException::class.java) { PickerRequest(1, emptyList()) }
@@ -41,9 +45,9 @@ class PickerOperationsTest {
 
         assertEquals(
             listOf(
-                op(MOVE, "INBOX", 10, "Archive"),
-                op(MOVE, "INBOX", 11, "Archive"),
-                op(MOVE, "Sent", 3, "Archive")
+                held(MOVE, "INBOX", 10, "Archive"),
+                held(MOVE, "INBOX", 11, "Archive"),
+                held(MOVE, "Sent", 3, "Archive")
             ),
             result.operations
         )
@@ -71,7 +75,7 @@ class PickerOperationsTest {
         val result = PickerOperations.move(request, folders.byPath("Sent")!!)!!
 
         assertEquals(
-            listOf(op(MOVE, "INBOX", 10, "Sent"), op(MOVE, "INBOX", 11, "Sent")),
+            listOf(held(MOVE, "INBOX", 10, "Sent"), held(MOVE, "INBOX", 11, "Sent")),
             result.operations
         )
         assertEquals(2, result.messageCount)
@@ -285,9 +289,9 @@ class PickerOperationsTest {
 
         assertEquals(
             listOf(
-                op(MOVE, "INBOX", 10, "Archive"),
-                op(MOVE, "INBOX", 11, "Archive"),
-                op(MOVE, "Sent", 3, "Archive")
+                held(MOVE, "INBOX", 10, "Archive"),
+                held(MOVE, "INBOX", 11, "Archive"),
+                held(MOVE, "Sent", 3, "Archive")
             ),
             result.operations
         )

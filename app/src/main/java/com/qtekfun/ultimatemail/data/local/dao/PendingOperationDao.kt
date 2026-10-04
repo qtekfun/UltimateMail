@@ -48,6 +48,16 @@ interface PendingOperationDao {
     @Query("DELETE FROM pending_operation WHERE id = :id AND startedAt IS NULL")
     suspend fun deleteUnstarted(id: Long): Int
 
+    /**
+     * Makes due the operations that were only held back (never tried, not failed) so the sync
+     * that follows sends them.
+     */
+    @Query(
+        "UPDATE pending_operation SET nextAttemptAt = :now WHERE accountId = :accountId " +
+            "AND startedAt IS NULL AND attempts = 0 AND failed = 0 AND nextAttemptAt > :now"
+    )
+    suspend fun releaseHeld(accountId: Long, now: Instant)
+
     @Query("UPDATE pending_operation SET startedAt = :at WHERE id = :id")
     suspend fun markStarted(id: Long, at: Instant)
 

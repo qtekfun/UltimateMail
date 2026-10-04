@@ -69,7 +69,14 @@ object PickerOperations {
             accountId = request.accountId,
             outcome = outcome,
             messageCount = moving.size,
-            operations = moving.map { operation(request, OperationType.MOVE, it, path) },
+            operations = moving.map {
+                operation(
+                    request,
+                    OperationType.MOVE,
+                    it,
+                    path
+                ).copy(holdFor = NewOperation.UNDO_HOLD)
+            },
             // Moving back to where it came from: the queue cancels the move while it is waiting.
             inverse = moving.map { operation(request, OperationType.MOVE, it, it.folderPath) }
         )
