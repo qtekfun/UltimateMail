@@ -24,8 +24,10 @@ import com.qtekfun.ultimatemail.domain.mail.MailResult
 import com.qtekfun.ultimatemail.ui.conversation.NoticeCenter
 import com.qtekfun.ultimatemail.ui.conversation.NoticeKind
 import com.qtekfun.ultimatemail.ui.conversation.noticeCenter
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -58,6 +60,29 @@ class EntryAndListsTest {
         )
         return h
     }
+
+    /** What the list view models launch when an undo window ends; [settle] waits for it. */
+    private val appJob = Job()
+    private val appScope = CoroutineScope(Dispatchers.Unconfined + appJob)
+
+    private suspend fun settle() = appJob.children.toList().forEach { it.join() }
+
+    private fun draftsVm(
+        h: ComposeHarness,
+        entry: ComposeEntry = ComposeEntry(),
+        notices: NoticeCenter = noticeCenter(h.scheduler)
+    ) = DraftsViewModel(h.state, h.engine, entry, SwipeDiscards(notices, appScope))
+
+    private fun outboxVm(
+        h: ComposeHarness,
+        entry: ComposeEntry = ComposeEntry(),
+        notices: NoticeCenter = noticeCenter(h.scheduler)
+    ) = OutboxViewModel(
+        h.state,
+        h.actions,
+        entry,
+        SwipeDiscards(notices, appScope)
+    )
 
     private class Entry(
         val vm: ComposeEntryViewModel,
@@ -221,7 +246,7 @@ class EntryAndListsTest {
         val op = h.db.pendingOperationDao()
             .forDraft(h.accountId, draft.id, OperationType.SEND).single()
         val entry = ComposeEntry()
-        val vm = OutboxViewModel(h.state, h.actions, entry)
+        val vm = outboxVm(h, entry)
 
         vm.state.test {
             val waiting = expectMostRecentItem().rows.single()
@@ -249,7 +274,7 @@ class EntryAndListsTest {
         val op = h.db.pendingOperationDao()
             .forDraft(h.accountId, draft.id, OperationType.SEND).single()
         h.db.pendingOperationDao().markStarted(op.id, h.clock.instant())
-        val vm = OutboxViewModel(h.state, h.actions, ComposeEntry())
+        val vm = outboxVm(h)
 
         vm.state.test {
             skipItems(1)
@@ -274,7 +299,7 @@ class EntryAndListsTest {
         val op = h.db.pendingOperationDao()
             .forDraft(h.accountId, draft.id, OperationType.SEND).single()
         h.db.pendingOperationDao().markFailed(op.id, "server_rejected")
-        val vm = OutboxViewModel(h.state, h.actions, ComposeEntry())
+        val vm = outboxVm(h)
 
         vm.state.test {
             skipItems(1)
@@ -326,7 +351,7 @@ class EntryAndListsTest {
         val h = setUp()
         val a = h.writeTo("bob@example.test")
         val entry = ComposeEntry()
-        val vm = DraftsViewModel(h.state, h.engine, entry)
+        val vm = draftsVm(h, entry)
 
         vm.state.test {
             vm.show(h.accountId)
@@ -346,6 +371,208 @@ class EntryAndListsTest {
             assertTrue(expectMostRecentItem().items.isEmpty())
         }
         assertNull(h.repository.get(a.id))
+    }
+
+    @Test
+    fun `swiping a draft hides it at once but deletes nothing, and Undo shows it again`() =
+        runTest {
+            val h = setUp()
+            val a = h.writeTo("bob@example.test")
+            val notices = noticeCenter(h.scheduler)
+            val vm = draftsVm(h, notices = notices)
+
+            vm.state.test {
+                vm.show(h.accountId)
+                assertEquals(1, expectMostRecentItem().items.size)
+
+                vm.swipeDelete(a.id)
+                assertTrue(expectMostRecentItem().items.isEmpty())
+                val notice = notices.notice.value!!
+                assertEquals(NoticeKind.DRAFT_DISCARDED, notice.kind)
+                assertTrue(notice.undoable)
+                assertNotNull(h.repository.get(a.id))
+
+                notices.takeUndo(notice.id)!!.revert()
+                val back = expectMostRecentItem().items.single() as DraftListItem.Local
+                assertEquals(a.id, back.draft.id)
+            }
+            settle()
+            assertNotNull(h.repository.get(a.id))
+            assertTrue(h.db.pendingOperationDao().all(h.accountId).isEmpty())
+        }
+
+    @Test
+    fun `a swiped draft is deleted, with its server copy, when the undo window ends`() = runTest {
+        val h = setUp()
+        val a = h.writeTo("bob@example.test")
+        h.db.draftDao().markUploaded(a.id, "<um-draft.k.1@example.test>", 0)
+        h.db.messageDao().upsert(
+            listOf(
+                message(h.accountId, 4, "Drafts").copy(messageId = "<um-draft.k.1@example.test>")
+            )
+        )
+        val notices = noticeCenter(h.scheduler)
+        val vm = draftsVm(h, notices = notices)
+
+        vm.state.test {
+            vm.show(h.accountId)
+            skipItems(1)
+            vm.swipeDelete(a.id)
+            notices.commit(notices.notice.value!!.id)
+            settle()
+
+            assertNull(h.repository.get(a.id))
+            assertTrue(expectMostRecentItem().items.none { it is DraftListItem.Local })
+        }
+        val queued = h.db.pendingOperationDao().all(h.accountId).single()
+        assertEquals(OperationType.DELETE, queued.type)
+        assertEquals("Drafts" to 4L, queued.folderPath to queued.uid)
+    }
+
+    @Test
+    fun `swiping a second draft ends the window of the first, which is then deleted`() = runTest {
+        val h = setUp()
+        val a = h.writeTo("bob@example.test")
+        val b = h.writeTo("cy@example.test")
+        val vm = draftsVm(h)
+
+        vm.state.test {
+            vm.show(h.accountId)
+            skipItems(1)
+            vm.swipeDelete(a.id)
+            vm.swipeDelete(b.id)
+            settle()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertNull(h.repository.get(a.id))
+        assertNotNull(h.repository.get(b.id))
+    }
+
+    @Test
+    fun `a draft that went to the outbox during the window is not deleted by the swipe`() =
+        runTest {
+            val h = setUp()
+            val a = h.writeTo("bob@example.test")
+            val notices = noticeCenter(h.scheduler)
+            val vm = draftsVm(h, notices = notices)
+
+            vm.state.test {
+                vm.show(h.accountId)
+                skipItems(1)
+                vm.swipeDelete(a.id)
+                h.send(a.id)
+                notices.commit(notices.notice.value!!.id)
+                settle()
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            assertEquals(DraftState.OUTBOX, h.repository.get(a.id)!!.state)
+        }
+
+    private suspend fun ComposeHarness.failedSend(): Long {
+        val draft = writeTo("bob@example.test")
+        send(draft.id)
+        val op = db.pendingOperationDao().forDraft(accountId, draft.id, OperationType.SEND).single()
+        db.pendingOperationDao().markFailed(op.id, "server_rejected")
+        return draft.id
+    }
+
+    @Test
+    fun `swiping a failed outbox message discards it when the undo window ends`() = runTest {
+        val h = setUp()
+        val draftId = h.failedSend()
+        val notices = noticeCenter(h.scheduler)
+        val vm = outboxVm(h, notices = notices)
+
+        vm.state.test {
+            skipItems(1)
+            vm.swipeDiscard(draftId)
+            val notice = notices.notice.first { it != null }!!
+            assertEquals(NoticeKind.OUTBOX_DISCARDED, notice.kind)
+            assertTrue(expectMostRecentItem().rows.isEmpty())
+            assertNotNull(h.repository.get(draftId))
+
+            notices.commit(notice.id)
+            settle()
+            assertNull(h.repository.get(draftId))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `Undo on a swiped outbox message brings it back untouched`() = runTest {
+        val h = setUp()
+        val draftId = h.failedSend()
+        val notices = noticeCenter(h.scheduler)
+        val vm = outboxVm(h, notices = notices)
+
+        vm.state.test {
+            skipItems(1)
+            vm.swipeDiscard(draftId)
+            val notice = notices.notice.first { it != null }!!
+            assertTrue(expectMostRecentItem().rows.isEmpty())
+
+            notices.takeUndo(notice.id)!!.revert()
+            assertEquals(draftId, expectMostRecentItem().rows.single().draftId)
+            cancelAndIgnoreRemainingEvents()
+        }
+        settle()
+        val sends = h.db.pendingOperationDao().forDraft(h.accountId, draftId, OperationType.SEND)
+        assertEquals(1, sends.size)
+    }
+
+    @Test
+    fun `an outbox message that may have been sent cannot be swiped away`() = runTest {
+        val h = setUp()
+        val draft = h.writeTo("bob@example.test")
+        h.send(draft.id)
+        val op = h.db.pendingOperationDao()
+            .forDraft(h.accountId, draft.id, OperationType.SEND).single()
+        h.db.pendingOperationDao().markStarted(op.id, h.clock.instant())
+        val notices = noticeCenter(h.scheduler)
+        val vm = outboxVm(h, notices = notices)
+
+        vm.state.test {
+            skipItems(1)
+            vm.swipeDiscard(draft.id)
+
+            var now = awaitItem()
+            while (now.prompt == null || now.rows.isEmpty()) now = awaitItem()
+            assertEquals(OutboxPrompt.MaybeSent, now.prompt)
+            assertEquals(draft.id, now.rows.single().draftId)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertNull(notices.notice.value)
+        assertNotNull(h.repository.get(draft.id))
+    }
+
+    @Test
+    fun `an outbox message that went out during the undo window is not discarded`() = runTest {
+        val h = setUp()
+        val draftId = h.failedSend()
+        val notices = noticeCenter(h.scheduler)
+        val vm = outboxVm(h, notices = notices)
+
+        vm.state.test {
+            skipItems(1)
+            vm.swipeDiscard(draftId)
+            val notice = notices.notice.first { it != null }!!
+            val op = h.db.pendingOperationDao()
+                .forDraft(h.accountId, draftId, OperationType.SEND).single()
+            // The send was retried and handed to the server while the row was hidden.
+            h.db.pendingOperationDao().resetFailed(op.id, h.clock.instant())
+            h.db.pendingOperationDao().markStarted(op.id, h.clock.instant())
+            notices.commit(notice.id)
+            settle()
+
+            var now = awaitItem()
+            while (now.prompt == null || now.rows.isEmpty()) now = awaitItem()
+            assertEquals(OutboxPrompt.MaybeSent, now.prompt)
+            assertEquals(draftId, now.rows.single().draftId)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertNotNull(h.repository.get(draftId))
     }
 
     @Test
@@ -450,7 +677,7 @@ class EntryAndListsTest {
             )
         )
         val row = checkNotNull(h.db.messageDao().get(h.accountId, "Drafts", uid)).id
-        val vm = DraftsViewModel(h.state, h.engine, e.entry)
+        val vm = draftsVm(h, e.entry)
 
         e.vm.opened.test {
             val listed = ServerDraft(row, h.accountId, "Drafts", uid, "Plan", h.clock.instant())
