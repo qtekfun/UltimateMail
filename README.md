@@ -19,10 +19,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 *Resumen en español al final: [Español](#español).*
 
-> **Status: early development, not usable as a daily mail client yet.** There is no release and no
-> published APK. You can add an IMAP account with a password, sync folders and see the conversation
-> list; reading, composing, search, gestures and settings are still being built. See the
-> [status table](#status).
+> **Status: first version (0.1).** It reads, writes, searches and syncs mail for IMAP/SMTP accounts
+> and has been used with Gmail. Some parts are not verified yet (Microsoft sign-in, TalkBack), and
+> there are no push notifications. See the [status table](#status) and the
+> [changelog](CHANGELOG.md).
 
 ## What and why
 
@@ -48,32 +48,26 @@ choice, falls short in ways that matter every day:
 
 ## Status
 
-The roadmap is [PLAN.md](PLAN.md); the specification is [SPEC.md](SPEC.md). "Done" means it is
-implemented and covered by unit tests; most of it has not yet been tried against real Gmail or
-Microsoft 365 servers.
+The roadmap is [PLAN.md](PLAN.md); the specification is [SPEC.md](SPEC.md). The whole plan is
+implemented and covered by unit tests, and the instrumented UI tests pass on a phone. "Used" means
+tried against a real server by the maintainer.
 
 | Feature | Status |
 |---|---|
-| Add an account with a password or app password, with server autodetection and a connection test | Done |
-| Credentials encrypted with the Android Keystore; removing an account wipes its data | Done |
-| Google sign-in (OAuth2 with your own client ID) | Prototype: works on a real Gmail account from a debug-only screen; not yet part of the add-account flow |
-| Microsoft sign-in (OAuth2) | Planned |
-| IMAP/SMTP client (Angus Mail) | Done |
-| Folder and label list, special folders first | Done |
-| Operation queue (idempotent, backoff, persisted) and conflict rules | Done |
-| Sync engine (UIDVALIDITY/UIDNEXT/CONDSTORE, offline window, periodic sync, pull to refresh) | Done, not yet tested against real servers |
-| Threading (`X-GM-THRID` and References/subject) | Done |
-| Conversation list, paging, unified inbox, "pending sync" indicator | Done |
-| Safe HTML renderer (sanitizer and locked-down WebView, remote content blocked) | Done as a component and debug screen; not yet connected to a reading screen |
-| Per-account signature logic | Domain logic done; editor and UI pending |
-| Side drawer for folders and labels | Planned |
-| Reading a conversation, attachments | Planned |
-| Composing, drafts, send queue | Planned |
-| Gestures and multi-select with undo | Planned |
-| Move/label picker with live search | Planned |
-| Search (local and on the server) | Planned |
-| Settings (theme, language, gestures, offline policy) | Planned |
-| Accessibility and performance pass, UI tests | Planned |
+| Accounts: autodetection, password or app password, connection test, remove, export/import (encrypted) | Done, used with Gmail |
+| Google sign-in (OAuth2 with your own client ID) | Done, used with Gmail |
+| Microsoft sign-in (OAuth2 with your own client ID) | Done, **not tried** against a real account |
+| Credentials encrypted with the Android Keystore | Done |
+| Offline-first sync in phases, operation queue and conflict rules | Done, used with Gmail |
+| Conversation list, threads, unified inbox, mailboxes menu | Done |
+| Reading, safe HTML, attachments on demand, offline bodies | Done |
+| Writing: reply, forward with attachments, drafts, offline send queue with undo, signatures | Done (plain text only) |
+| Gestures, quick selection, undo, move/label picker with search | Done |
+| Search on the device and on the server | Done |
+| Settings: theme, density, previews, language, gestures, offline policy | Done |
+| iOS Mail inspired look | Done |
+| Accessibility (48 dp targets, descriptions, 200% font) | Done; **TalkBack review pending** |
+| Push notifications (IMAP IDLE), rich text, PGP/S-MIME | Not included |
 
 Out of scope for the first version: push with IMAP IDLE, snooze, PGP/S-MIME, aliases. See SPEC.md.
 
@@ -86,8 +80,8 @@ Out of scope for the first version: push with IMAP IDLE, snooze, PGP/S-MIME, ali
 
 | Provider | Sign-in |
 |---|---|
-| Gmail / Google Workspace | App password (needs 2-Step Verification), or Google OAuth2 with **your own** OAuth client (prototype) |
-| Outlook.com / Microsoft 365 | Planned (OAuth2). Works today only if the account allows app passwords |
+| Gmail / Google Workspace | App password (needs 2-Step Verification), or Google OAuth2 with **your own** OAuth client |
+| Outlook.com / Microsoft 365 | OAuth2 with **your own** client (not tried yet), or an app password where the account allows it |
 | Any IMAP/SMTP server (Dovecot, Fastmail, your own...) | Password, with TLS or STARTTLS; certificate authorities installed on the device are accepted |
 
 ## Building
