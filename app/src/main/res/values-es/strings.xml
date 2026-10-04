@@ -474,6 +474,8 @@
     <string name="notice_compose_failed">No se pudo empezar el mensaje.</string>
     <string name="notice_sending">Enviando…</string>
     <string name="notice_draft_saved">Borrador guardado</string>
+    <string name="notice_draft_discarded">Borrador descartado</string>
+    <string name="notice_outbox_discarded">Mensaje descartado</string>
     <string name="notice_send_failed">No se pudo enviar un mensaje. Mira la bandeja de salida.</string>
     <string name="notice_send_problem">No se pudo enviar el mensaje y se queda en Borradores.</string>
     <string name="notice_attachments_skipped">No se pudieron adjuntar algunos archivos.</string>

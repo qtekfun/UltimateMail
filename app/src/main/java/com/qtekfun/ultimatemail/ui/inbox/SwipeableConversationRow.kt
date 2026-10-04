@@ -180,7 +180,7 @@ private fun SwipeEffects(state: SwipeToDismissBoxState, swipe: SwipeRow) {
     }
 }
 
-private suspend fun SwipeToDismissBoxState.springBack() = springBack(
+internal suspend fun SwipeToDismissBoxState.springBack() = springBack(
     isAway = { settledValue != SwipeToDismissBoxValue.Settled },
     reset = { reset() },
     snap = { snapTo(SwipeToDismissBoxValue.Settled) }

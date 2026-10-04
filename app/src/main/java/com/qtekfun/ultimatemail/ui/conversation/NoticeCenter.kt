@@ -32,6 +32,12 @@ enum class NoticeKind {
     /** "Sending..." with Undo, held until its window ends (T18b). */
     SENDING,
     DRAFT_SAVED,
+
+    /** A draft swiped away from the Drafts list, with Undo until the window ends. */
+    DRAFT_DISCARDED,
+
+    /** A message swiped away from the Outbox, with Undo until the window ends. */
+    OUTBOX_DISCARDED,
     SEND_FAILED,
 
     /** A message could not be queued when its undo window ended; it stays in Drafts. */
