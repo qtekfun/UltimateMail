@@ -20,7 +20,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 *Resumen en español al final: [Español](#español).*
 
 > **Status: first version (0.1).** It reads, writes, searches and syncs mail for IMAP/SMTP accounts
-> and has been used with Gmail with an app password. TalkBack has not been reviewed yet, and there
+> and has been used with Gmail with an app password. TalkBack has not been reviewed, and there
 > are no push notifications. See the [status table](#status) and the
 > [changelog](CHANGELOG.md).
 
@@ -65,7 +65,7 @@ tried against a real server by the maintainer.
 | Search on the device and on the server | Done |
 | Settings: theme, density, previews, language, gestures, offline policy | Done |
 | iOS Mail inspired look | Done |
-| Accessibility (48 dp targets, descriptions, 200% font) | Done; **TalkBack review pending** |
+| Accessibility (48 dp targets, descriptions, 200% font) | Done by code and tests; **not reviewed with TalkBack** (skipped by decision) |
 | Push notifications (IMAP IDLE), rich text, PGP/S-MIME | Not included |
 
 Out of scope for the first version: push with IMAP IDLE, snooze, PGP/S-MIME, aliases. See SPEC.md.
@@ -143,7 +143,7 @@ Thunderbird para Android: interfaz anticuada, gestos lentos, problemas de sincro
 rendimiento, y ninguna búsqueda al mover un correo a una etiqueta.
 
 **Estado: primera versión (0.1).** Lee, escribe, busca y sincroniza correo IMAP/SMTP y se ha usado
-con Gmail con contraseña de aplicación. Falta revisar la accesibilidad con TalkBack y no hay
+con Gmail con contraseña de aplicación. No se ha revisado con TalkBack y no hay
 notificaciones push (ver la [tabla de estado](#status), el [changelog](CHANGELOG.md), `PLAN.md` y
 `SPEC.md`, estos últimos en español).
 
