@@ -245,3 +245,23 @@ Decisiones tomadas por mí (a confirmar):
       etiquetas (no se añaden con ADD_LABEL ni cuentan para Aplicar), y si todos los mensajes ya están en la Papelera esa
       fila sale desactivada. Esto cierra el punto abierto de la decisión 13. Los otros [Gmail]/... siguen sin ofrecerse.
     - Datos de demostración (debug): carpetas Drafts, Trash y Spam, y dos borradores locales por cuenta demo.
+
+36. **Fila de la lista al estilo de Mail de iOS (2026-10-04, fase 1 de `docs/ios-mail-design.md`).** Decidido por el
+    agente. **Ajustes nuevos (globales, en Ajustes > Apariencia):** "Vista previa" (`PreviewLines`: ninguna, 1 a 5
+    líneas, 2 por defecto; se guarda como el nombre del valor, como la densidad) y "Mostrar avatares" (apagado por
+    defecto). **Fila:** ranura inicial de ancho fijo (28 dp) con el punto de no leído (10 dp) o, en modo selección, el
+    círculo de selección (aro vacío o círculo con marca); así el texto de todas las filas queda alineado. Con avatares
+    encendidos el avatar va entre la ranura y el texto (antes la marca de selección lo sustituía; ahora la marca va
+    siempre en la ranura). Línea 1: remitente (negrita si no leído), número de mensajes y hora en color secundario (ya
+    no se tiñe de primario ni va en negrita); línea 2: asunto (seminegrita si no leído) con los iconos; después la
+    vista previa con `maxLines` del ajuste; etiquetas y marca de cuenta más pequeñas (`small` en `LabelChipRow`). El
+    relleno vertical y la altura mínima siguen saliendo de la densidad, sin añadir nada. El separador empieza en el
+    texto (32 dp, o 84 dp con avatares) en la bandeja y en la búsqueda. **Cómo llegan los ajustes a la fila:** un
+    `CompositionLocal` (`LocalRowAppearance`) que da `UltimateMailTheme`, igual que las métricas de densidad, para no
+    cambiar las firmas de las listas ni recomponer filas por separado. **Color del punto:** azul de iOS (#007AFF claro,
+    #0A84FF oscuro) si los colores dinámicos están apagados o el sistema no los tiene; con ellos, el primario del tema.
+    **TalkBack:** igual que antes; el extracto solo se lee si la vista previa no es "Ninguna" (`includeSnippet` en
+    `ConversationDescriber`). La fuente grande (dos líneas de remitente y asunto desde 1,5) no cambia. **No hecho:**
+    el icono de bandera sigue siendo la estrella existente (en el color ámbar actual, no el naranja de iOS) para no
+    mezclar con el significado de "destacado" del resto de la app; el azul de iOS no se aplica a más cosas que al
+    punto (el ajuste de acento llega en otra fase); los ajustes nuevos no entran en la exportación de copias.

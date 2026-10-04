@@ -60,12 +60,12 @@ import com.qtekfun.ultimatemail.ui.components.ConversationRow
 import com.qtekfun.ultimatemail.ui.components.rememberMessageTimeFormatter
 import com.qtekfun.ultimatemail.ui.components.rememberReduceMotion
 import com.qtekfun.ultimatemail.ui.drawer.displayName
+import com.qtekfun.ultimatemail.ui.theme.LocalRowAppearance
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 
 private val MinTouchTarget = 48.dp
-private val DividerIndent = 68.dp
 
 /** Items from the end at which the next page starts loading. */
 private const val PREFETCH_DISTANCE = 10
@@ -232,6 +232,7 @@ private fun Loading() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun InboxContent(state: InboxState, actions: InboxActions, onFabHidden: (Boolean) -> Unit) {
+    val indent = LocalRowAppearance.current.textIndent
     val listState = rememberInboxListState(state, actions)
     TrackFabVisibility(listState, onFabHidden)
     val refreshLabel = stringResource(R.string.inbox_refresh_action)
@@ -278,7 +279,7 @@ private fun InboxContent(state: InboxState, actions: InboxActions, onFabHidden: 
                         reduceMotion
                     )
                 )
-                HorizontalDivider(modifier = Modifier.padding(start = DividerIndent))
+                HorizontalDivider(modifier = Modifier.padding(start = indent))
             }
         }
     }

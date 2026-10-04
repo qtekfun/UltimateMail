@@ -4,6 +4,7 @@
 package com.qtekfun.ultimatemail.ui.settings
 
 import com.qtekfun.ultimatemail.data.settings.DisplayDensity
+import com.qtekfun.ultimatemail.data.settings.PreviewLines
 import com.qtekfun.ultimatemail.data.settings.RemoteContentPolicy
 import com.qtekfun.ultimatemail.data.settings.SwipeAction
 import com.qtekfun.ultimatemail.data.settings.ThemeMode
@@ -13,6 +14,8 @@ data class SettingsActions(
     val onBack: () -> Unit,
     val onThemeChange: (ThemeMode) -> Unit,
     val onDensityChange: (DisplayDensity) -> Unit,
+    val onPreviewLinesChange: (PreviewLines) -> Unit,
+    val onShowAvatarsChange: (Boolean) -> Unit,
     val onDynamicColorChange: (Boolean) -> Unit,
     val onAmoledChange: (Boolean) -> Unit,
     val onSwipeRightChange: (SwipeAction) -> Unit,

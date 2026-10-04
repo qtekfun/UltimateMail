@@ -62,11 +62,11 @@ import com.qtekfun.ultimatemail.domain.search.SearchScope
 import com.qtekfun.ultimatemail.domain.search.ServerSearchFailure
 import com.qtekfun.ultimatemail.ui.components.ConversationRow
 import com.qtekfun.ultimatemail.ui.components.rememberMessageTimeFormatter
+import com.qtekfun.ultimatemail.ui.theme.LocalRowAppearance
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 
 private val MinTouchTarget = 48.dp
-private val DividerIndent = 68.dp
 
 /** Lets the list reuse the composition of a row that scrolled out for the next one. */
 private const val ROW_TYPE = "conversation"
@@ -173,6 +173,7 @@ private fun SearchField(text: String, actions: SearchActions) {
 
 @Composable
 private fun SearchBody(state: SearchState, actions: SearchActions) {
+    val indent = LocalRowAppearance.current.textIndent
     val listState = rememberLazyListState()
     LoadMoreEffect(listState, state, actions.onLoadMore)
     val formatter = rememberMessageTimeFormatter()
@@ -202,7 +203,7 @@ private fun SearchBody(state: SearchState, actions: SearchActions) {
                 accountMarker = state.markers[item.accountId],
                 highlights = highlights
             )
-            HorizontalDivider(modifier = Modifier.padding(start = DividerIndent))
+            HorizontalDivider(modifier = Modifier.padding(start = indent))
         }
         if (state.canSearchServer) {
             item(key = "server") { ServerPart(state, actions) }
@@ -229,7 +230,7 @@ private fun SearchBody(state: SearchState, actions: SearchActions) {
                     highlights = highlights,
                     badge = onServer
                 )
-                HorizontalDivider(modifier = Modifier.padding(start = DividerIndent))
+                HorizontalDivider(modifier = Modifier.padding(start = indent))
             }
         }
     }

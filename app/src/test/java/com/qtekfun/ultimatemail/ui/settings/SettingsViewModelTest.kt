@@ -10,6 +10,7 @@ import com.qtekfun.ultimatemail.data.local.account
 import com.qtekfun.ultimatemail.data.local.inMemoryDatabase
 import com.qtekfun.ultimatemail.data.settings.AppSettings
 import com.qtekfun.ultimatemail.data.settings.FakePreferenceStore
+import com.qtekfun.ultimatemail.data.settings.PreviewLines
 import com.qtekfun.ultimatemail.data.settings.RemoteContentPolicy
 import com.qtekfun.ultimatemail.data.settings.SettingsRepository
 import com.qtekfun.ultimatemail.data.settings.SwipeAction
@@ -81,6 +82,8 @@ class SettingsViewModelTest {
             model.setTheme(ThemeMode.LIGHT)
             model.setDynamicColor(false)
             model.setAmoled(true)
+            model.setPreviewLines(PreviewLines.NONE)
+            model.setShowAvatars(true)
             model.setSwipeRight(SwipeAction.MOVE)
             model.setSwipeLeft(SwipeAction.TOGGLE_READ)
             model.setRemoteContent(RemoteContentPolicy.ASK)
@@ -95,6 +98,8 @@ class SettingsViewModelTest {
             assertEquals(ThemeMode.LIGHT, settings.theme)
             assertEquals(false, settings.dynamicColor)
             assertEquals(true, settings.amoled)
+            assertEquals(PreviewLines.NONE, settings.previewLines)
+            assertEquals(true, settings.showAvatars)
             assertEquals(SwipeAction.MOVE, settings.swipe.right)
             assertEquals(SwipeAction.TOGGLE_READ, settings.swipe.left)
             cancelAndIgnoreRemainingEvents()

@@ -32,15 +32,17 @@ class SettingsRepository @Inject constructor(private val store: PreferenceStore)
     fun current(): AppSettings {
         val defaults = AppSettings()
         return AppSettings(
-            theme = enumValue(KEY_THEME, defaults.theme),
+            theme = store.enumValue(KEY_THEME, defaults.theme),
             dynamicColor = store.getBoolean(KEY_DYNAMIC_COLOR, defaults.dynamicColor),
             amoled = store.getBoolean(KEY_AMOLED, defaults.amoled),
-            density = enumValue(KEY_DENSITY, defaults.density),
+            density = store.enumValue(KEY_DENSITY, defaults.density),
+            previewLines = store.enumValue(KEY_PREVIEW_LINES, defaults.previewLines),
+            showAvatars = store.getBoolean(KEY_SHOW_AVATARS, defaults.showAvatars),
             swipe = SwipeActions(
-                right = enumValue(KEY_SWIPE_RIGHT, defaults.swipe.right),
-                left = enumValue(KEY_SWIPE_LEFT, defaults.swipe.left)
+                right = store.enumValue(KEY_SWIPE_RIGHT, defaults.swipe.right),
+                left = store.enumValue(KEY_SWIPE_LEFT, defaults.swipe.left)
             ),
-            remoteContent = enumValue(KEY_REMOTE_CONTENT, defaults.remoteContent)
+            remoteContent = store.enumValue(KEY_REMOTE_CONTENT, defaults.remoteContent)
         )
     }
 
@@ -52,6 +54,10 @@ class SettingsRepository @Inject constructor(private val store: PreferenceStore)
 
     fun setDensity(density: DisplayDensity) = store.putString(KEY_DENSITY, density.name)
 
+    fun setPreviewLines(lines: PreviewLines) = store.putString(KEY_PREVIEW_LINES, lines.name)
+
+    fun setShowAvatars(enabled: Boolean) = store.putBoolean(KEY_SHOW_AVATARS, enabled)
+
     fun setSwipeRight(action: SwipeAction) = store.putString(KEY_SWIPE_RIGHT, action.name)
 
     fun setSwipeLeft(action: SwipeAction) = store.putString(KEY_SWIPE_LEFT, action.name)
@@ -59,18 +65,20 @@ class SettingsRepository @Inject constructor(private val store: PreferenceStore)
     fun setRemoteContent(policy: RemoteContentPolicy) =
         store.putString(KEY_REMOTE_CONTENT, policy.name)
 
-    private inline fun <reified T : Enum<T>> enumValue(key: String, default: T): T {
-        val stored = store.getString(key)
-        return enumValues<T>().firstOrNull { it.name == stored } ?: default
-    }
-
     private companion object {
         const val KEY_THEME = "theme"
         const val KEY_DYNAMIC_COLOR = "dynamic_color"
         const val KEY_AMOLED = "amoled"
         const val KEY_DENSITY = "density"
+        const val KEY_PREVIEW_LINES = "preview_lines"
+        const val KEY_SHOW_AVATARS = "show_avatars"
         const val KEY_SWIPE_RIGHT = "swipe_right"
         const val KEY_SWIPE_LEFT = "swipe_left"
         const val KEY_REMOTE_CONTENT = "remote_content"
     }
+}
+
+private inline fun <reified T : Enum<T>> PreferenceStore.enumValue(key: String, default: T): T {
+    val stored = getString(key)
+    return enumValues<T>().firstOrNull { it.name == stored } ?: default
 }
