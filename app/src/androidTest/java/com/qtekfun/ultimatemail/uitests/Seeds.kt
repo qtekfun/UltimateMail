@@ -49,12 +49,15 @@ fun UiTestBase.seedAccount(
     displayName: String,
     inboxSubjects: List<String> = emptyList(),
     signature: String = "",
-    credentials: Boolean = true
+    credentials: Boolean = true,
+    /** Runs on the server side before the first sync: more messages, with flags or attachments. */
+    onServer: FakeMailbox.() -> Unit = {}
 ): SeededAccount {
     val mailbox = world.mailbox(email, SEED_PASSWORD).withStandardFolders()
     inboxSubjects.forEachIndexed { index, subject ->
         mailbox.deliver(INBOX, subject, clock.instant().minus(Duration.ofHours(index + 1L)))
     }
+    mailbox.onServer()
     val id = runBlocking {
         val account = AccountEntity(
             email = email,
