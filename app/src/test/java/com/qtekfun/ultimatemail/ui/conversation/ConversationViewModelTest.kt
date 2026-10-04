@@ -29,6 +29,8 @@ import com.qtekfun.ultimatemail.sync.engine.BodyStore
 import com.qtekfun.ultimatemail.sync.engine.DownloadAttachment
 import com.qtekfun.ultimatemail.sync.engine.EngineHarness
 import com.qtekfun.ultimatemail.sync.engine.LoadMessageBody
+import com.qtekfun.ultimatemail.ui.inbox.MovePickerLauncher
+import com.qtekfun.ultimatemail.ui.inbox.MovePickerRequest
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -62,6 +64,8 @@ class ConversationViewModelTest {
         composed += request
         composeAvailable
     }
+    private val pickerRequests = mutableListOf<MovePickerRequest>()
+    private val movePicker = MovePickerLauncher { pickerRequests += it }
 
     @BeforeEach
     fun setUp() {
@@ -118,6 +122,7 @@ class ConversationViewModelTest {
             LoadMessageBody(h.messages, h.sessions, BodyStore(h.messages, h.db.attachmentDao())),
             DownloadAttachment(h.db.attachmentDao(), h.messages, h.sessions, storage),
             launcher,
+            movePicker,
             SettingsRepository(FakePreferenceStore()),
             noticeCenter(scheduler),
             Dispatchers.Unconfined
@@ -321,6 +326,21 @@ class ConversationViewModelTest {
         assertEquals(NoticeKind.DELETED, notice.kind)
         val moves = eventually { f.h.operations.all(f.h.accountId).takeIf { it.size == 3 } }
         assertTrue(moves.all { it.payload == "Trash" })
+    }
+
+    @Test
+    fun `moving opens the folder picker for every message of the conversation`() = runTest {
+        val f = start(allRead = true)
+        f.open()
+
+        f.vm.moveTo()
+
+        val request = eventually { pickerRequests.singleOrNull() }
+        assertEquals(f.h.accountId, request.accountId)
+        val expected = f.h.messages.thread(f.h.accountId, "INBOX", f.ref.threadId)
+        assertEquals(expected.map { it.id }.toSet(), request.messages.map { it.id }.toSet())
+        assertTrue(request.messages.all { it.folderPath == "INBOX" && it.uid > 0 })
+        assertTrue(f.h.operations.all(f.h.accountId).isEmpty(), "the picker queues nothing itself")
     }
 
     @Test

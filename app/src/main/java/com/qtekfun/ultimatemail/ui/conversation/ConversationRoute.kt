@@ -70,6 +70,7 @@ fun ConversationRoute(
             onMarkUnread = viewModel::markUnread,
             onArchive = viewModel::archive,
             onDelete = viewModel::delete,
+            onMove = viewModel::moveTo,
             onCompose = viewModel::compose,
             onToggleMessage = viewModel::toggle,
             onToggleDetails = viewModel::toggleDetails,

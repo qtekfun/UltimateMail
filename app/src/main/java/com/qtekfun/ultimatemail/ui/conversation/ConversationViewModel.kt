@@ -23,6 +23,8 @@ import com.qtekfun.ultimatemail.sync.engine.DownloadAttachment
 import com.qtekfun.ultimatemail.sync.engine.DownloadResult
 import com.qtekfun.ultimatemail.sync.engine.LoadMessageBody
 import com.qtekfun.ultimatemail.sync.engine.SyncProblem
+import com.qtekfun.ultimatemail.ui.inbox.MovePickerLauncher
+import com.qtekfun.ultimatemail.ui.inbox.MovePickerRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
@@ -94,6 +96,7 @@ class ConversationViewModel @Inject constructor(
     private val loadMessageBody: LoadMessageBody,
     private val downloadAttachment: DownloadAttachment,
     private val composeLauncher: ComposeLauncher,
+    private val movePicker: MovePickerLauncher,
     settings: SettingsRepository,
     private val notices: NoticeCenter,
     @IoDispatcher private val io: CoroutineDispatcher
@@ -233,6 +236,16 @@ class ConversationViewModel @Inject constructor(
         val view = state.value.view ?: return
         val target = view.targets.archivePath.takeIf { view.targets.canArchive }
         moveAway(view, target, NoticeKind.ARCHIVED, NoticeKind.NO_ARCHIVE_FOLDER)
+    }
+
+    /** Opens the folder/label picker for every message of the conversation. */
+    fun moveTo() {
+        val view = state.value.view ?: return
+        val accountId = ref.value?.accountId ?: return
+        viewModelScope.launch {
+            val handles = reader.handlesOf(view.messages.map { it.id })
+            if (handles.isNotEmpty()) movePicker.open(MovePickerRequest(accountId, handles))
+        }
     }
 
     fun delete() {

@@ -324,6 +324,7 @@
     </plurals>
     <string name="notice_move_soon">Mover a una carpeta estará disponible pronto.</string>
     <string name="inbox_action_mark_read">Marcar como leído</string>
+    <string name="conversation_more">Más acciones</string>
     <string name="inbox_action_move">Mover a…</string>
     <string name="inbox_select">Seleccionar</string>
     <string name="inbox_deselect">Quitar de la selección</string>
