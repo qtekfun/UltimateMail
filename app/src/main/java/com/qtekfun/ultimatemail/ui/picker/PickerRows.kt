@@ -176,7 +176,8 @@ private fun RowScope.EntryContent(entry: PickerListItem.Entry, path: String?, la
     }
 }
 
-private val CheckboxWidth = 48.dp
+/** The width of a checkbox without its own touch target (the row is the touch target). */
+private val CheckboxWidth = 24.dp
 
 /** Trash and Spam stay selectable but look different: moving there is a deliberate act. */
 @Composable
