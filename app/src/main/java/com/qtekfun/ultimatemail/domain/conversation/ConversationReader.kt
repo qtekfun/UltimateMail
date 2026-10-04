@@ -7,6 +7,7 @@ import com.qtekfun.ultimatemail.data.local.UltimateMailDatabase
 import com.qtekfun.ultimatemail.data.local.entity.AttachmentEntity
 import com.qtekfun.ultimatemail.data.local.entity.FolderEntity
 import com.qtekfun.ultimatemail.data.local.entity.MessageEntity
+import com.qtekfun.ultimatemail.domain.inbox.MessageHandle
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -37,6 +38,11 @@ class ConversationReader @Inject constructor(database: UltimateMailDatabase) {
     private val attachments = database.attachmentDao()
     private val folders = database.folderDao()
     private val accounts = database.accountDao()
+
+    /** The messages [messageIds] as the folder picker names them, skipping ones that are gone. */
+    suspend fun handlesOf(messageIds: List<Long>): List<MessageHandle> =
+        messageIds.mapNotNull { messages.getById(it) }
+            .map { MessageHandle(it.id, it.accountId, it.folderPath, it.uid) }
 
     /** Re-emits whenever the messages, their attachments or the account's folders change. */
     fun observe(ref: ConversationRef): Flow<ConversationData> =

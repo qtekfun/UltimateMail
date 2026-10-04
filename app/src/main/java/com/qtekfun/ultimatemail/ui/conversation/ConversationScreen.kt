@@ -20,8 +20,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -33,6 +36,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -59,6 +66,7 @@ data class ConversationScreenActions(
     val onMarkUnread: () -> Unit,
     val onArchive: () -> Unit,
     val onDelete: () -> Unit,
+    val onMove: () -> Unit,
     val onCompose: (ComposeMode) -> Unit,
     val onToggleMessage: (Long) -> Unit,
     val onToggleDetails: (Long) -> Unit,
@@ -149,6 +157,28 @@ private fun ToolbarActions(view: ConversationView, actions: ConversationScreenAc
                 contentDescription = stringResource(R.string.conversation_delete)
             )
         }
+    }
+    MoreMenu(actions.onMove)
+}
+
+/** The rarer actions of the conversation; for now, moving it (or labelling it on Gmail). */
+@Composable
+private fun MoreMenu(onMove: () -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    IconButton(onClick = { open = true }, modifier = Modifier.heightIn(min = MinTouchTarget)) {
+        Icon(
+            Icons.Filled.MoreVert,
+            contentDescription = stringResource(R.string.conversation_more)
+        )
+    }
+    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.inbox_action_move)) },
+            onClick = {
+                open = false
+                onMove()
+            }
+        )
     }
 }
 
