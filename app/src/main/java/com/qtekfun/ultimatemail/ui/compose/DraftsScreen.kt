@@ -45,6 +45,7 @@ import com.qtekfun.ultimatemail.R
 import com.qtekfun.ultimatemail.domain.compose.DraftListItem
 import com.qtekfun.ultimatemail.domain.compose.ServerDraft
 import com.qtekfun.ultimatemail.domain.mail.MailAddress
+import com.qtekfun.ultimatemail.ui.components.SwipeToDeleteRow
 import com.qtekfun.ultimatemail.ui.components.rememberMessageTimeFormatter
 
 private val MinTouchTarget = 48.dp
@@ -56,13 +57,15 @@ data class DraftsActions(
     val onOpenServerDraft: (ServerDraft) -> Unit,
     val onRequestDelete: (Long) -> Unit,
     val onDismissDelete: () -> Unit,
-    val onConfirmDelete: () -> Unit
+    val onConfirmDelete: () -> Unit,
+    /** A local draft was swiped away: it is hidden and can be brought back with Undo. */
+    val onSwipeDelete: (Long) -> Unit
 )
 
 /**
  * The Drafts folder as the side menu shows it (RF-07): the drafts written on this device and the
  * copies saved on the server. Tapping a local draft opens the composer on it; its overflow menu
- * deletes it, after asking.
+ * deletes it, after asking, and swiping it away deletes it with an Undo.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,16 +113,18 @@ private fun DraftList(state: DraftsUiState, actions: DraftsActions) {
             when (item) {
                 is DraftListItem.Local -> {
                     val draft = item.draft
-                    DraftRow(
-                        subject = draft.subject,
-                        line = recipientsLine(
-                            draft.recipients.size,
-                            draft.recipients.firstOrNull()
-                        ),
-                        time = formatter.format(item.time),
-                        onClick = { actions.onOpen(draft.id) },
-                        onDelete = { actions.onRequestDelete(draft.id) }
-                    )
+                    SwipeToDeleteRow(onDelete = { actions.onSwipeDelete(draft.id) }) {
+                        DraftRow(
+                            subject = draft.subject,
+                            line = recipientsLine(
+                                draft.recipients.size,
+                                draft.recipients.firstOrNull()
+                            ),
+                            time = formatter.format(item.time),
+                            onClick = { actions.onOpen(draft.id) },
+                            onDelete = { actions.onRequestDelete(draft.id) }
+                        )
+                    }
                 }
 
                 is DraftListItem.OnServer -> DraftRow(

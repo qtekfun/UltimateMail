@@ -4,8 +4,12 @@
 package com.qtekfun.ultimatemail.ui.settings
 
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import com.qtekfun.ultimatemail.R
 import com.qtekfun.ultimatemail.data.settings.DisplayDensity
+import com.qtekfun.ultimatemail.data.settings.PreviewLines
 import com.qtekfun.ultimatemail.data.settings.RemoteContentPolicy
 import com.qtekfun.ultimatemail.data.settings.SwipeAction
 import com.qtekfun.ultimatemail.data.settings.ThemeMode
@@ -56,4 +60,12 @@ internal fun DisplayDensity.label(): Int = when (this) {
     DisplayDensity.COMFORTABLE -> R.string.density_comfortable
     DisplayDensity.DEFAULT -> R.string.density_default
     DisplayDensity.COMPACT -> R.string.density_compact
+}
+
+/** The text of a preview option: "None" or "n lines". */
+@Composable
+internal fun PreviewLines.label(): String = if (this == PreviewLines.NONE) {
+    stringResource(R.string.preview_none)
+} else {
+    pluralStringResource(R.plurals.preview_lines, count, count)
 }

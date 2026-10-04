@@ -297,6 +297,8 @@ private fun SettingsRoute(settings: SettingsViewModel, navigator: AppNavigator) 
             onBack = { navigator.back() },
             onThemeChange = settings::setTheme,
             onDensityChange = settings::setDensity,
+            onPreviewLinesChange = settings::setPreviewLines,
+            onShowAvatarsChange = settings::setShowAvatars,
             onDynamicColorChange = settings::setDynamicColor,
             onAmoledChange = settings::setAmoled,
             onSwipeRightChange = settings::setSwipeRight,

@@ -39,6 +39,8 @@ private fun NoticeKind.messageRes(): Int = when (this) {
     NoticeKind.COMPOSE_FAILED -> R.string.notice_compose_failed
     NoticeKind.SENDING -> R.string.notice_sending
     NoticeKind.DRAFT_SAVED -> R.string.notice_draft_saved
+    NoticeKind.DRAFT_DISCARDED -> R.string.notice_draft_discarded
+    NoticeKind.OUTBOX_DISCARDED -> R.string.notice_outbox_discarded
     NoticeKind.SEND_FAILED -> R.string.notice_send_failed
     NoticeKind.SEND_PROBLEM -> R.string.notice_send_problem
     NoticeKind.ATTACHMENTS_SKIPPED -> R.string.notice_attachments_skipped

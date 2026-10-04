@@ -336,6 +336,15 @@
     <string name="density_comfortable">Comfortable</string>
     <string name="density_default">Default</string>
     <string name="density_compact">Compact</string>
+    <string name="settings_preview">Preview</string>
+    <string name="settings_preview_summary">How many lines of each message the list shows under the subject.</string>
+    <string name="preview_none">None</string>
+    <plurals name="preview_lines">
+        <item quantity="one">%d line</item>
+        <item quantity="other">%d lines</item>
+    </plurals>
+    <string name="settings_show_avatars">Show avatars</string>
+    <string name="settings_show_avatars_summary">Show the sender\'s initial in a colored circle on each row.</string>
     <string name="reauth_title">Sign in again</string>
     <string name="reauth_account_line">%1$s on %2$s</string>
     <string name="reauth_intro_password">The server no longer accepts the saved password. Enter the current one. Your messages and settings on this device are kept.</string>
@@ -467,6 +476,8 @@
     <string name="notice_compose_failed">Couldn\'t start the message.</string>
     <string name="notice_sending">Sending…</string>
     <string name="notice_draft_saved">Draft saved</string>
+    <string name="notice_draft_discarded">Draft discarded</string>
+    <string name="notice_outbox_discarded">Message discarded</string>
     <string name="notice_send_failed">A message could not be sent. Check the Outbox.</string>
     <string name="notice_send_problem">The message could not be sent and is kept in Drafts.</string>
     <string name="notice_attachments_skipped">Some files could not be attached.</string>
