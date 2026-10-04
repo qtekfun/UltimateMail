@@ -13,9 +13,9 @@ Repo: https://github.com/qtekfun/UltimateMail.git
 Binaries: https://github.com/qtekfun/UltimateMail/releases/download/v%v/UltimateMail-%v.apk
 
 Builds:
-  - versionName: 0.1.0
-    versionCode: 10099
-    commit: b6b87bde59041ceac6d27a7a6fe3ad4b5847bf28
+  - versionName: 0.1.1
+    versionCode: 10199
+    commit: f62cf8cbe7a79df0cf41acb993f96ea3511bff09
     subdir: app
     sudo:
       - apt-get update
@@ -28,5 +28,5 @@ AllowedAPKSigningKeys: a76a675ed41e33a3160c3a0bd326041ee6ac2a6d0339369d3979656b9
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+\.[0-9]+$
-CurrentVersion: 0.1.0
-CurrentVersionCode: 10099
+CurrentVersion: 0.1.1
+CurrentVersionCode: 10199
