@@ -16,10 +16,13 @@ import com.qtekfun.ultimatemail.data.settings.FakePreferenceStore
 import com.qtekfun.ultimatemail.data.settings.SettingsRepository
 import com.qtekfun.ultimatemail.domain.account.AccountListing
 import com.qtekfun.ultimatemail.domain.conversation.RecordingScheduler
+import com.qtekfun.ultimatemail.domain.folder.SyncLine
 import com.qtekfun.ultimatemail.domain.inbox.ConversationBulkActions
 import com.qtekfun.ultimatemail.domain.inbox.InboxListing
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
 import com.qtekfun.ultimatemail.domain.inbox.RefreshTrigger
+import com.qtekfun.ultimatemail.sync.engine.AccountSyncState
+import com.qtekfun.ultimatemail.sync.engine.SyncStatusStore
 import com.qtekfun.ultimatemail.ui.conversation.NoticeCenter
 import com.qtekfun.ultimatemail.ui.conversation.noticeCenter
 import io.mockk.mockk
@@ -43,6 +46,7 @@ class InboxViewModelTest {
     private lateinit var db: UltimateMailDatabase
     private val refreshed = mutableListOf<Long?>()
     private var refreshGate: CompletableDeferred<Unit>? = null
+    private val syncStatus = SyncStatusStore()
     private val trigger = RefreshTrigger { accountId ->
         refreshed += accountId
         refreshGate?.await()
@@ -61,7 +65,7 @@ class InboxViewModelTest {
     }
 
     private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) = InboxViewModel(
-        InboxListing(db),
+        InboxListing(db, syncStatus),
         AccountListing(db),
         trigger,
         saved,
@@ -342,6 +346,89 @@ class InboxViewModelTest {
             assertEquals(listOf("Subject 2"), state.conversations.map { it.subject })
             model.setFilter(InboxFilter.ALL)
             assertEquals(3, awaitState { it.filter == InboxFilter.ALL }.conversations.size)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `the starred and attachments filters keep only those conversations`() = runTest {
+        val id = accountWithInbox()
+        db.messageDao().upsert(
+            listOf(
+                message(id, 1, flagged = true),
+                message(id, 2, hasAttachments = true),
+                message(id, 3, flagged = true, hasAttachments = true),
+                message(id, 4)
+            )
+        )
+        val model = viewModel()
+
+        model.state.test {
+            model.show(InboxScope.Folder(id, "INBOX"))
+            awaitState { it.conversations.size == 4 }
+            model.setFilter(InboxFilter.STARRED)
+            val starred = awaitState { it.filter == InboxFilter.STARRED }
+            assertEquals(
+                setOf("Subject 1", "Subject 3"),
+                starred.conversations.map {
+                    it.subject
+                }.toSet()
+            )
+            model.setFilter(InboxFilter.ATTACHMENTS)
+            val attached = awaitState { it.filter == InboxFilter.ATTACHMENTS }
+            assertEquals(
+                setOf("Subject 2", "Subject 3"),
+                attached.conversations.map {
+                    it.subject
+                }.toSet()
+            )
+            assertEquals(4, attached.loadedCount)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a filter chosen from the bar survives a new view model on the same saved state`() =
+        runTest {
+            val saved = SavedStateHandle()
+            viewModel(saved).setFilter(InboxFilter.ATTACHMENTS)
+
+            viewModel(saved).state.test {
+                awaitState { it.filter == InboxFilter.ATTACHMENTS }
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `the sync line follows the sync state of the account shown`() = runTest {
+        val id = accountWithInbox()
+        val model = viewModel()
+        val at = java.time.Instant.parse("2026-10-04T12:03:00Z")
+
+        model.syncLine.test {
+            model.show(InboxScope.Folder(id, "INBOX"))
+            assertEquals(SyncLine.NeverSynced, awaitItem())
+            syncStatus.set(id, AccountSyncState.SyncingFolders(2, 9))
+            assertEquals(SyncLine.SyncingFolders(2, 9), awaitItem())
+            syncStatus.set(id, AccountSyncState.Idle(at))
+            assertEquals(SyncLine.LastSynced(at), awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `the unified sync line reports the oldest update of all the accounts`() = runTest {
+        val first = accountWithInbox()
+        val second = db.accountDao().insert(account(email = "second@example.test"))
+        val old = java.time.Instant.parse("2026-10-04T08:00:00Z")
+        val recent = java.time.Instant.parse("2026-10-04T12:00:00Z")
+        syncStatus.set(first, AccountSyncState.Idle(recent))
+        syncStatus.set(second, AccountSyncState.Idle(old))
+        val model = viewModel()
+
+        model.syncLine.test {
+            model.show(InboxScope.Unified)
+            assertEquals(SyncLine.LastSynced(old), expectMostRecentItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
