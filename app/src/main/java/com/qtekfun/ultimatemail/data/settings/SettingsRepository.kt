@@ -36,6 +36,8 @@ class SettingsRepository @Inject constructor(private val store: PreferenceStore)
             dynamicColor = store.getBoolean(KEY_DYNAMIC_COLOR, defaults.dynamicColor),
             amoled = store.getBoolean(KEY_AMOLED, defaults.amoled),
             density = enumValue(KEY_DENSITY, defaults.density),
+            previewLines = enumValue(KEY_PREVIEW_LINES, defaults.previewLines),
+            showAvatars = store.getBoolean(KEY_SHOW_AVATARS, defaults.showAvatars),
             swipe = SwipeActions(
                 right = enumValue(KEY_SWIPE_RIGHT, defaults.swipe.right),
                 left = enumValue(KEY_SWIPE_LEFT, defaults.swipe.left)
@@ -51,6 +53,10 @@ class SettingsRepository @Inject constructor(private val store: PreferenceStore)
     fun setAmoled(enabled: Boolean) = store.putBoolean(KEY_AMOLED, enabled)
 
     fun setDensity(density: DisplayDensity) = store.putString(KEY_DENSITY, density.name)
+
+    fun setPreviewLines(lines: PreviewLines) = store.putString(KEY_PREVIEW_LINES, lines.name)
+
+    fun setShowAvatars(enabled: Boolean) = store.putBoolean(KEY_SHOW_AVATARS, enabled)
 
     fun setSwipeRight(action: SwipeAction) = store.putString(KEY_SWIPE_RIGHT, action.name)
 
@@ -69,6 +75,8 @@ class SettingsRepository @Inject constructor(private val store: PreferenceStore)
         const val KEY_DYNAMIC_COLOR = "dynamic_color"
         const val KEY_AMOLED = "amoled"
         const val KEY_DENSITY = "density"
+        const val KEY_PREVIEW_LINES = "preview_lines"
+        const val KEY_SHOW_AVATARS = "show_avatars"
         const val KEY_SWIPE_RIGHT = "swipe_right"
         const val KEY_SWIPE_LEFT = "swipe_left"
         const val KEY_REMOTE_CONTENT = "remote_content"

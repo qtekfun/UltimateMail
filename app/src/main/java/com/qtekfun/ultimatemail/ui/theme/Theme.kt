@@ -80,7 +80,16 @@ fun UltimateMailTheme(settings: AppSettings = AppSettings(), content: @Composabl
         dynamicLight = if (dynamic) dynamicLightColorScheme(context) else null,
         dynamicDark = if (dynamic) dynamicDarkColorScheme(context) else null
     )
-    CompositionLocalProvider(LocalDensityMetrics provides settings.density.metrics()) {
+    val appearance = rowAppearanceFor(
+        settings = settings,
+        dark = isDarkTheme(settings, systemDark),
+        dynamicInUse = settings.dynamicColor && dynamic,
+        primary = colorScheme.primary
+    )
+    CompositionLocalProvider(
+        LocalDensityMetrics provides settings.density.metrics(),
+        LocalRowAppearance provides appearance
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = UltimateMailTypography,

@@ -86,6 +86,20 @@ class ConversationDescriberTest {
     }
 
     @Test
+    fun `the snippet is left out when the preview is not shown`() {
+        val withSnippet = item(snippet = "See you at one")
+
+        assertEquals(
+            "from Ana, Lunch, 12:30",
+            describer.describe(withSnippet, "12:30", includeSnippet = false)
+        )
+        assertEquals(
+            "from Ana, Lunch, 12:30, See you at one",
+            describer.describe(withSnippet, "12:30")
+        )
+    }
+
+    @Test
     fun `a single message does not say the message count`() {
         assertEquals("from Ana, Lunch, now", describer.describe(item(messageCount = 1), "now"))
     }

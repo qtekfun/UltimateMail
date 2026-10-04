@@ -24,13 +24,15 @@ interface DescriptionTexts {
 class ConversationDescriber(private val texts: DescriptionTexts) {
     /**
      * "Unread, from Ana, Lunch, 12:30, 3 messages, has attachment, ..., snippet". Parts that do
-     * not apply are left out; [time] is the already formatted time to speak.
+     * not apply are left out; [time] is the already formatted time to speak. The snippet is only
+     * read when [includeSnippet] is set, that is when the user has the preview on screen.
      */
     fun describe(
         item: ConversationItem,
         time: String,
         labels: LabelSummary = LabelSummary.EMPTY,
-        account: AccountMarker? = null
+        account: AccountMarker? = null,
+        includeSnippet: Boolean = true
     ): String = buildList {
         if (item.unread) add(texts.unread)
         add(texts.from(item.sender))
@@ -45,6 +47,6 @@ class ConversationDescriber(private val texts: DescriptionTexts) {
         }
         if (account != null) add(texts.account(account.name))
         if (item.pendingSync) add(texts.pendingSync)
-        if (item.snippet.isNotBlank()) add(item.snippet.trim())
+        if (includeSnippet && item.snippet.isNotBlank()) add(item.snippet.trim())
     }.joinToString(", ")
 }
