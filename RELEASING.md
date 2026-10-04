@@ -5,8 +5,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Releasing
 
-Nothing has been released yet: there is no tag, no signing key and no F-Droid submission. This
-file describes the process to follow for the first release.
+Version 0.1.0 was released on 2026-10-04 following this process (tag `v0.1.0`, signed APK on the
+GitHub Release). There is no F-Droid submission yet: see the F-Droid section.
 
 ## Versions
 
@@ -68,21 +68,19 @@ F-Droid builds without it, so the APKs would differ.
 
 `fdroid/com.qtekfun.ultimatemail.yml` is the app's metadata as it will be submitted to
 [fdroiddata](https://gitlab.com/fdroid/fdroiddata) (`metadata/com.qtekfun.ultimatemail.yml`). It is
-a draft: the build commit and the signing certificate fingerprint are placeholders (`REPLACE_...`)
-because there is no tag or key yet. To submit it:
+ready for 0.1.0: `commit` is the full SHA of the `v0.1.0` tag and `AllowedAPKSigningKeys` the
+fingerprint of the release certificate. To submit it:
 
-1. Make the first release as above.
-2. Replace `commit` with the full SHA of the tag (`git rev-list -n 1 vX.Y.Z`) and
-   `AllowedAPKSigningKeys` with the fingerprint from the signing step; check `versionName`,
-   `versionCode`, `CurrentVersion` and `CurrentVersionCode`.
-3. Delete the comment lines at the top (fdroiddata's tools remove comments) and open a merge
-   request against fdroiddata, then follow its review.
+1. Open a merge request against fdroiddata adding this file as
+   `metadata/com.qtekfun.ultimatemail.yml`, then follow its review. F-Droid's own update checks
+   (`UpdateCheckMode: Tags`) add later versions by themselves once the first one is accepted.
+2. Before each later version is picked up, check `versionName`, `versionCode`, `CurrentVersion` and
+   `CurrentVersionCode` if you edit the file by hand.
 
 F-Droid builds each tagged version with JDK 21, like CI, checks that its APK matches ours
 (`Binaries`, `AllowedAPKSigningKeys`) and then publishes ours.
 
-Store texts and images come from `fastlane/metadata/android/`; what is still missing there (screenshots)
-is listed in its `README.md`.
+Store texts and images come from `fastlane/metadata/android/` (three screenshots per language).
 
 ## Reproducible build checklist
 
