@@ -3,6 +3,8 @@
 
 package com.qtekfun.ultimatemail.uitests
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertTextContains
@@ -11,6 +13,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isPopup
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -41,6 +44,10 @@ class SignaturePerAccountUiTest : UiTestBase() {
 
     private fun bodyWith(fragment: String) =
         hasSetTextAction() and hasText(fragment, substring = true)
+
+    /** The Inbox row of an account in the Mailboxes menu: the one with the tab role. */
+    private val isInboxRow =
+        SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
 
     private fun inPopup(matcher: SemanticsMatcher) = matcher and hasAnyAncestor(isPopup())
 
@@ -101,7 +108,8 @@ class SignaturePerAccountUiTest : UiTestBase() {
 
         // The second account's Inbox is opened from the menu: now its signature is the one inserted.
         openDrawer()
-        compose.onNode(hasText(bea) and hasClickAction()).performClick()
+        // The Inbox row is above the account's section header, which has the same text.
+        compose.onAllNodes(hasText(bea) and isInboxRow).onFirst().performClick()
         startNewMessage()
         waitFor(bodyWith(beaSignature))
         compose.onNode(hasText(text(R.string.composer_from)) and hasClickAction())

@@ -19,8 +19,8 @@ import org.junit.runner.RunWith
 
 /**
  * Settings (RF-11): changing the display density changes the height of the rows of the side menu.
- * The sizes asserted are the ones of `DisplayDensity.metrics()`: 48dp by default, 56dp
- * comfortable, 40dp compact.
+ * The sizes asserted are the ones of `DisplayDensity.metrics()`: 48dp by default, 52dp
+ * comfortable, 38dp compact.
  */
 @OptIn(ExperimentalTestApi::class)
 @HiltAndroidTest
@@ -64,7 +64,7 @@ class DensitySettingUiTest : UiTestBase() {
 
     private companion object {
         const val DEFAULT_HEIGHT = 48
-        const val COMFORTABLE_HEIGHT = 56
-        const val COMPACT_HEIGHT = 40
+        const val COMFORTABLE_HEIGHT = 52
+        const val COMPACT_HEIGHT = 38
     }
 }
