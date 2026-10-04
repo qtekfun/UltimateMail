@@ -24,9 +24,9 @@ data class DensityMetrics(
 
 /** The metrics of each density level, from roomiest to tightest. */
 fun DisplayDensity.metrics(): DensityMetrics = when (this) {
-    DisplayDensity.COMFORTABLE -> DensityMetrics(56.dp, 12.dp, 80.dp)
-    DisplayDensity.DEFAULT -> DensityMetrics(48.dp, 8.dp, 68.dp)
-    DisplayDensity.COMPACT -> DensityMetrics(40.dp, 4.dp, 56.dp)
+    DisplayDensity.COMFORTABLE -> DensityMetrics(52.dp, 10.dp, 72.dp)
+    DisplayDensity.DEFAULT -> DensityMetrics(48.dp, 6.dp, 60.dp)
+    DisplayDensity.COMPACT -> DensityMetrics(38.dp, 3.dp, 52.dp)
 }
 
 /** The metrics of the current density, provided by [UltimateMailTheme]. */
