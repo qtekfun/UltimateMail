@@ -178,11 +178,11 @@ class MoveLabelPickerViewModel(
     fun onDestinationClick(folder: PickerFolder) {
         val now = current ?: return
         if (!folder.enabled || progress.value.first) return
-        when (now.mode) {
-            PickerMode.FOLDERS ->
+        when {
+            now.mode == PickerMode.FOLDERS || folder.moveTarget ->
                 finish(PickerOperations.move(request, folder), listOf(folder.path))
 
-            PickerMode.LABELS -> selection.update { it.toggle(folder.value) }
+            else -> selection.update { it.toggle(folder.value) }
         }
     }
 

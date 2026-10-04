@@ -88,6 +88,7 @@ class InboxDemoActivity : ComponentActivity() {
             database.folderDao().upsert(DemoData.folders(id))
             val count = if (index == 0) FIRST_COUNT else SECOND_COUNT
             database.messageDao().upsert(DemoData.inboxMessages(id, now, count, index))
+            DemoData.drafts(id, now).forEach { database.draftDao().insert(it) }
             seedBodies(id, count)
         }
     }

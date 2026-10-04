@@ -215,3 +215,33 @@ Decisiones tomadas por mí (a confirmar):
     copia de otra app aparece unos instantes también en la lista hasta que el sync quita la fila vieja; un reenvío
     de adjuntos grandes tarda en abrir el redactor hasta 30 s sin indicador de progreso; nada probado contra
     servidores reales.
+34. **Pulido de listas: botón Redactar, deslizar borradores, Papelera/Spam en el selector (2026-10-04).** Decidido por el
+    agente, a confirmar:
+    - **Botón Redactar que se esconde al bajar.** `FabScrollTracker` (dominio, con tests) decide: se esconde tras bajar
+      unos 48 px acumulados y vuelve con el primer movimiento hacia arriba, al parar el scroll o al estar arriba del
+      todo. `InboxScreen` lo anima con escala y fundido (`AnimatedVisibility`); con la escala de animaciones del
+      sistema a 0 (`rememberReduceMotion`) aparece y desaparece sin animar. **Accesibilidad:** con un servicio de
+      exploración táctil (TalkBack) activo nunca se esconde (`rememberTouchExploration`), porque un botón fuera de la
+      composición no se alcanza. Solo aplica a las listas de conversaciones (única pantalla con el botón).
+    - **Deslizar borradores y bandeja de salida (`SwipeToDeleteRow`).** Componente nuevo, aparte de
+      `SwipeableConversationRow` (que no se toca salvo hacer `internal` su `springBack`), con las mismas protecciones de
+      #50 y #53: observa `settledValue`, una fila que empieza ya deslizada solo vuelve a su sitio y reutiliza
+      `springBack`. Ambas direcciones borran. El deslizamiento **no borra nada al momento**: la fila se oculta
+      (`HiddenRows`) y el aviso con Deshacer del `NoticeCenter` decide; Deshacer solo la vuelve a mostrar, y al acabar la
+      ventana se borra de verdad. Si la app muere en la ventana el borrador sigue ahí (nada perdido). Borrador local:
+      `ComposeEngine.discardEditing` (solo si sigue EDITING; reutiliza `forgetServerCopy`, que encola el DELETE de su
+      copia en el servidor por la cola de operaciones, como ya hacía descartar). Bandeja de salida: la fila de un
+      mensaje que se está enviando ahora (`Sending`) no se desliza; para los demás `OutboxActions.checkDiscard`
+      pregunta antes (si puede haber salido, la fila vuelve y sale el aviso "puede haberse enviado") y al acabar la
+      ventana `discard` vuelve a decidir. Se mantienen el menú de tres puntos con confirmación de los borradores y los
+      botones de la bandeja (son la vía accesible). **No hecho:** deslizar los borradores que solo existen en el
+      servidor (se abren en el redactor, que los importa como borrador local, ver 33); durante la ventana de 5 s de "deshacer envío" un
+      borrador sigue apareciendo en Borradores, y deslizarlo en ese instante publica otro aviso que cierra la ventana
+      y envía (el borrador pasa a la bandeja de salida y no se descarta); la operación SEND de un mensaje oculto en la
+      bandeja puede salir durante los 10 s del aviso, y entonces se queda sin descartar.
+    - **Selector de Gmail con Papelera y Spam.** En modo etiquetas, `[Gmail]/Trash` y `[Gmail]/Spam` salen como filas
+      `moveTarget` (sin casilla): tocarlas **mueve** los mensajes (MOVE retenido 15 s con `NewOperation.holdFor`, Deshacer
+      con la operación inversa), igual que el modo carpetas; nunca es un borrado permanente. Nunca se tratan como
+      etiquetas (no se añaden con ADD_LABEL ni cuentan para Aplicar), y si todos los mensajes ya están en la Papelera esa
+      fila sale desactivada. Esto cierra el punto abierto de la decisión 13. Los otros [Gmail]/... siguen sin ofrecerse.
+    - Datos de demostración (debug): carpetas Drafts, Trash y Spam, y dos borradores locales por cuenta demo.

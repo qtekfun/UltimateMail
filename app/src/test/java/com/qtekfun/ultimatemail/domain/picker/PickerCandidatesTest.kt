@@ -110,6 +110,8 @@ class PickerCandidatesTest {
         assertEquals(
             listOf(
                 "INBOX@0",
+                "[Gmail]/Trash@0",
+                "[Gmail]/Spam@0",
                 "Personal@0",
                 "group:Work@0",
                 "Work/Clients@1",
@@ -120,11 +122,44 @@ class PickerCandidatesTest {
     }
 
     @Test
-    fun `label mode does not offer gmail's own folders or pseudo labels`() {
+    fun `label mode does not offer gmail's other folders or pseudo labels`() {
         val paths = PickerCandidates.build(gmailTree(), PickerMode.LABELS, setOf("INBOX"))
             .folders.map { it.path }
 
-        assertFalse(paths.any { it.startsWith("[Gmail]") })
+        assertEquals(
+            listOf("[Gmail]/Spam", "[Gmail]/Trash"),
+            paths.filter { it.startsWith("[Gmail]") }.sorted()
+        )
+    }
+
+    @Test
+    fun `label mode offers trash and spam as places to move to, not as labels`() {
+        val candidates = PickerCandidates.build(gmailTree(), PickerMode.LABELS, setOf("INBOX"))
+
+        val trash = candidates.byPath("[Gmail]/Trash")!!
+        val spam = candidates.byPath("[Gmail]/Spam")!!
+        assertTrue(trash.moveTarget)
+        assertTrue(spam.moveTarget)
+        assertEquals(FolderRole.TRASH, trash.role)
+        assertTrue(trash.enabled)
+        assertFalse(candidates.byPath("INBOX")!!.moveTarget)
+        assertFalse(candidates.byPath("Work/Invoices")!!.moveTarget)
+    }
+
+    @Test
+    fun `a message already in trash cannot be moved to trash again`() {
+        val candidates =
+            PickerCandidates.build(gmailTree(), PickerMode.LABELS, setOf("[Gmail]/Trash"))
+
+        assertFalse(candidates.byPath("[Gmail]/Trash")!!.enabled)
+        assertTrue(candidates.byPath("[Gmail]/Spam")!!.enabled)
+    }
+
+    @Test
+    fun `folder mode never marks a destination as a move target`() {
+        val candidates = PickerCandidates.build(imapTree(), PickerMode.FOLDERS, setOf("INBOX"))
+
+        assertFalse(candidates.folders.any { it.moveTarget })
     }
 
     @Test

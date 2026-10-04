@@ -42,7 +42,12 @@ data class PickerFolder(
     val isLabel: Boolean,
     val depth: Int,
     val value: String,
-    val enabled: Boolean = true
+    val enabled: Boolean = true,
+    /**
+     * Chosen by moving the messages there instead of toggling a label: Gmail's Trash and Spam
+     * in label mode (they are folders, not labels a client can set).
+     */
+    val moveTarget: Boolean = false
 )
 
 /** One row of the picker list when there is no search. */
