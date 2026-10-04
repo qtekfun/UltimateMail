@@ -5,6 +5,12 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Signing in with Google or Microsoft (OAuth2)
 
+> **Hidden for now.** The add-account screen does not offer this sign-in (`OAuthFeature.ENABLED` is
+> `false`), and the app uses an app password instead: it is free and does not expire. Google only
+> issues a lasting refresh token to a verified app, and verifying an app that reads Gmail needs a
+> paid security assessment; in Testing mode the token lasts 7 days. This guide is kept for the day
+> the switch is turned on. Accounts that already use OAuth can still sign in again.
+
 UltimateMail ships **no** OAuth client of its own: Google and Microsoft would have to review and
 vouch for a shared client, and a client ID baked into a free-software app is shared by everyone.
 Instead you register a (free) app under your own Google or Microsoft account and paste its

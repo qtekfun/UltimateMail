@@ -11,6 +11,12 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Sign-in with Google and Microsoft is hidden: accounts use a password or an app password (free,
+  does not expire). The OAuth code stays and can be turned back on (`OAuthFeature`). Accounts that
+  already use OAuth can still sign in again.
+
 ## [0.1.0] - 2026-10-04
 
 First version. It reads, writes, searches and syncs mail for IMAP/SMTP accounts and has been used
