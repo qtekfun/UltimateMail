@@ -42,7 +42,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -123,15 +122,14 @@ private fun ToolbarButton(
     icon: ImageVector,
     @StringRes description: Int,
     onClick: () -> Unit,
-    enabled: Boolean = true,
-    tint: Color = Color.Unspecified
+    enabled: Boolean = true
 ) {
     IconButton(
         onClick = onClick,
         enabled = enabled,
         modifier = Modifier.heightIn(min = MinTouchTarget)
     ) {
-        Icon(icon, contentDescription = stringResource(description), tint = tint)
+        Icon(icon, contentDescription = stringResource(description))
     }
 }
 
