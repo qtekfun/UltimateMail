@@ -21,6 +21,8 @@ class SettingsRepositoryTest {
         assertEquals(true, settings.dynamicColor)
         assertEquals(false, settings.amoled)
         assertEquals(DisplayDensity.DEFAULT, settings.density)
+        assertEquals(PreviewLines.TWO, settings.previewLines)
+        assertEquals(false, settings.showAvatars)
         assertEquals(SwipeAction.ARCHIVE, settings.swipe.right)
         assertEquals(SwipeAction.DELETE, settings.swipe.left)
         assertEquals(RemoteContentPolicy.NEVER, settings.remoteContent)
@@ -32,6 +34,8 @@ class SettingsRepositoryTest {
         repository.setDynamicColor(false)
         repository.setAmoled(true)
         repository.setDensity(DisplayDensity.COMPACT)
+        repository.setPreviewLines(PreviewLines.FIVE)
+        repository.setShowAvatars(true)
         repository.setSwipeRight(SwipeAction.TOGGLE_STAR)
         repository.setSwipeLeft(SwipeAction.NONE)
         repository.setRemoteContent(RemoteContentPolicy.ASK)
@@ -42,6 +46,8 @@ class SettingsRepositoryTest {
                 dynamicColor = false,
                 amoled = true,
                 density = DisplayDensity.COMPACT,
+                previewLines = PreviewLines.FIVE,
+                showAvatars = true,
                 swipe = SwipeActions(right = SwipeAction.TOGGLE_STAR, left = SwipeAction.NONE),
                 remoteContent = RemoteContentPolicy.ASK
             ),
@@ -63,6 +69,23 @@ class SettingsRepositoryTest {
         store.putString("remote_content", "")
 
         assertEquals(AppSettings(), repository.current())
+    }
+
+    @Test
+    fun `every preview option is stored and read back, and its count is the line count`() {
+        PreviewLines.entries.forEach {
+            repository.setPreviewLines(it)
+
+            assertEquals(it, repository.current().previewLines)
+        }
+        assertEquals(listOf(0, 1, 2, 3, 4, 5), PreviewLines.entries.map { it.count })
+    }
+
+    @Test
+    fun `an unknown preview value reads as two lines`() {
+        store.putString("preview_lines", "SIX")
+
+        assertEquals(PreviewLines.TWO, repository.current().previewLines)
     }
 
     @Test

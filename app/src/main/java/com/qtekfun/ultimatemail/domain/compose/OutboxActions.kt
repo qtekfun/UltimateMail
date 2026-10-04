@@ -78,6 +78,23 @@ class OutboxActions @Inject constructor(
         OutboxChange.DONE
     }
 
+    /**
+     * What [discard] would answer now, without doing it: [OutboxChange.DONE] when the message is
+     * in the outbox and certainly not sent.
+     */
+    suspend fun checkDiscard(draftId: Long): OutboxChange = withContext(io) {
+        val draft = drafts.get(draftId)?.takeIf { it.state == DraftState.OUTBOX }
+            ?: return@withContext OutboxChange.MISSING
+        val uncertain = sendOf(draft.accountId, draftId)?.isUncertain() == true
+        if (draft.smtpAcceptedAt != null ||
+            uncertain
+        ) {
+            OutboxChange.MAY_BE_SENT
+        } else {
+            OutboxChange.DONE
+        }
+    }
+
     /** Throws an outbox message away for good, with its attachment files. */
     suspend fun discard(draftId: Long): OutboxChange = withContext(io) {
         val draft = drafts.get(draftId)?.takeIf { it.state == DraftState.OUTBOX }

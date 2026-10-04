@@ -32,8 +32,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,12 +60,12 @@ import com.qtekfun.ultimatemail.ui.components.ConversationRow
 import com.qtekfun.ultimatemail.ui.components.rememberMessageTimeFormatter
 import com.qtekfun.ultimatemail.ui.components.rememberReduceMotion
 import com.qtekfun.ultimatemail.ui.drawer.displayName
+import com.qtekfun.ultimatemail.ui.theme.LocalRowAppearance
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 
 private val MinTouchTarget = 48.dp
-private val DividerIndent = 68.dp
 
 /** Items from the end at which the next page starts loading. */
 private const val PREFETCH_DISTANCE = 10
@@ -113,11 +116,15 @@ fun InboxScreen(
     val ready = state.loaded && state.scope == scope
     // The first list on screen is what the user waits for when the app starts (T22).
     val activity = LocalActivity.current
+    // The Compose button steps aside while the list scrolls down (set by the list below).
+    var fabHidden by remember(scope) { mutableStateOf(false) }
     LaunchedEffect(ready) { if (ready) activity?.reportFullyDrawn() }
     Scaffold(
         modifier = modifier,
         floatingActionButton = {
-            if (!(ready && state.selection.active)) floatingActionButton()
+            if (!(ready && state.selection.active)) {
+                ScrollAwareButton(visible = !fabHidden, content = floatingActionButton)
+            }
         },
         topBar = {
             if (ready && state.selection.active) {
@@ -149,7 +156,7 @@ fun InboxScreen(
                 )
             }
             if (ready) {
-                InboxContent(state, actions)
+                InboxContent(state, actions, onFabHidden = { fabHidden = it })
             } else {
                 Loading()
             }
@@ -224,8 +231,10 @@ private fun Loading() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun InboxContent(state: InboxState, actions: InboxActions) {
+private fun InboxContent(state: InboxState, actions: InboxActions, onFabHidden: (Boolean) -> Unit) {
+    val indent = LocalRowAppearance.current.textIndent
     val listState = rememberInboxListState(state, actions)
+    TrackFabVisibility(listState, onFabHidden)
     val refreshLabel = stringResource(R.string.inbox_refresh_action)
     val formatter = rememberMessageTimeFormatter()
     val hiddenLabels = remember(state.folderName) { setOfNotNull(state.folderName) }
@@ -270,7 +279,7 @@ private fun InboxContent(state: InboxState, actions: InboxActions) {
                         reduceMotion
                     )
                 )
-                HorizontalDivider(modifier = Modifier.padding(start = DividerIndent))
+                HorizontalDivider(modifier = Modifier.padding(start = indent))
             }
         }
     }
