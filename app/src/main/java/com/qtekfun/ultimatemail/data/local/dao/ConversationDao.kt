@@ -149,8 +149,6 @@ interface ConversationDao {
     /** The conversation just above the given one (newer) in a folder list, if any. */
     @Query(NEWER_IN_FOLDER_SQL)
     fun observeNewerInFolder(
-        listAccountId: Long,
-        listFolder: String,
         accountId: Long,
         folderPath: String,
         threadId: String,
@@ -160,8 +158,6 @@ interface ConversationDao {
     /** The conversation just below the given one (older) in a folder list, if any. */
     @Query(OLDER_IN_FOLDER_SQL)
     fun observeOlderInFolder(
-        listAccountId: Long,
-        listFolder: String,
         accountId: Long,
         folderPath: String,
         threadId: String,

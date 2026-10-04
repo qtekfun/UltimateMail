@@ -24,6 +24,7 @@ import com.qtekfun.ultimatemail.domain.conversation.ReaderList
 import com.qtekfun.ultimatemail.domain.conversation.ReaderNeighbours
 import com.qtekfun.ultimatemail.domain.conversation.RecordingScheduler
 import com.qtekfun.ultimatemail.domain.conversation.RenderedBody
+import com.qtekfun.ultimatemail.domain.inbox.InboxScope
 import com.qtekfun.ultimatemail.domain.mail.AttachmentInfo
 import com.qtekfun.ultimatemail.domain.mail.MailFolderRole
 import com.qtekfun.ultimatemail.domain.mail.MailResult
@@ -33,7 +34,6 @@ import com.qtekfun.ultimatemail.sync.engine.BodyStore
 import com.qtekfun.ultimatemail.sync.engine.DownloadAttachment
 import com.qtekfun.ultimatemail.sync.engine.EngineHarness
 import com.qtekfun.ultimatemail.sync.engine.LoadMessageBody
-import com.qtekfun.ultimatemail.domain.inbox.InboxScope
 import com.qtekfun.ultimatemail.ui.inbox.MovePickerLauncher
 import com.qtekfun.ultimatemail.ui.inbox.MovePickerRequest
 import java.time.Instant
@@ -644,7 +644,9 @@ class ConversationViewModelTest {
 
         eventually { f.h.messages.get(f.h.accountId, "INBOX", 4)!!.takeIf { it.seen } }
         val state = eventually {
-            f.vm.state.value.takeIf { it.ref?.threadId == other.threadId && it.neighbours.next != null }
+            f.vm.state.value.takeIf {
+                it.ref?.threadId == other.threadId && it.neighbours.next != null
+            }
         }
         assertEquals(f.ref, state.neighbours.next)
         assertNull(state.neighbours.previous)

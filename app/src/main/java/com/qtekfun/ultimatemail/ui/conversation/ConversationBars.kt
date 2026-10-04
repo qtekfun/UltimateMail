@@ -145,17 +145,19 @@ private fun MoreMenu(view: ConversationView, actions: ConversationScreenActions)
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(
                 text = {
-                    Text(
-                        stringResource(
-                            if (starred) R.string.conversation_unstar else R.string.conversation_star
-                        )
-                    )
+                    val label =
+                        if (starred) R.string.conversation_unstar else R.string.conversation_star
+                    Text(stringResource(label))
                 },
                 leadingIcon = {
                     Icon(
                         imageVector = if (starred) Icons.Filled.Star else MailIcons.StarOutline,
                         contentDescription = null,
-                        tint = if (starred) starColor() else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (starred) {
+                            starColor()
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
                     )
                 },
                 onClick = {

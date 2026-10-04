@@ -122,7 +122,11 @@ class ConversationViewModel @Inject constructor(
     /** The message to show in the snackbar now, if any. */
     val notice: StateFlow<ConversationNotice?> = notices.notice
 
-    val state: StateFlow<ConversationState> = combine(ref, list, ::Pair).flatMapLatest { (target, from) ->
+    val state: StateFlow<ConversationState> = combine(
+        ref,
+        list,
+        ::Pair
+    ).flatMapLatest { (target, from) ->
         if (target == null) {
             flowOf(ConversationState())
         } else {
