@@ -4,10 +4,12 @@
 package com.qtekfun.ultimatemail.ui.debug
 
 import com.qtekfun.ultimatemail.data.local.entity.AccountEntity
+import com.qtekfun.ultimatemail.data.local.entity.DraftEntity
 import com.qtekfun.ultimatemail.data.local.entity.FolderEntity
 import com.qtekfun.ultimatemail.data.local.entity.MessageEntity
 import com.qtekfun.ultimatemail.data.local.model.AuthType
 import com.qtekfun.ultimatemail.data.local.model.ConnectionSecurity
+import com.qtekfun.ultimatemail.data.local.model.DraftKind
 import com.qtekfun.ultimatemail.data.local.model.FolderRole
 import java.time.Duration
 import java.time.Instant
@@ -55,8 +57,38 @@ object DemoData {
             isLabel = true,
             uidValidity = 1
         ),
-        FolderEntity(accountId, "Archive", "Archive", FolderRole.ARCHIVE)
+        FolderEntity(accountId, "Archive", "Archive", FolderRole.ARCHIVE),
+        FolderEntity(
+            accountId,
+            "Drafts",
+            "Drafts",
+            FolderRole.DRAFTS,
+            uidValidity = 1,
+            uidNext = 1
+        ),
+        FolderEntity(accountId, "Trash", "Trash", FolderRole.TRASH),
+        FolderEntity(accountId, "Spam", "Spam", FolderRole.JUNK)
     )
+
+    /** Two drafts being written on this device, to try swiping them away in the Drafts list. */
+    fun drafts(accountId: Long, now: Instant) = listOf(
+        demoDraft(accountId, 1, "Draft: notes for Friday", ANA, now.minus(Duration.ofMinutes(20))),
+        demoDraft(accountId, 2, "", null, now.minus(Duration.ofHours(5)))
+    )
+
+    private const val ANA = "Ana García <ana.garcia@example.test>"
+
+    private fun demoDraft(accountId: Long, number: Int, subject: String, to: String?, at: Instant) =
+        DraftEntity(
+            key = "demo-draft-$accountId-$number",
+            accountId = accountId,
+            kind = DraftKind.NEW,
+            toAddresses = listOfNotNull(to),
+            subject = subject,
+            body = "Demo text.",
+            createdAt = at,
+            updatedAt = at
+        )
 
     private class Sender(val name: String, val address: String)
 

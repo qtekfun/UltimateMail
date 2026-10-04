@@ -11,6 +11,7 @@ import com.qtekfun.ultimatemail.domain.compose.OutboxChange
 import com.qtekfun.ultimatemail.domain.compose.OutboxEntry
 import com.qtekfun.ultimatemail.domain.compose.OutboxReason
 import com.qtekfun.ultimatemail.domain.compose.OutboxState
+import com.qtekfun.ultimatemail.ui.conversation.NoticeKind
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import javax.inject.Inject
@@ -82,14 +83,22 @@ internal fun OutboxState.toStatus(): OutboxRowStatus = when (this) {
 class OutboxViewModel @Inject constructor(
     composeState: ComposeState,
     private val actions: OutboxActions,
-    private val entry: ComposeEntry
+    private val entry: ComposeEntry,
+    private val swiped: SwipeDiscards
 ) : ViewModel() {
     private val prompt = MutableStateFlow<OutboxPrompt?>(null)
 
     val state: StateFlow<OutboxUiState> = combine(
         composeState.observeOutbox().map { list -> list.map { it.toRow() } },
-        prompt
-    ) { rows, asking -> OutboxUiState(loaded = true, rows = rows, prompt = asking) }
+        prompt,
+        swiped.ids
+    ) { rows, asking, hidden ->
+        OutboxUiState(
+            loaded = true,
+            rows = rows.filter { it.draftId !in hidden },
+            prompt = asking
+        )
+    }
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
@@ -121,6 +130,27 @@ class OutboxViewModel @Inject constructor(
         viewModelScope.launch {
             if (actions.discard(asking.draftId) == OutboxChange.MAY_BE_SENT) {
                 prompt.value = OutboxPrompt.MaybeSent
+            }
+        }
+    }
+
+    /**
+     * A swipe on a message: it leaves the list and is discarded when the Undo window ends. A
+     * message that may already have gone out is refused at once (and comes back), and one that
+     * went out during the window is refused when it ends: the engine decides, as for the button.
+     */
+    fun swipeDiscard(draftId: Long) {
+        swiped.hide(draftId)
+        viewModelScope.launch {
+            if (actions.checkDiscard(draftId) != OutboxChange.DONE) {
+                swiped.show(draftId)
+                prompt.value = OutboxPrompt.MaybeSent
+                return@launch
+            }
+            swiped.offerUndo(draftId, NoticeKind.OUTBOX_DISCARDED) {
+                if (actions.discard(draftId) == OutboxChange.MAY_BE_SENT) {
+                    prompt.value = OutboxPrompt.MaybeSent
+                }
             }
         }
     }

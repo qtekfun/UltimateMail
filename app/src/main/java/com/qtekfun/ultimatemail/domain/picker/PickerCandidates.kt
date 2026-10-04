@@ -16,8 +16,9 @@ import com.qtekfun.ultimatemail.domain.folder.FolderTree
  * - [PickerMode.FOLDERS]: every selectable folder except Drafts (a message cannot be moved there
  *   sensibly) and Gmail-only virtual folders. Trash and Spam stay: moving there is legitimate.
  *   The folder every message is already in is disabled.
- * - [PickerMode.LABELS]: the Inbox (label `\Inbox`) and the user's own labels. Gmail's other system
- *   folders are not labels a client can set, so they are not offered.
+ * - [PickerMode.LABELS]: the Inbox (label `\Inbox`) and the user's own labels, plus Trash and
+ *   Spam as [PickerFolder.moveTarget] rows (a move, with the usual hold and Undo, never a permanent
+ *   delete). Gmail's other system folders are not labels a client can set, so they are not offered.
  */
 class PickerCandidates private constructor(
     /** Rows in display order: special folders, then the tree. */
@@ -50,7 +51,8 @@ class PickerCandidates private constructor(
             val only = messageFolders.singleOrNull()
             val special = tree.special.filter { allowed(it, mode) }
             val nodes = tree.nodes.filter { allowed(it, mode) || !it.selectable }
-            val kept = (special + nodes.filter { it.selectable }).map { it.path }.toSet()
+            // Special folders are listed on their own, so only the tree needs its containers shown.
+            val kept = nodes.filter { it.selectable }.map { it.path }.toSet()
             val needed = kept.flatMap { tree.ancestorsOf(it) }.toSet()
             val rows = ArrayList<PickerRow>()
             special.forEach { rows += destination(it, mode, only, depth = 0, roleNames) }
@@ -85,7 +87,7 @@ class PickerCandidates private constructor(
             PickerMode.LABELS -> item.selectable && when (item.role) {
                 FolderRole.INBOX -> true
                 FolderRole.OTHER -> GmailLabels.systemPrefixes.none { item.path.startsWith(it) }
-                else -> false
+                else -> item.role in MOVE_TARGETS
             }
         }
 
@@ -97,6 +99,7 @@ class PickerCandidates private constructor(
             roleNames: Map<FolderRole, String>
         ): PickerRow.Destination {
             val label = mode == PickerMode.LABELS
+            val moveTarget = label && item.role in MOVE_TARGETS
             return PickerRow.Destination(
                 PickerFolder(
                     path = item.path,
@@ -111,10 +114,14 @@ class PickerCandidates private constructor(
                     } else {
                         item.path
                     },
-                    enabled = label || item.path != only
+                    enabled = (label && !moveTarget) || item.path != only,
+                    moveTarget = moveTarget
                 )
             )
         }
+
+        /** Folders the label picker offers as places to move to, never as labels. */
+        private val MOVE_TARGETS = setOf(FolderRole.TRASH, FolderRole.JUNK)
 
         private val FOLDERS_EXCLUDED =
             setOf(FolderRole.DRAFTS, FolderRole.ALL_MAIL, FolderRole.STARRED)

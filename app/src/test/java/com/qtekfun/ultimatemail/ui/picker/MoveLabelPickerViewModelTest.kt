@@ -24,6 +24,7 @@ import com.qtekfun.ultimatemail.domain.picker.PickerRequest
 import com.qtekfun.ultimatemail.domain.picker.PickerSource
 import com.qtekfun.ultimatemail.sync.engine.PendingSyncMarker
 import com.qtekfun.ultimatemail.sync.engine.SyncScheduler
+import com.qtekfun.ultimatemail.sync.queue.NewOperation
 import com.qtekfun.ultimatemail.sync.queue.OperationQueue
 import io.mockk.mockk
 import io.mockk.verify
@@ -74,6 +75,8 @@ class MoveLabelPickerViewModelTest {
         db.folderDao().upsert(
             listOf(
                 FolderEntity(gmail, "INBOX", "INBOX", FolderRole.INBOX),
+                FolderEntity(gmail, "[Gmail]/Trash", "Trash", FolderRole.TRASH),
+                FolderEntity(gmail, "[Gmail]/Spam", "Spam", FolderRole.JUNK),
                 FolderEntity(gmail, "Work", "Work", isLabel = true),
                 FolderEntity(gmail, "Personal", "Personal", isLabel = true)
             )
@@ -166,7 +169,10 @@ class MoveLabelPickerViewModelTest {
         val state = vm.ready()
 
         assertEquals(PickerMode.LABELS, state.mode)
-        assertEquals(listOf("INBOX", "Personal", "Work"), state.paths())
+        assertEquals(
+            listOf("INBOX", "[Gmail]/Trash", "[Gmail]/Spam", "Personal", "Work"),
+            state.paths()
+        )
     }
 
     @Test
@@ -266,6 +272,47 @@ class MoveLabelPickerViewModelTest {
 
         assertNull(vm.state.value.finished)
         assertTrue(db.pendingOperationDao().all(imap).isEmpty())
+    }
+
+    @Test
+    fun `on gmail tapping trash moves the messages there, held for undo, instead of labelling`() =
+        runTest {
+            val vm = viewModel(gmailRequest())
+            val state = vm.ready()
+
+            vm.onDestinationClick(
+                state.entries().first { it.folder.path == "[Gmail]/Trash" }.folder
+            )
+
+            val finished = vm.finished() as PickerFinish.Applied
+            assertEquals(PickerOutcome.Moved("[Gmail]/Trash", "Trash"), finished.result.outcome)
+            val queued = db.pendingOperationDao().all(gmail)
+            assertEquals(listOf(OperationType.MOVE, OperationType.MOVE), queued.map { it.type })
+            assertEquals(listOf("[Gmail]/Trash", "[Gmail]/Trash"), queued.map { it.payload })
+            // Held back so the Undo of the snackbar can still cancel it.
+            assertTrue(
+                queued.all {
+                    it.nextAttemptAt == Instant.EPOCH.plus(NewOperation.UNDO_HOLD)
+                }
+            )
+            assertEquals(listOf(gmail to listOf("[Gmail]/Trash")), recents.recorded)
+            assertFalse(vm.state.value.canApply)
+        }
+
+    @Test
+    fun `on gmail trash is not a checkbox, so label taps and apply never touch it`() = runTest {
+        val vm = viewModel(gmailRequest())
+        val state = vm.ready()
+        val spam = state.entries().first { it.folder.path == "[Gmail]/Spam" }
+
+        assertTrue(spam.folder.moveTarget)
+        assertEquals(CheckState.UNCHECKED, spam.state)
+
+        vm.onDestinationClick(state.entries().first { it.folder.path == "Personal" }.folder)
+        vm.apply()
+
+        val ops = db.pendingOperationDao().all(gmail)
+        assertTrue(ops.all { it.type == OperationType.ADD_LABEL && it.payload == "Personal" })
     }
 
     @Test
