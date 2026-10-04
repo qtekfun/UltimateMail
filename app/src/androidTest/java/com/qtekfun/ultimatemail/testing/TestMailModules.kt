@@ -16,11 +16,15 @@ import com.qtekfun.ultimatemail.domain.mail.MailConnector
 import com.qtekfun.ultimatemail.domain.mail.MailSender
 import com.qtekfun.ultimatemail.domain.oauth.OAuthClientIds
 import com.qtekfun.ultimatemail.domain.oauth.OAuthConfigs
+import com.qtekfun.ultimatemail.sync.engine.LastSyncLog
 import com.qtekfun.ultimatemail.sync.engine.MailOperationExecutor
+import com.qtekfun.ultimatemail.sync.engine.SyncDepthLog
 import com.qtekfun.ultimatemail.sync.engine.SyncScheduler
 import com.qtekfun.ultimatemail.sync.engine.SyncStatus
 import com.qtekfun.ultimatemail.sync.engine.SyncStatusStore
+import com.qtekfun.ultimatemail.sync.queue.HeldOperations
 import com.qtekfun.ultimatemail.sync.queue.OperationExecutor
+import com.qtekfun.ultimatemail.sync.queue.OperationQueue
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -84,4 +88,16 @@ abstract class TestSyncModule {
 
     @Binds
     abstract fun syncScheduler(impl: TestSyncScheduler): SyncScheduler
+
+    @Binds
+    abstract fun heldOperations(impl: OperationQueue): HeldOperations
+
+    companion object {
+        /** Nothing outlives a test: no remembered sync time and no remembered sync depth. */
+        @Provides
+        fun lastSyncLog(): LastSyncLog = LastSyncLog.None
+
+        @Provides
+        fun syncDepthLog(): SyncDepthLog = SyncDepthLog.None
+    }
 }

@@ -14,6 +14,8 @@ import androidx.compose.ui.test.swipeRight
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.qtekfun.ultimatemail.R
 import com.qtekfun.ultimatemail.data.local.model.OperationType
+import com.qtekfun.ultimatemail.data.settings.SettingsRepository
+import com.qtekfun.ultimatemail.data.settings.SwipeAction
 import dagger.hilt.android.testing.HiltAndroidTest
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
@@ -35,8 +37,14 @@ class SwipeArchiveUiTest : UiTestBase() {
 
     private val undo get() = hasText(text(R.string.notice_undo)) and hasClickAction()
 
+    /** A fresh install marks read/unread on the right swipe; these tests are about archiving. */
+    private fun rightSwipeArchives() {
+        SettingsRepository(settings).setSwipeRight(SwipeAction.ARCHIVE)
+    }
+
     @Test
     fun swipingRightArchivesAndUndoBringsTheConversationBack() {
+        rightSwipeArchives()
         val account = seedAccount("ana@example.com", "Ana", listOf(lunch, report))
         launchApp()
         waitFor(row(lunch))
@@ -63,6 +71,7 @@ class SwipeArchiveUiTest : UiTestBase() {
     @Test
     fun aSecondActionMakesTheFirstOneFinalAndItReachesTheServer() {
         scheduler.runSyncs = true
+        rightSwipeArchives()
         val account = seedAccount("ana@example.com", "Ana", listOf(lunch, report))
         launchApp()
         waitFor(row(lunch))
