@@ -467,6 +467,8 @@
     <string name="notice_compose_failed">Couldn\'t start the message.</string>
     <string name="notice_sending">Sending…</string>
     <string name="notice_draft_saved">Draft saved</string>
+    <string name="notice_draft_discarded">Draft discarded</string>
+    <string name="notice_outbox_discarded">Message discarded</string>
     <string name="notice_send_failed">A message could not be sent. Check the Outbox.</string>
     <string name="notice_send_problem">The message could not be sent and is kept in Drafts.</string>
     <string name="notice_attachments_skipped">Some files could not be attached.</string>

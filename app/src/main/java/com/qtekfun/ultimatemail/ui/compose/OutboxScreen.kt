@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.qtekfun.ultimatemail.R
 import com.qtekfun.ultimatemail.domain.compose.OutboxReason
+import com.qtekfun.ultimatemail.ui.components.SwipeToDeleteRow
 
 private val MinTouchTarget = 48.dp
 
@@ -46,7 +47,9 @@ data class OutboxScreenActions(
     val onEdit: (Long) -> Unit,
     val onRequestDiscard: (Long) -> Unit,
     val onConfirmDiscard: () -> Unit,
-    val onDismissPrompt: () -> Unit
+    val onDismissPrompt: () -> Unit,
+    /** A row was swiped away: hidden, discarded when the Undo window ends. */
+    val onSwipeDiscard: (Long) -> Unit
 )
 
 /** The text for why a message is waiting or failed; [failed] picks the wording of "other". */
@@ -111,7 +114,11 @@ fun OutboxScreen(
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.rows, key = { it.draftId }) { row ->
-                        OutboxItem(row, actions)
+                        // A message being handed to the server right now cannot be swiped away.
+                        SwipeToDeleteRow(
+                            onDelete = { actions.onSwipeDiscard(row.draftId) },
+                            enabled = row.status != OutboxRowStatus.Sending
+                        ) { OutboxItem(row, actions) }
                         HorizontalDivider()
                     }
                 }

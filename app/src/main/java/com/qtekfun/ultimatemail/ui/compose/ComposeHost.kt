@@ -75,7 +75,8 @@ fun OutboxRoute(viewModel: OutboxViewModel, navigator: AppNavigator) {
             onEdit = viewModel::edit,
             onRequestDiscard = viewModel::requestDiscard,
             onConfirmDiscard = viewModel::confirmDiscard,
-            onDismissPrompt = viewModel::dismissPrompt
+            onDismissPrompt = viewModel::dismissPrompt,
+            onSwipeDiscard = viewModel::swipeDiscard
         )
     )
 }
@@ -101,7 +102,8 @@ fun DraftsRoute(accountId: Long, viewModel: DraftsViewModel, navigator: AppNavig
             },
             onRequestDelete = viewModel::requestDelete,
             onDismissDelete = viewModel::dismissDelete,
-            onConfirmDelete = viewModel::confirmDelete
+            onConfirmDelete = viewModel::confirmDelete,
+            onSwipeDelete = viewModel::swipeDelete
         )
     )
 }
