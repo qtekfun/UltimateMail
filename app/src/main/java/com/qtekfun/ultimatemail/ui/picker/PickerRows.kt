@@ -7,10 +7,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.triStateToggleable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -86,7 +88,7 @@ internal fun EntryRow(
     val path = if (entry.showPath) folder.shownPath() else null
     val indent = if (flat) 0.dp else IndentPerLevel * folder.depth
     Row(
-        modifier = Modifier.entryRow(entry, path, labels, onClick).padding(
+        modifier = Modifier.entryRow(entry, path, labels && !folder.moveTarget, onClick).padding(
             start = SideMargin + indent,
             end = SideMargin,
             top = 4.dp,
@@ -142,7 +144,11 @@ private fun Modifier.entryRow(
 @Composable
 private fun RowScope.EntryContent(entry: PickerListItem.Entry, path: String?, labels: Boolean) {
     val folder = entry.folder
-    if (labels) {
+    if (labels && folder.moveTarget) {
+        // Trash and Spam move the messages instead of labelling them: no box, but the icons
+        // stay lined up with the rows that have one.
+        Spacer(Modifier.width(CheckboxWidth))
+    } else if (labels) {
         TriStateCheckbox(state = entry.state.toToggleable(), onClick = null)
     }
     Icon(
@@ -169,6 +175,8 @@ private fun RowScope.EntryContent(entry: PickerListItem.Entry, path: String?, la
         }
     }
 }
+
+private val CheckboxWidth = 48.dp
 
 /** Trash and Spam stay selectable but look different: moving there is a deliberate act. */
 @Composable
