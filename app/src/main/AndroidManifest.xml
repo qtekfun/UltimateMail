@@ -7,6 +7,13 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!--
+      Lets the user exempt the app from battery optimisation so the sync keeps running with the
+      screen off (Settings, Background sync). Never requested without the user choosing it.
+    -->
+    <uses-permission
+        android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
+        tools:ignore="BatteryLife" />
 
     <application
         android:name=".UltimateMailApp"

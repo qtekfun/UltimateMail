@@ -593,4 +593,15 @@
     <string name="inbox_bar_archive">Archivar</string>
     <string name="inbox_bar_trash">Mover a la papelera</string>
     <string name="inbox_bar_move">Mover</string>
+    <string name="settings_section_background">Sincronización en segundo plano</string>
+    <string name="background_battery_off">No permitido: Android puede detener la sincronización o cortar la red al apagarse la pantalla, y el correo llegará tarde. Toca para permitirlo.</string>
+    <string name="background_allow">Permitir</string>
+    <string name="background_all_ok">Todo en orden: la sincronización puede seguir con la pantalla apagada.</string>
+    <string name="background_vendor_title">Los móviles %1$s cierran las apps en segundo plano de forma agresiva</string>
+    <string name="background_vendor_steps">En los ajustes del sistema abre Batería de UltimateMail y permite la actividad en segundo plano y el inicio automático, y bloquea la app en la pantalla de recientes.</string>
+    <string name="background_open_app_settings">Ajustes de la app</string>
+    <string name="battery_hint_title">Mantén tu correo sincronizado</string>
+    <string name="battery_hint_message">Para que el correo siga llegando con la pantalla apagada, Android tiene que excluir a UltimateMail de la optimización de batería. Sin eso la sincronización puede detenerse y el correo llega tarde. Puedes cambiarlo luego en Ajustes.</string>
+    <string name="battery_hint_allow">Permitir</string>
+    <string name="battery_hint_later">Ahora no</string>
 </resources>

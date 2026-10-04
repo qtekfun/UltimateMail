@@ -76,6 +76,7 @@ fun SettingsScreen(state: SettingsState, actions: SettingsActions, modifier: Mod
             LanguageSection()
             GesturesSection(state, actions)
             PrivacySection(state, actions)
+            BackgroundSection()
             AccountsSection(state, actions)
             BackupSection(actions)
             AboutSection()

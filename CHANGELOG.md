@@ -11,6 +11,12 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Settings, "Background sync": shows whether Android lets the sync run with the screen off and
+  offers the battery exemption, with the extra steps for phone makers that close background apps
+  (OPPO, Xiaomi, Samsung and others). The app also asks once, after the first account is added.
+
 ## [0.1.1] - 2026-10-04
 
 ### Changed
