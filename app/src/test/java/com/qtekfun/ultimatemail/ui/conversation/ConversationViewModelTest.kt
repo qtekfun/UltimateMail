@@ -6,6 +6,7 @@ package com.qtekfun.ultimatemail.ui.conversation
 import app.cash.turbine.test
 import com.qtekfun.ultimatemail.data.local.FakeAttachmentStorage
 import com.qtekfun.ultimatemail.data.local.model.AttachmentState
+import com.qtekfun.ultimatemail.data.local.model.FolderRole
 import com.qtekfun.ultimatemail.data.local.model.OperationType
 import com.qtekfun.ultimatemail.data.settings.FakePreferenceStore
 import com.qtekfun.ultimatemail.data.settings.SettingsRepository
@@ -17,9 +18,13 @@ import com.qtekfun.ultimatemail.domain.conversation.ComposeRequest
 import com.qtekfun.ultimatemail.domain.conversation.ConversationActions
 import com.qtekfun.ultimatemail.domain.conversation.ConversationReader
 import com.qtekfun.ultimatemail.domain.conversation.ConversationRef
+import com.qtekfun.ultimatemail.domain.conversation.FolderLabel
 import com.qtekfun.ultimatemail.domain.conversation.MessageView
+import com.qtekfun.ultimatemail.domain.conversation.ReaderList
+import com.qtekfun.ultimatemail.domain.conversation.ReaderNeighbours
 import com.qtekfun.ultimatemail.domain.conversation.RecordingScheduler
 import com.qtekfun.ultimatemail.domain.conversation.RenderedBody
+import com.qtekfun.ultimatemail.domain.inbox.InboxScope
 import com.qtekfun.ultimatemail.domain.mail.AttachmentInfo
 import com.qtekfun.ultimatemail.domain.mail.MailFolderRole
 import com.qtekfun.ultimatemail.domain.mail.MailResult
@@ -60,9 +65,17 @@ class ConversationViewModelTest {
     private var harness: EngineHarness? = null
     private val composed = mutableListOf<ComposeRequest>()
     private var composeAvailable = false
-    private val launcher = ComposeLauncher { request ->
-        composed += request
-        composeAvailable
+    private val composedNew = mutableListOf<Long>()
+    private val launcher = object : ComposeLauncher {
+        override fun start(request: ComposeRequest): Boolean {
+            composed += request
+            return composeAvailable
+        }
+
+        override fun startNew(accountId: Long): Boolean {
+            composedNew += accountId
+            return composeAvailable
+        }
     }
     private val pickerRequests = mutableListOf<MovePickerRequest>()
     private val movePicker = MovePickerLauncher { pickerRequests += it }
@@ -123,6 +136,7 @@ class ConversationViewModelTest {
             DownloadAttachment(h.db.attachmentDao(), h.messages, h.sessions, storage),
             launcher,
             movePicker,
+            ReaderNeighbours(h.db),
             SettingsRepository(FakePreferenceStore()),
             noticeCenter(scheduler),
             Dispatchers.Unconfined
@@ -562,6 +576,80 @@ class ConversationViewModelTest {
         f.vm.archive()
         f.vm.compose(ComposeMode.REPLY)
         assertTrue(composed.isEmpty())
+    }
+
+    @Test
+    fun `a new message starts from the account of the conversation, and failing says so`() =
+        runTest {
+            val f = start()
+            f.open()
+
+            f.vm.composeNew()
+
+            assertEquals(listOf(f.h.accountId), composedNew)
+            assertEquals(NoticeKind.COMPOSE_FAILED, f.vm.notice.value?.kind)
+        }
+
+    @Test
+    fun `a new message needs an open conversation`() = runTest {
+        val f = start()
+
+        f.vm.composeNew()
+
+        assertTrue(composedNew.isEmpty())
+    }
+
+    @Test
+    fun `the state names the mailbox and the neighbours in the list it was opened from`() =
+        runTest {
+            val f = start()
+            f.h.server.deliver(
+                "INBOX",
+                subject = "Other",
+                sentAt = Instant.ofEpochSecond(1_700_001_000L),
+                messageId = "<other@x>"
+            )
+            f.h.engine.sync(f.h.accountId)
+            val other = f.h.messages.get(f.h.accountId, "INBOX", 4)!!
+
+            f.vm.open(f.ref, ReaderList(InboxScope.Folder(f.h.accountId, "INBOX")))
+            f.bodyReady(2)
+
+            val state = eventually { f.vm.state.value.takeIf { it.neighbours.previous != null } }
+            assertEquals(
+                ConversationRef(f.h.accountId, "INBOX", other.threadId),
+                state.neighbours.previous
+            )
+            assertNull(state.neighbours.next)
+            assertEquals(FolderLabel("INBOX", FolderRole.INBOX), state.view?.folder)
+        }
+
+    @Test
+    fun `moving to a neighbour opens it clean and reads it`() = runTest {
+        val f = start()
+        f.h.server.deliver(
+            "INBOX",
+            subject = "Other",
+            sentAt = Instant.ofEpochSecond(1_700_001_000L),
+            messageId = "<other@x>"
+        )
+        f.h.server.folder("INBOX").bodies[4L] = MessageBody("Other body", null, emptyList())
+        f.h.engine.sync(f.h.accountId)
+        val other = f.h.messages.get(f.h.accountId, "INBOX", 4)!!
+        val list = ReaderList(InboxScope.Folder(f.h.accountId, "INBOX"))
+        f.vm.open(f.ref, list)
+        f.bodyReady(2)
+
+        f.vm.open(ConversationRef(f.h.accountId, "INBOX", other.threadId), list)
+
+        eventually { f.h.messages.get(f.h.accountId, "INBOX", 4)!!.takeIf { it.seen } }
+        val state = eventually {
+            f.vm.state.value.takeIf {
+                it.ref?.threadId == other.threadId && it.neighbours.next != null
+            }
+        }
+        assertEquals(f.ref, state.neighbours.next)
+        assertNull(state.neighbours.previous)
     }
 
     private fun textOf(body: BodyView.Ready): String = (body.rendered as RenderedBody.Text)

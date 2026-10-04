@@ -18,6 +18,9 @@ import com.qtekfun.ultimatemail.domain.conversation.ConversationPresenter
 import com.qtekfun.ultimatemail.domain.conversation.ConversationReader
 import com.qtekfun.ultimatemail.domain.conversation.ConversationRef
 import com.qtekfun.ultimatemail.domain.conversation.ConversationView
+import com.qtekfun.ultimatemail.domain.conversation.Neighbours
+import com.qtekfun.ultimatemail.domain.conversation.ReaderList
+import com.qtekfun.ultimatemail.domain.conversation.ReaderNeighbours
 import com.qtekfun.ultimatemail.sync.engine.BodyResult
 import com.qtekfun.ultimatemail.sync.engine.DownloadAttachment
 import com.qtekfun.ultimatemail.sync.engine.DownloadResult
@@ -54,7 +57,9 @@ import kotlinx.coroutines.launch
 data class ConversationState(
     val ref: ConversationRef? = null,
     val loaded: Boolean = false,
-    val view: ConversationView? = null
+    val view: ConversationView? = null,
+    /** The conversations just before and after this one in the list it was opened from. */
+    val neighbours: Neighbours = Neighbours()
 ) {
     val missing: Boolean get() = loaded && view == null
 }
@@ -97,11 +102,13 @@ class ConversationViewModel @Inject constructor(
     private val downloadAttachment: DownloadAttachment,
     private val composeLauncher: ComposeLauncher,
     private val movePicker: MovePickerLauncher,
+    private val readerNeighbours: ReaderNeighbours,
     settings: SettingsRepository,
     private val notices: NoticeCenter,
     @IoDispatcher private val io: CoroutineDispatcher
 ) : ViewModel() {
     private val ref = MutableStateFlow<ConversationRef?>(null)
+    private val list = MutableStateFlow<ReaderList?>(null)
     private val local = MutableStateFlow(ConversationLocal())
     private val presenter = ConversationPresenter()
     private var starting: Job? = null
@@ -115,20 +122,26 @@ class ConversationViewModel @Inject constructor(
     /** The message to show in the snackbar now, if any. */
     val notice: StateFlow<ConversationNotice?> = notices.notice
 
-    val state: StateFlow<ConversationState> = ref.flatMapLatest { target ->
+    val state: StateFlow<ConversationState> = combine(
+        ref,
+        list,
+        ::Pair
+    ).flatMapLatest { (target, from) ->
         if (target == null) {
             flowOf(ConversationState())
         } else {
             combine(
                 reader.observe(target),
                 local,
-                settings.settings.map { it.remoteContent }.distinctUntilChanged()
-            ) { data, screen, remotePolicy ->
+                settings.settings.map { it.remoteContent }.distinctUntilChanged(),
+                readerNeighbours.observe(target, from)
+            ) { data, screen, remotePolicy, around ->
                 ConversationState(
                     ref = target,
                     loaded = true,
                     view = data.takeIf { it.messages.isNotEmpty() }
-                        ?.let { presenter.present(it, screen, target.folderPath, remotePolicy) }
+                        ?.let { presenter.present(it, screen, target.folderPath, remotePolicy) },
+                    neighbours = around
                 )
             }.flowOn(io)
         }
@@ -141,8 +154,10 @@ class ConversationViewModel @Inject constructor(
     /**
      * Opens [target]. Asking for the one already open keeps its state (rotation, coming back);
      * another starts clean, with the first unread message open, or the newest when all are read.
+     * [from] is the list it was opened from, which the previous and next arrows walk.
      */
-    fun open(target: ConversationRef) {
+    fun open(target: ConversationRef, from: ReaderList? = null) {
+        list.value = from
         if (ref.value == target) return
         starting?.cancel()
         // Whatever the screen of an earlier conversation never got to do is not for this one.
@@ -297,6 +312,12 @@ class ConversationViewModel @Inject constructor(
         val target = ref.value ?: return
         val request = ComposeRequest(target.accountId, target.folderPath, newest.id, mode)
         if (!composeLauncher.start(request)) notices.post(NoticeKind.COMPOSE_FAILED)
+    }
+
+    /** Starts a new, empty message from the account of the conversation. */
+    fun composeNew() {
+        val accountId = ref.value?.accountId ?: return
+        if (!composeLauncher.startNew(accountId)) notices.post(NoticeKind.COMPOSE_FAILED)
     }
 
     /**

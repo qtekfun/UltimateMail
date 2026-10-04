@@ -5,6 +5,7 @@ package com.qtekfun.ultimatemail.ui.nav
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import com.qtekfun.ultimatemail.domain.conversation.ReaderList
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
 import com.qtekfun.ultimatemail.domain.search.SearchScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,11 +27,19 @@ class AppNavigator @Inject constructor(private val savedState: SavedStateHandle)
     private var searchFrom: Screen? =
         savedState.get<String>(SEARCH_FROM_KEY)?.let(Screen::fromRoute)
     private val drawer = MutableStateFlow(savedState.get<Boolean>(DRAWER_KEY) ?: false)
+    private val reading =
+        MutableStateFlow(savedState.get<String>(READER_LIST_KEY)?.let(ReaderList::fromKey))
 
     val screen: StateFlow<Screen> = current.asStateFlow()
 
     /** Whether the side menu is open (or opening). The UI follows this value. */
     val drawerOpen: StateFlow<Boolean> = drawer.asStateFlow()
+
+    /**
+     * The list the open conversation was opened from, which the previous and next arrows of the
+     * reading screen walk; null when it came from somewhere without one (search).
+     */
+    val readerList: StateFlow<ReaderList?> = reading.asStateFlow()
 
     /** Shows [screen]; the side menu is closed. */
     fun open(screen: Screen) {
@@ -41,13 +50,21 @@ class AppNavigator @Inject constructor(private val savedState: SavedStateHandle)
 
     /**
      * Opens the conversation [threadId] of [folderPath]. Back returns to the screen this was
-     * called from (a folder, the unified inbox), not to the start screen.
+     * called from (a folder, the unified inbox), not to the start screen. [from] is the list the
+     * conversation was picked from; moving on to its neighbour keeps it.
      */
-    fun openConversation(accountId: Long, folderPath: String, threadId: String) {
-        // From another conversation the way back stays what it was.
+    fun openConversation(
+        accountId: Long,
+        folderPath: String,
+        threadId: String,
+        from: ReaderList? = null
+    ) {
+        // From another conversation the way back and the list stay what they were.
         if (current.value !is Screen.Conversation) {
             cameFrom = current.value
             savedState[CAME_FROM_KEY] = current.value.route
+            reading.value = from
+            savedState[READER_LIST_KEY] = from?.key
         }
         open(Screen.Conversation(accountId, folderPath, threadId))
     }
@@ -144,5 +161,6 @@ class AppNavigator @Inject constructor(private val savedState: SavedStateHandle)
         const val CAME_FROM_KEY = "cameFrom"
         const val COMPOSE_FROM_KEY = "composeFrom"
         const val SEARCH_FROM_KEY = "searchFrom"
+        const val READER_LIST_KEY = "readerList"
     }
 }

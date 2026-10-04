@@ -5,6 +5,7 @@ package com.qtekfun.ultimatemail.ui.nav
 
 import androidx.lifecycle.SavedStateHandle
 import com.qtekfun.ultimatemail.domain.conversation.ConversationRef
+import com.qtekfun.ultimatemail.domain.conversation.ReaderList
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -91,6 +92,29 @@ class ConversationNavigationTest {
         navigator.back()
 
         assertEquals(Screen.Inbox(folder), navigator.screen.value)
+    }
+
+    @Test
+    fun `the list a conversation was opened from is kept while moving between neighbours`() {
+        val navigator = AppNavigator(SavedStateHandle())
+        val list = ReaderList(folder, unreadOnly = true)
+        navigator.openConversation(3, "Work/Invoices", "t1", from = list)
+
+        navigator.openConversation(3, "Work/Invoices", "t2")
+
+        assertEquals(list, navigator.readerList.value)
+        navigator.back()
+        navigator.openConversation(1, "INBOX", "t")
+        assertEquals(null, navigator.readerList.value)
+    }
+
+    @Test
+    fun `the list survives the process being recreated`() {
+        val saved = SavedStateHandle()
+        val list = ReaderList(InboxScope.Unified)
+        AppNavigator(saved).openConversation(1, "INBOX", "t", from = list)
+
+        assertEquals(list, AppNavigator(saved).readerList.value)
     }
 
     @Test

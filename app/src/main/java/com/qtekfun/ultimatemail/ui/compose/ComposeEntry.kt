@@ -53,4 +53,9 @@ class QueuedComposeLauncher @Inject constructor(private val entry: ComposeEntry)
         entry.request(ComposeStart.Message(request))
         return true
     }
+
+    override fun startNew(accountId: Long): Boolean {
+        entry.request(ComposeStart.New(accountId))
+        return true
+    }
 }
