@@ -324,6 +324,10 @@
     <string name="notice_move_soon">Moving to a folder is coming soon.</string>
     <string name="inbox_action_mark_read">Mark as read</string>
     <string name="conversation_more">More actions</string>
+    <string name="conversation_previous">Previous conversation</string>
+    <string name="conversation_next">Next conversation</string>
+    <string name="conversation_reply_menu">Reply, reply all or forward</string>
+    <string name="conversation_back_to">Back to %1$s</string>
     <string name="inbox_action_move">Move to…</string>
     <string name="inbox_select">Select</string>
     <string name="inbox_deselect">Deselect</string>

@@ -145,4 +145,40 @@ interface ConversationDao {
             "ORDER BY m.sentAt DESC, m.id DESC"
     )
     fun observeByIds(ids: List<Long>): Flow<List<ConversationSummary>>
+
+    /** The conversation just above the given one (newer) in a folder list, if any. */
+    @Query(NEWER_IN_FOLDER_SQL)
+    fun observeNewerInFolder(
+        accountId: Long,
+        folderPath: String,
+        threadId: String,
+        unreadOnly: Int
+    ): Flow<ConversationKey?>
+
+    /** The conversation just below the given one (older) in a folder list, if any. */
+    @Query(OLDER_IN_FOLDER_SQL)
+    fun observeOlderInFolder(
+        accountId: Long,
+        folderPath: String,
+        threadId: String,
+        unreadOnly: Int
+    ): Flow<ConversationKey?>
+
+    /** The conversation just above the given one (newer) in the unified inbox, if any. */
+    @Query(NEWER_IN_UNIFIED_SQL)
+    fun observeNewerInUnified(
+        accountId: Long,
+        folderPath: String,
+        threadId: String,
+        unreadOnly: Int
+    ): Flow<ConversationKey?>
+
+    /** The conversation just below the given one (older) in the unified inbox, if any. */
+    @Query(OLDER_IN_UNIFIED_SQL)
+    fun observeOlderInUnified(
+        accountId: Long,
+        folderPath: String,
+        threadId: String,
+        unreadOnly: Int
+    ): Flow<ConversationKey?>
 }

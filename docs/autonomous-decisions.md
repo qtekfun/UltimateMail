@@ -328,3 +328,31 @@ Decisiones tomadas por mí (a confirmar):
     subtítulo del título en carpetas de una cuenta (el menú ya indica la cuenta). **No hecho / límites:** los tests de
     interfaz Compose (androidTest) se actualizaron para el botón de redactar y el de mover pero no se pueden ejecutar
     en el móvil del usuario; la barra no se oculta nunca (ni al leer, ni al desplazar). **Medidas** (PGEM10, compilación de producción con R8 firmada con la clave de depuración, más las actividades de demostración añadidas solo para medir; 50.000 conversaciones sembradas con `seed-bulk`; unificada): arranque en frío (`am start -W`, `TotalTime`, 10 veces, tras `compile -m speed`) 145-174 ms, mediana 155 ms (umbral 1.500 ms); 3 tandas de 30 gestos de desplazamiento (`gfxinfo`): 1,77 % / 1,77 % / 1,38 % de fotogramas lentos (umbral 5 %), p90 de 11 / 13 / 12 ms y p99 de 26 / 31 / 28 ms. La barra inferior no depende del desplazamiento (solo mide su altura una vez por cambio de tamaño) y el título grande lee `collapsedFraction` dentro de `graphicsLayer`; mientras el título colapsa el `Scaffold` vuelve a medir su contenido, que es el patrón estándar, y las medidas ya lo incluyen. Con la fuente al 200 % se revisó en el móvil la barra, el título y la selección (se corrigió que la cuenta de seleccionadas se rompía en vertical). Con el sistema en oscuro, colores dinámicos. No medido: TalkBack real, modo claro y AMOLED en el móvil, ni la sincronización en marcha durante el desplazamiento.
+
+38. **Barra de la pantalla de lectura al estilo de Mail de iOS (2026-10-04, fase 4 de `docs/ios-mail-design.md`).**
+    Decidido por el agente. **Arriba:** flecha atrás con el nombre del buzón en pequeño (nombre localizado por rol, o el
+    del servidor; recortado a 112 dp con puntos suspensivos; TalkBack lee "Volver a Bandeja de entrada" y la zona
+    táctil es todo el conjunto, de al menos 48 dp), flechas de conversación anterior (arriba, más nueva) y siguiente
+    (abajo, más antigua), desactivadas en los extremos, y el menú ⋮ con Destacar/Quitar estrella y Marcar como no leído.
+    **Abajo (sustituye a los tres botones con borde):** Archivar (si la cuenta tiene destino y no se está ya en el
+    archivo), Papelera, Mover, Responder (menú con Responder, Responder a todos y Reenviar) y Redactar (mensaje nuevo
+    desde la cuenta de la conversación). Se mantiene la lógica de `FolderTargets`: ambos botones aparecen como hasta
+    ahora; no se añadió un ajuste "archivar o borrar" porque no existe aún. Superficie tonal que respeta la barra de
+    navegación y `FlowRow` con reparto uniforme, para que con fuente al 200 % pase a una segunda fila en vez de cortarse.
+    "Mover" sale del menú ⋮ (ya está abajo). **Cómo sabe el lector cuál es su lista:** `AppNavigator` guarda una
+    `ReaderList` (ámbito más "solo no leídas" si la lista tenía ese filtro) al abrir una conversación desde la lista y
+    la conserva en el estado guardado (sobrevive a la recreación del proceso); al pasar a un vecino no cambia ni ella ni
+    la pantalla de origen, así que Atrás sigue volviendo a la lista. Desde la búsqueda no hay lista y las flechas
+    quedan desactivadas. **Cómo se buscan los vecinos sin cargar la lista:** `ReaderNeighbours` lanza dos consultas de
+    Room (`NeighbourSql.kt`), una por lado, que comparan la posición `(sentAt, id)` del mensaje visible más nuevo de la
+    conversación abierta y devuelven solo la fila vecina (`LIMIT 1`, por el índice de carpeta y fecha; hay un test del
+    plan de consulta con el volumen de referencia). Respetan igual que la lista los movimientos pendientes (una
+    conversación archivada o borrada se salta) y el filtro de no leídas; el vecino se actualiza solo (flujo de Room).
+    Pasar al siguiente es abrirlo como hoy: se marca leído su primer mensaje no leído y se carga el cuerpo; la lista no
+    se recarga. **Pruebas:** `ReaderNeighboursTest` (extremos, empates de fecha, conversaciones que suben al llegar
+    correo, filtro de no leídas, unificada, movimientos pendientes, texto guardado), `ConversationViewModelTest`
+    (vecinos, etiqueta del buzón, ir a un vecino, redactar), `ConversationNavigationTest` (la lista se conserva y se
+    restaura) y `QueryPlanTest`. **No hecho:** el filtro de la lista no se sigue si se cambia después de abrir la
+    conversación (se usa el que había al abrirla); con el filtro de no leídas y sin más no leídas al final, la consulta
+    recorre la carpeta hasta agotarla (acotado por el tamaño de la carpeta, solo en ese caso); los vecinos de la
+    búsqueda; icono propio de redactar (se usa el lápiz de Material).

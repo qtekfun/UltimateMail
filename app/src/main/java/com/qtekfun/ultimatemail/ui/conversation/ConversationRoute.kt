@@ -16,6 +16,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.qtekfun.ultimatemail.domain.conversation.ConversationRef
+import com.qtekfun.ultimatemail.domain.conversation.ReaderList
 import com.qtekfun.ultimatemail.ui.nav.Screen
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -25,19 +27,22 @@ import kotlinx.coroutines.withContext
 /**
  * Connects [ConversationScreen] to [ConversationViewModel] and does what needs an Android
  * context: opening and sharing downloaded attachments through the FileProvider, and saving them
- * to a place the reader picks. [onBack] leaves the conversation.
+ * to a place the reader picks. [onBack] leaves the conversation; [onOpen] moves to the previous
+ * or next one of [list], the list it was opened from.
  */
 @Composable
 fun ConversationRoute(
     screen: Screen.Conversation,
     viewModel: ConversationViewModel,
-    onBack: () -> Unit
+    list: ReaderList?,
+    onBack: () -> Unit,
+    onOpen: (ConversationRef) -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val saveAs = rememberAttachmentSaver(onResult = viewModel::report)
 
-    LaunchedEffect(screen) { viewModel.open(screen.ref) }
+    LaunchedEffect(screen, list) { viewModel.open(screen.ref, list) }
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
@@ -71,6 +76,9 @@ fun ConversationRoute(
             onArchive = viewModel::archive,
             onDelete = viewModel::delete,
             onMove = viewModel::moveTo,
+            onPrevious = { state.neighbours.previous?.let(onOpen) },
+            onNext = { state.neighbours.next?.let(onOpen) },
+            onComposeNew = viewModel::composeNew,
             onCompose = viewModel::compose,
             onToggleMessage = viewModel::toggle,
             onToggleDetails = viewModel::toggleDetails,
