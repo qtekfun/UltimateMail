@@ -11,6 +11,8 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-04
+
 ### Added
 
 - Settings, "Background sync": shows whether Android lets the sync run with the screen off and
@@ -75,6 +77,7 @@ with Gmail; some parts are not verified yet (see Known limitations).
 - The app has not been reviewed with TalkBack by a person (touch targets, descriptions and font scaling are covered by code and tests).
 - The first sync of a mailbox with hundreds of labels takes a few minutes.
 
-[Unreleased]: https://github.com/qtekfun/UltimateMail/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/qtekfun/UltimateMail/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/qtekfun/UltimateMail/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/qtekfun/UltimateMail/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/qtekfun/UltimateMail/releases/tag/v0.1.0

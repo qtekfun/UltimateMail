@@ -1,0 +1,1 @@
+Nueva sección Sincronización en segundo plano en Ajustes y una pregunta única tras añadir tu primera cuenta: permite que Android siga sincronizando con la pantalla apagada, con pasos extra para móviles (OPPO, Xiaomi, Samsung...) que cierran las apps en segundo plano.
