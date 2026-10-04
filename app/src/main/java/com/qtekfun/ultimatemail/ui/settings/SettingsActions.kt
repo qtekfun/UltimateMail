@@ -19,6 +19,7 @@ data class SettingsActions(
     val onSwipeLeftChange: (SwipeAction) -> Unit,
     val onRemoteContentChange: (RemoteContentPolicy) -> Unit,
     val onOpenAccount: (Long) -> Unit,
+    val onAddAccount: () -> Unit,
     val onExportAccounts: () -> Unit,
     val onImportAccounts: () -> Unit
 )
