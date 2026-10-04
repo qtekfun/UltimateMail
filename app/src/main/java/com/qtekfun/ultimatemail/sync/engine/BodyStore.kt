@@ -8,6 +8,7 @@ import com.qtekfun.ultimatemail.data.local.dao.MessageDao
 import com.qtekfun.ultimatemail.data.local.entity.AttachmentEntity
 import com.qtekfun.ultimatemail.data.local.entity.MessageEntity
 import com.qtekfun.ultimatemail.domain.conversation.ContentIds
+import com.qtekfun.ultimatemail.domain.inbox.MessageSnippet
 import com.qtekfun.ultimatemail.domain.mail.MessageBody
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -38,6 +39,10 @@ class BodyStore @Inject constructor(
         // A message without any text still counts as fetched: the empty string says so.
         val text = body.text ?: if (body.html == null) "" else null
         messages.setBody(message.accountId, message.folderPath, message.uid, text, body.html)
+        // The list shows the start of the text under the subject: it is known once the body is.
+        MessageSnippet.of(text, body.html).takeIf { it.isNotEmpty() }?.let {
+            messages.setSnippet(message.accountId, message.folderPath, message.uid, it)
+        }
         attachments.insert(
             body.attachments.map {
                 AttachmentEntity(

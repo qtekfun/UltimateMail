@@ -123,7 +123,7 @@ fun ConversationRow(
             .background(background)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .rowSemantics(
-                RowSemantics(description, selected, selectedText, customActions),
+                RowSemantics(description, selected, selecting, selectedText, customActions),
                 onClick,
                 onLongClick
             )
@@ -189,6 +189,7 @@ private fun highlighted(
 private class RowSemantics(
     val description: String,
     val selected: Boolean,
+    val selecting: Boolean,
     val selectedText: String,
     val actions: List<CustomAccessibilityAction>
 )
@@ -224,7 +225,8 @@ private fun Modifier.rowSemantics(
     onHold: (() -> Unit)?
 ): Modifier = clearAndSetSemantics {
     contentDescription = row.description
-    this.selected = row.selected
+    // Only while picking: outside selection mode "not selected" would be noise for every row.
+    if (row.selecting || row.selected) this.selected = row.selected
     if (row.selected) stateDescription = row.selectedText
     if (row.actions.isNotEmpty()) customActions = row.actions
     onClick {
