@@ -1,0 +1,1 @@
+New Background sync section in Settings, and a one-time question after you add your first account: it lets Android keep syncing with the screen off, with extra steps for phones (OPPO, Xiaomi, Samsung...) that close background apps.
