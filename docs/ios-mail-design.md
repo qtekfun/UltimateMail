@@ -93,7 +93,7 @@ materiales de Apple (SF Symbols, Liquid Glass). Se dibujan con iconos de Materia
   encendidos por defecto como hoy).
 
 ## Fases (una PR cada una, de abajo a arriba)
-1. **Fila**: punto azul, vista previa configurable, avatares opcionales, tipografía y separadores.
+1. **Fila** (hecha, PR de la fase 1, decisión 36): punto azul, vista previa configurable, avatares opcionales, tipografía y separadores.
 2. **Menú de buzones**: la estructura de arriba (sin tocar la lista).
 3. **Lista**: título grande con "Editar", barra inferior (filtro, búsqueda, redactar), selección con
    círculos y barra de acciones, valores por defecto de los gestos.
