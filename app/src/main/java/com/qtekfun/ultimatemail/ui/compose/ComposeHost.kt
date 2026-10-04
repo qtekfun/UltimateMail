@@ -14,15 +14,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.qtekfun.ultimatemail.R
-import com.qtekfun.ultimatemail.domain.compose.DraftListItem
 import com.qtekfun.ultimatemail.ui.nav.AppNavigator
-import kotlinx.coroutines.launch
 
 /**
  * What has to happen whatever the screen: a new draft (a reply, a share, an Undo) opens the
@@ -85,7 +82,6 @@ fun OutboxRoute(viewModel: OutboxViewModel, navigator: AppNavigator) {
 @Composable
 fun DraftsRoute(accountId: Long, viewModel: DraftsViewModel, navigator: AppNavigator) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val coroutines = rememberCoroutineScope()
     LaunchedEffect(accountId) { viewModel.show(accountId) }
     DraftsScreen(
         title = stringResource(R.string.folder_drafts),
@@ -93,13 +89,7 @@ fun DraftsRoute(accountId: Long, viewModel: DraftsViewModel, navigator: AppNavig
         actions = DraftsActions(
             onOpenMenu = { navigator.setDrawerOpen(true) },
             onOpen = viewModel::open,
-            onOpenServerDraft = { draft ->
-                coroutines.launch {
-                    viewModel.serverDraft(DraftListItem.OnServer(draft))?.let {
-                        navigator.openConversation(it.accountId, it.folderPath, it.threadId)
-                    }
-                }
-            },
+            onOpenServerDraft = viewModel::openServerDraft,
             onRequestDelete = viewModel::requestDelete,
             onDismissDelete = viewModel::dismissDelete,
             onConfirmDelete = viewModel::confirmDelete,
