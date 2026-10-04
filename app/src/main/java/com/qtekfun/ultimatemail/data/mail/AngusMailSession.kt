@@ -98,13 +98,25 @@ class AngusMailSession(
         }
     }
 
+    /**
+     * Asked with STATUS, which does not open the folder: on a folder that did not change since the
+     * last sync that is all a sync needs, and it is far cheaper than selecting it (Gmail takes
+     * longer to select the more mail a folder holds). A folder that is open already answers from
+     * what the server told when it was selected.
+     */
     override suspend fun folderStatus(folder: String): MailResult<FolderStatus> = call {
-        val imap = open(folder, writable = false)
+        val imap = current?.takeIf { it.folder.fullName == folder }?.folder
+            ?: (store.getFolder(folder) as IMAPFolder)
         FolderStatus(
             uidValidity = imap.uidValidity,
             uidNext = imap.uidNext,
             messageCount = imap.messageCount,
-            highestModSeq = if (store.hasCapability("CONDSTORE")) imap.highestModSeq else null
+            // -1 is the library's "the server did not say": unknown, never a value to compare.
+            highestModSeq = if (store.hasCapability("CONDSTORE")) {
+                imap.highestModSeq.takeIf { it > 0 }
+            } else {
+                null
+            }
         )
     }
 
@@ -142,7 +154,7 @@ class AngusMailSession(
         val gmail = extensions.isAvailable(store)
         if (gmail) extensions.fetchItems().forEach(profile::add)
         if (messages.isNotEmpty()) imap.fetch(messages.toTypedArray(), profile)
-        return messages.map { toHeader(imap, it, gmail) }
+        return messages.mapDescribable { toHeader(imap, it, gmail) }
     }
 
     override suspend fun search(

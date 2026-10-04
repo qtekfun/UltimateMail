@@ -20,6 +20,9 @@ sealed interface AccountSyncState {
 
     data object Syncing : AccountSyncState
 
+    /** The folders are being brought down: [done] of [total] have been looked at. */
+    data class SyncingFolders(val done: Int, val total: Int) : AccountSyncState
+
     /**
      * The headers are in; the bodies of the messages inside the offline window are being
      * downloaded: [done] of [total] have theirs (RF-10).

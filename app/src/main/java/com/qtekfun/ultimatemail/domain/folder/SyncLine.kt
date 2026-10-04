@@ -14,6 +14,9 @@ sealed interface SyncLine {
 
     data object Syncing : SyncLine
 
+    /** Folder [done] of [total] is being synced (a mailbox can have hundreds of labels). */
+    data class SyncingFolders(val done: Int, val total: Int) : SyncLine
+
     /** Headers are in; [done] of [total] message bodies are on the device. */
     data class DownloadingMessages(val done: Int, val total: Int) : SyncLine
 
@@ -33,6 +36,7 @@ sealed interface SyncLine {
             null -> NeverSynced
             is AccountSyncState.Idle -> state.lastSyncedAt?.let(::LastSynced) ?: NeverSynced
             AccountSyncState.Syncing -> Syncing
+            is AccountSyncState.SyncingFolders -> SyncingFolders(state.done, state.total)
             is AccountSyncState.DownloadingBodies -> DownloadingMessages(state.done, state.total)
             is AccountSyncState.Error -> Failed(state.problem)
             AccountSyncState.ReauthenticationNeeded -> SignInAgain
