@@ -13,10 +13,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import com.qtekfun.ultimatemail.R
 import com.qtekfun.ultimatemail.data.local.model.AuthType
+import com.qtekfun.ultimatemail.domain.oauth.OAuthFeature
 
 /** Sign in with the provider, for servers that support it: the user brings their own client ID. */
 @Composable
 internal fun OAuthSection(state: AddAccountState, actions: AddAccountActions) {
+    if (!OAuthFeature.ENABLED) return
     val authType = state.oauthType ?: return
     val microsoft = authType == AuthType.OAUTH_MICROSOFT
     Text(

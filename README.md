@@ -20,8 +20,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 *Resumen en español al final: [Español](#español).*
 
 > **Status: first version (0.1).** It reads, writes, searches and syncs mail for IMAP/SMTP accounts
-> and has been used with Gmail. Some parts are not verified yet (Microsoft sign-in, TalkBack), and
-> there are no push notifications. See the [status table](#status) and the
+> and has been used with Gmail with an app password. TalkBack has not been reviewed yet, and there
+> are no push notifications. See the [status table](#status) and the
 > [changelog](CHANGELOG.md).
 
 ## What and why
@@ -55,8 +55,7 @@ tried against a real server by the maintainer.
 | Feature | Status |
 |---|---|
 | Accounts: autodetection, password or app password, connection test, remove, export/import (encrypted) | Done, used with Gmail |
-| Google sign-in (OAuth2 with your own client ID) | Done, used with Gmail |
-| Microsoft sign-in (OAuth2 with your own client ID) | Done, **not tried** against a real account |
+| Sign-in with Google or Microsoft (OAuth2 with your own client ID) | Implemented but **hidden**: accounts use a password or an app password for now (see below) |
 | Credentials encrypted with the Android Keystore | Done |
 | Offline-first sync in phases, operation queue and conflict rules | Done, used with Gmail |
 | Conversation list, threads, unified inbox, mailboxes menu | Done |
@@ -80,8 +79,8 @@ Out of scope for the first version: push with IMAP IDLE, snooze, PGP/S-MIME, ali
 
 | Provider | Sign-in |
 |---|---|
-| Gmail / Google Workspace | App password (needs 2-Step Verification), or Google OAuth2 with **your own** OAuth client |
-| Outlook.com / Microsoft 365 | OAuth2 with **your own** client (not tried yet), or an app password where the account allows it |
+| Gmail / Google Workspace | App password (needs 2-Step Verification) |
+| Outlook.com / Microsoft 365 | Password or app password, where the account allows IMAP/SMTP with one |
 | Any IMAP/SMTP server (Dovecot, Fastmail, your own...) | Password, with TLS or STARTTLS; certificate authorities installed on the device are accepted |
 
 ## Building
@@ -96,15 +95,14 @@ You need JDK 21 and the Android SDK. Gradle is the wrapper in the repository.
 Dependencies are verified (`gradle/verification-metadata.xml`) and their licenses are checked:
 only free software is allowed, and Google Play Services, Firebase and Crashlytics fail the build.
 
-### OAuth client IDs
+### OAuth sign-in (hidden)
 
-Google only lets an app read mail with OAuth after a verification process, so the project does not
-ship a client ID for now. To try Google sign-in, create your own Android OAuth client in Google
-Cloud (package `com.qtekfun.ultimatemail`, with "Enable custom URI scheme" on) and give its ID to
-the build, either with `-PUM_GOOGLE_CLIENT_ID=<id>` or as `UM_GOOGLE_CLIENT_ID=<id>` in your
-`~/.gradle/gradle.properties`. The ID is public, not a secret. A step-by-step guide
-(`docs/oauth-setup.md`) is coming; until then, the lessons learned are in SPEC.md, section 9
-("OAuth con Google"). Microsoft is not wired up yet.
+Sign-in with Google and Microsoft (OAuth2, with a client ID you create yourself) is implemented
+and tested, but the add-account screen does not offer it: a Google client that can read Gmail
+needs a verified app (a paid security assessment) and, unverified, its token expires every week.
+Accounts use an app password, which is free and does not expire. The switch is
+`OAuthFeature.ENABLED` in `domain/oauth/OAuthFeature.kt`; `docs/oauth-setup.md` has the steps to
+create the clients if you turn it on.
 
 ## Architecture
 
@@ -144,13 +142,13 @@ y sin telemetría, con un aspecto inspirado en Mail de iOS y Gmail. Nace de la f
 Thunderbird para Android: interfaz anticuada, gestos lentos, problemas de sincronización y
 rendimiento, y ninguna búsqueda al mover un correo a una etiqueta.
 
-**Estado: desarrollo temprano, todavía no es utilizable a diario ni hay versión publicada.** Ya se
-puede añadir una cuenta IMAP con contraseña, sincronizar carpetas y ver la lista de conversaciones;
-leer, redactar, buscar, los gestos y los ajustes están en marcha o planificados (ver la
-[tabla de estado](#status), `PLAN.md` y `SPEC.md`, estos últimos en español).
+**Estado: primera versión (0.1).** Lee, escribe, busca y sincroniza correo IMAP/SMTP y se ha usado
+con Gmail con contraseña de aplicación. Falta revisar la accesibilidad con TalkBack y no hay
+notificaciones push (ver la [tabla de estado](#status), el [changelog](CHANGELOG.md), `PLAN.md` y
+`SPEC.md`, estos últimos en español).
 
-- Gmail: contraseña de aplicación, o OAuth2 con tu propio cliente de Google (prototipo).
-- Microsoft: OAuth2 planificado.
+- Gmail: contraseña de aplicación (verificación en dos pasos). El acceso con Google y Microsoft por OAuth2 está implementado pero oculto (`OAuthFeature`).
+- Microsoft: usuario y contraseña (o contraseña de aplicación) donde la cuenta lo permita.
 - Cualquier servidor IMAP/SMTP: usuario y contraseña con TLS o STARTTLS.
 - Compilar: JDK 21, `./gradlew assembleDebug`; comprobaciones: `./gradlew check`.
 - Privacidad: ver [PRIVACY.md](PRIVACY.md) (bilingüe). Contribuir: [CONTRIBUTING.md](CONTRIBUTING.md).

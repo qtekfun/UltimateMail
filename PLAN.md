@@ -56,3 +56,9 @@ Reglas: una tarea cada vez, en su rama `feat/<tarea>`, con `./gradlew check` en 
 - Aliases/identidades múltiples, firma rica (HTML), plantillas.
 - Tablet y apaisado, widgets.
 - Más idiomas.
+- **Mejora a muy largo plazo: acceso OAuth2 con Google y Microsoft.** Ya está implementado y probado
+  pero oculto (`OAuthFeature.ENABLED = false`): para Gmail exige una app verificada por Google (evaluación
+  de seguridad de pago) y sin ella el token caduca a la semana; Microsoft exige registrar una app por
+  usuario. Reactivarlo implica: decidir cómo se consiguen los clientes (uno compartido verificado o uno por
+  usuario), probarlo con cuentas reales de ambos proveedores, volver a poner el interruptor y retirar la
+  nota de `docs/oauth-setup.md`. Mientras tanto, contraseña de aplicación.
