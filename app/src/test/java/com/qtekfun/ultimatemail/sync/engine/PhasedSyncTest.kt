@@ -189,4 +189,112 @@ class PhasedSyncTest {
         assertEquals(0, PreferenceSyncDepthLog(preferences).get(5))
         assertEquals(0, SyncDepthLog.None.get(4))
     }
+
+    @Test
+    fun `the inbox is pulled before the special folders and those before the labels`() = runTest {
+        val h = start(windowDays = 30) {
+            server.folder("Alpha", MailFolderRole.OTHER)
+            server.folder("Sent", MailFolderRole.SENT)
+        }
+
+        h.engine.sync(h.accountId)
+
+        val order = h.server.logged("folderStatus").map { it.removePrefix("folderStatus ") }
+        assertEquals(listOf("INBOX", "Sent", "Alpha"), order)
+    }
+
+    private fun EngineHarness.labels(vararg names: String) {
+        names.forEach { server.folder(it, MailFolderRole.OTHER) }
+    }
+
+    /** On a Gmail account the folders that are neither special nor the Inbox are labels. */
+    private suspend fun EngineHarness.onGmail() {
+        db.accountDao().update(db.accountDao().get(accountId)!!.copy(imapHost = "imap.gmail.com"))
+    }
+
+    private fun failing(vararg paths: String) = { name: String ->
+        if (paths.any { name == "folderStatus $it" }) {
+            MailResult.ServerRejected(
+                com.qtekfun.ultimatemail.domain.mail.RejectionKind.NO,
+                permanent = false
+            )
+        } else {
+            null
+        }
+    }
+
+    @Test
+    fun `a Gmail label that does not come waits for the next sync and does not fail this one`() =
+        runTest {
+            val h = start(windowDays = 30) {
+                labels("Work")
+                server.deliver("INBOX", subject = "in inbox", sentAt = ago(1))
+                server.deliver("Work", subject = "in work", sentAt = ago(1))
+            }
+            h.onGmail()
+            h.engine.sync(h.accountId)
+            h.server.failure = failing("Work")
+            h.server.deliver("INBOX", subject = "newer", sentAt = h.ago(0))
+
+            val result = h.engine.sync(h.accountId)
+
+            assertTrue(result is AccountSyncResult.Synced, "$result")
+            assertTrue("newer" in h.subjects())
+            h.server.failure = { null }
+            h.engine.sync(h.accountId)
+            assertEquals(AccountSyncState.Idle::class, h.status.get(h.accountId)::class)
+        }
+
+    @Test
+    fun `the first phase is not recorded while a label is behind, so older mail is not skipped`() =
+        runTest {
+            val h = start(windowDays = 365) {
+                labels("Work")
+                server.deliver("INBOX", subject = "recent", sentAt = ago(1))
+                server.deliver("Work", subject = "old in work", sentAt = ago(100))
+            }
+            h.onGmail()
+            h.engine.sync(h.accountId)
+            h.depth.values.clear()
+            h.server.failure = failing("Work")
+
+            h.engine.sync(h.accountId)
+
+            assertEquals(0, h.depth.get(h.accountId))
+        }
+
+    @Test
+    fun `an Inbox that does not come does fail the sync`() = runTest {
+        val h = start(windowDays = 30) {
+            server.deliver("INBOX", subject = "x", sentAt = ago(1))
+        }
+        h.server.failure = failing("INBOX")
+
+        val result = h.engine.sync(h.accountId)
+
+        assertTrue(result is AccountSyncResult.Failed)
+    }
+
+    @Test
+    fun `the status says which folder of how many is being synced`() = runTest {
+        val seen = mutableListOf<AccountSyncState>()
+        val h = start(windowDays = 30) {
+            labels("A", "B")
+        }
+        h.server.failure = { name ->
+            if (name.startsWith("folderStatus")) seen += h.status.get(h.accountId)
+            null
+        }
+
+        h.engine.sync(h.accountId)
+
+        assertEquals(
+            listOf(
+                AccountSyncState.SyncingFolders(0, 3),
+                AccountSyncState.SyncingFolders(1, 3),
+                AccountSyncState.SyncingFolders(2, 3)
+            ),
+            seen.filterIsInstance<AccountSyncState.SyncingFolders>().take(3)
+        )
+    }
 }

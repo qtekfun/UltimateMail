@@ -53,6 +53,7 @@ class SyncEngineTest {
             assertEquals(AccountSyncState.Idle(), awaitItem())
             val sync = launch { h.engine.sync(h.accountId) }
             assertEquals(AccountSyncState.Syncing, awaitItem())
+            assertEquals(AccountSyncState.SyncingFolders(0, 1), awaitItem())
             assertEquals(AccountSyncState.Idle(h.clock.now), awaitItem())
             sync.join()
         }

@@ -100,9 +100,14 @@ class ScriptedServerTest {
             if (verb == "LIST") {
                 // After a refused open the library asks whether the folder exists.
                 listOf("* LIST () \"/\" \"INBOX\"", "$tag OK done")
-            } else if (verb in setOf("SELECT", "EXAMINE") && first) {
+            } else if (verb == "STATUS" && first) {
                 first = false
                 listOf("$tag NO not now")
+            } else if (verb == "STATUS") {
+                listOf(
+                    "* STATUS \"INBOX\" (MESSAGES 0 UIDNEXT 5 UIDVALIDITY 7)",
+                    "$tag OK done"
+                )
             } else {
                 listOf(
                     "* 0 EXISTS",

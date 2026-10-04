@@ -170,6 +170,7 @@ class EngineHarness(scope: TestScope, authType: AuthType = AuthType.PASSWORD) {
         AttachmentFileCleaner(db.attachmentDao(), storage),
         bodies,
         depth,
+        status,
         clock
     )
     val engine = SyncEngine(db.accountDao(), accountSync, status, clock)

@@ -347,10 +347,13 @@ class BodyDownloaderTest {
             listOf(
                 AccountSyncState.Idle(),
                 AccountSyncState.Syncing,
+                AccountSyncState.SyncingFolders(0, 1),
                 AccountSyncState.DownloadingBodies(0, 3),
                 AccountSyncState.DownloadingBodies(1, 3),
                 AccountSyncState.DownloadingBodies(2, 3),
                 AccountSyncState.DownloadingBodies(3, 3),
+                // The deeper phase of the 90-day window looks at the folder again.
+                AccountSyncState.SyncingFolders(0, 1),
                 AccountSyncState.Idle(h.clock.now)
             ),
             seen
