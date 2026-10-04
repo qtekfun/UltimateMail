@@ -53,8 +53,9 @@ internal fun InboxTopBar(
     actions: InboxActions,
     scrollBehavior: TopAppBarScrollBehavior
 ) {
-    // The expanded height is in dp, so it has to grow with a large font for the two lines to fit.
-    val expanded = ExpandedHeight * LocalDensity.current.fontScale.coerceAtLeast(1f)
+    // The expanded height is in dp, so it has to grow with a large font for the two lines to fit
+    // (text grows less than the font scale: the system scales large sizes down).
+    val expanded = ExpandedHeight * (1f + (LocalDensity.current.fontScale - 1f).coerceAtLeast(0f) * 0.3f)
     LargeTopAppBar(
         title = { InboxTitle(scope, info, scrollBehavior) },
         navigationIcon = {
