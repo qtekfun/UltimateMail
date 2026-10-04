@@ -91,6 +91,7 @@
     </plurals>
     <string name="sync_status_never">Aún sin sincronizar</string>
     <string name="sync_status_syncing">Sincronizando…</string>
+    <string name="sync_status_folders">Sincronizando carpetas %1$d/%2$d</string>
     <string name="sync_status_downloading">Descargando mensajes %1$d/%2$d</string>
     <string name="sync_status_last">Última sincronización: %1$s</string>
     <string name="sync_status_reauth">Vuelve a iniciar sesión</string>

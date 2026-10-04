@@ -165,6 +165,7 @@ class RestartedApp(harness: EngineHarness, scope: TestScope) {
             AttachmentFileCleaner(db.attachmentDao(), harness.storage),
             bodies,
             FakeSyncDepthLog(),
+            status,
             harness.clock
         ),
         status,

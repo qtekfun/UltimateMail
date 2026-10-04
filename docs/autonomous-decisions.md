@@ -153,3 +153,28 @@ Decisiones tomadas por mí (a confirmar):
     operación, sin contenido) en una rama descartable. Verificado en el móvil con las cuentas de demostración, para no
     tocar más el buzón real; el correo real que usé en las pruebas quedó movido a "Todos los mensajes" y lo recuperé
     con el selector de etiquetas.
+31. **Sincronización rehecha por fases (2026-10-04, PR #51).** Motivo: en la cuenta real (Gmail, unas 217 etiquetas) la
+    primera sincronización tardaba minutos sin dar información y acababa en "Falló"; el usuario propuso partirla en 30
+    días / último año / resto. Decidido por el agente:
+    - **Fases por profundidad** (`SyncStages`): 30 días, hasta un año y hasta la ventana de la cuenta (la ventana corta la
+      lista: 30 días es una sola fase). La fase 1 es el pull de siempre con ventana de 30 días; después se descargan los
+      cuerpos recientes y las fases profundas rellenan hacia atrás desde el UID más bajo ya guardado
+      (`FolderPuller.backfill`), así que un corte (el móvil quita la red a la app en segundo plano) retoma donde estaba.
+      La profundidad alcanzada se guarda por cuenta (`SyncDepthLog`, solo un número de días) y ensanchar la ventana
+      después trae lo antiguo sin reiniciar nada.
+    - **Orden:** en la primera sincronización de una cuenta (la bandeja de entrada sin estado) primero la bandeja de
+      entrada, luego las carpetas especiales y al final las etiquetas; después se vuelve al orden por ruta, porque el
+      tratamiento de un mensaje movido tras un reinicio de UIDVALIDITY lee antes su destino (hay un test que lo exige).
+    - **Fallos acotados:** una etiqueta de Gmail que no llega ya no hace fallar la sincronización: se reintenta en la
+      siguiente y, mientras tanto, la fase 1 no se da por hecha (para que las fases profundas no se salten su correo
+      antiguo). Una carpeta normal o la bandeja de entrada sí siguen haciéndola fallar. Un mensaje cuya envoltura el
+      servidor no sabe describir (`IMAPMessage.loadEnvelope`) se salta en vez de tumbar su lote de 200 y su carpeta; era
+      la causa de los "Falló" de la cuenta real.
+    - **Estado a la vista:** el pie del menú muestra "Sincronizando carpetas n/total" (nuevo `SyncingFolders`).
+    - **STATUS en vez de SELECT** para saber si una carpeta cambió: no abre la carpeta, que en Gmail es mucho más lento
+      cuanto más correo guarda. El contador de cambios `-1` de la biblioteca se trata como desconocido.
+    - **No hecho:** varias conexiones IMAP en paralelo (Gmail admite unas 15; exigiría un conjunto de sesiones en vez de
+      una por cuenta) y sincronizar Gmail por "Todos los mensajes" con X-GM-LABELS en lugar de una carpeta por etiqueta
+      (cambia cómo se listan las etiquetas). Son los dos pasos siguientes si la primera sincronización sigue lenta. Un
+      fallo suelto al bajar el cuerpo de algún mensaje (`MimePartDataSource.getInputStream`) sigue ahí: afecta solo a ese
+      mensaje, que se reintenta 3 veces y se salta.
