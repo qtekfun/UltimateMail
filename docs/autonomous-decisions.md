@@ -178,7 +178,7 @@ Decisiones tomadas por mí (a confirmar):
       (cambia cómo se listan las etiquetas). Son los dos pasos siguientes si la primera sincronización sigue lenta. Un
       fallo suelto al bajar el cuerpo de algún mensaje (`MimePartDataSource.getInputStream`) sigue ahí: afecta solo a ese
       mensaje, que se reintenta 3 veces y se salta.
-32. **Fila deslizada que se quedaba fuera (2026-10-04, PR pendiente de número).** Motivo: el usuario vio una fila de la bandeja
+32. **Fila deslizada que se quedaba fuera (2026-10-04, PR #53).** Motivo: el usuario vio una fila de la bandeja
     atascada con el fondo de color y sin volver, y yo la reproduje en el móvil con las cuentas de demostración: un
     deslizamiento que no saca la fila de la lista (marcar leído/no leído, estrella) se quedaba fuera aunque la acción se
     aplicaba. Causa: el efecto observaba `currentValue`, que cambia mientras la animación de soltar aún corre, y el
