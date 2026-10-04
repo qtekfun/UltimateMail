@@ -6,10 +6,13 @@ package com.qtekfun.ultimatemail.domain.inbox
 import com.qtekfun.ultimatemail.data.local.UltimateMailDatabase
 import com.qtekfun.ultimatemail.data.local.dao.ConversationSummary
 import com.qtekfun.ultimatemail.data.local.model.FolderRole
+import com.qtekfun.ultimatemail.domain.folder.SyncLine
+import com.qtekfun.ultimatemail.sync.engine.SyncStatus
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -27,7 +30,10 @@ data class InboxStatus(
 
 /** Conversations of a folder or of the unified inbox, straight from Room and always reactive. */
 @OptIn(ExperimentalCoroutinesApi::class)
-class InboxListing @Inject constructor(database: UltimateMailDatabase) {
+class InboxListing @Inject constructor(
+    database: UltimateMailDatabase,
+    private val syncStatus: SyncStatus
+) {
     private val conversations = database.conversationDao()
     private val folders = database.folderDao()
     private val accounts = database.accountDao()
@@ -65,6 +71,23 @@ class InboxListing @Inject constructor(database: UltimateMailDatabase) {
             InboxStatus(null, null, inboxes.any { it.uidValidity != null })
         }
     }
+
+    /**
+     * The sync progress, or when it last finished, for the title of the list: the account of a
+     * folder, or all of them for the unified inbox (see [InboxSyncLine]).
+     */
+    fun observeSync(scope: InboxScope): Flow<SyncLine> = when (scope) {
+        is InboxScope.Folder -> syncStatus.observe(scope.accountId)
+            .map { InboxSyncLine.of(listOf(it)) }
+
+        InboxScope.Unified -> accounts.observeAll().flatMapLatest { list ->
+            if (list.isEmpty()) {
+                flowOf(SyncLine.NeverSynced)
+            } else {
+                combine(list.map { syncStatus.observe(it.id) }) { InboxSyncLine.of(it.toList()) }
+            }
+        }
+    }.distinctUntilChanged()
 
     /** The folders of the accounts of [scope], to tell what archive and delete do to its rows. */
     fun observeTargets(scope: InboxScope): Flow<RowTargets> = when (scope) {

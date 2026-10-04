@@ -113,6 +113,10 @@
     <string name="inbox_empty_not_enabled_body">This account is set not to keep this folder on the device. Turn it on in the account settings to see its mail here.</string>
     <string name="inbox_empty_filtered_title">No unread messages</string>
     <string name="inbox_empty_filtered_body">Everything loaded here has been read.</string>
+    <string name="inbox_empty_starred_title">No starred messages</string>
+    <string name="inbox_empty_starred_body">Nothing loaded here is starred.</string>
+    <string name="inbox_empty_attachments_title">No messages with attachments</string>
+    <string name="inbox_empty_attachments_body">Nothing loaded here has an attachment.</string>
     <string name="conversation_no_subject">(no subject)</string>
     <string name="conversation_desc_unread">Unread</string>
     <string name="conversation_desc_from">From %1$s</string>
@@ -325,12 +329,10 @@
     <string name="inbox_deselect">Deselect</string>
     <string name="inbox_state_selected">Selected</string>
     <string name="inbox_select_all">Select all</string>
-    <string name="inbox_selection_close">Close selection</string>
     <plurals name="inbox_selection_count">
         <item quantity="one">%d selected</item>
         <item quantity="other">%d selected</item>
     </plurals>
-    <string name="inbox_selection_more">More actions</string>
     <string name="settings_density">Display density</string>
     <string name="settings_density_summary">Controls how much fits on screen in the side menu and the conversation list. Compact shows more but its rows are smaller than the recommended touch size.</string>
     <string name="density_comfortable">Comfortable</string>
@@ -565,4 +567,16 @@
         <item quantity="other">%1$d messages waiting to be sent</item>
     </plurals>
     <string name="backup_result_sign_in_button">Sign in: %1$s</string>
+    <string name="inbox_edit">Edit</string>
+    <string name="inbox_done">Done</string>
+    <string name="inbox_filter_button">Filter messages</string>
+    <string name="inbox_filter_all">All</string>
+    <string name="inbox_filter_starred">Starred</string>
+    <string name="inbox_filter_attachments">With attachments</string>
+    <string name="inbox_filtered_by">Filtered by: %1$s</string>
+    <string name="inbox_updated">Updated %1$s</string>
+    <string name="inbox_bar_mark">Mark</string>
+    <string name="inbox_bar_archive">Archive</string>
+    <string name="inbox_bar_trash">Move to Trash</string>
+    <string name="inbox_bar_move">Move</string>
 </resources>
