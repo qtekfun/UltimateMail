@@ -275,13 +275,13 @@ versión de producción también quedó validada en ejecución: R8 no rompe Angu
 Hilt (arranca, sincroniza y pinta).
 
 Limitaciones: un solo dispositivo; "contenido visible" se midió con una captura (precisión de unos
-0,3 s), porque la app aún no llama a `reportFullyDrawn()`; no se midió con la sincronización en
+0,3 s), porque la app aún no llamaba a `reportFullyDrawn()` (ahora lo hace al pintar la primera lista); no se midió con la sincronización en
 marcha ni con TalkBack, y el volumen de 50.000 son conversaciones de un hilo cada una (el peor caso
 para la lista, no para el cuerpo de los mensajes).
 
 Hallazgo de experiencia, no de rendimiento: una carpeta que no se sincroniza (por ejemplo "Todos los
 mensajes" de Gmail) muestra "Aún sin sincronizar. Desliza hacia abajo para actualizar", cuando
-debería decir que esa carpeta no está activada para sincronizar.
+ahora dice que esa carpeta no está activada para sincronizar.
 
 Fuente al 200 % (`settings put system font_scale 2.0`, restaurada a 1.0): el menú lateral escala sin
 cortes. En la lista de correos el remitente y el asunto se truncan con puntos suspensivos y el

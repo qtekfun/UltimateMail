@@ -3,6 +3,7 @@
 
 package com.qtekfun.ultimatemail.ui.inbox
 
+import androidx.activity.compose.LocalActivity
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -110,6 +111,9 @@ fun InboxScreen(
 ) {
     // The state can still belong to the previous scope for a frame after navigating.
     val ready = state.loaded && state.scope == scope
+    // The first list on screen is what the user waits for when the app starts (T22).
+    val activity = LocalActivity.current
+    LaunchedEffect(ready) { if (ready) activity?.reportFullyDrawn() }
     Scaffold(
         modifier = modifier,
         floatingActionButton = {

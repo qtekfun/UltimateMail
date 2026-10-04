@@ -1,0 +1,6 @@
+# GitGuardian configuration. See https://docs.gitguardian.com/ggshield-docs/reference/configuration
+version: 2
+secret:
+  ignored-paths:
+    # A throw-away password of the in-memory test mail server (GreenMail); it protects nothing.
+    - "app/src/test/java/com/qtekfun/ultimatemail/data/mail/MailTestServer.kt"
