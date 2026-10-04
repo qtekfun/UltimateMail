@@ -30,34 +30,38 @@ import com.qtekfun.ultimatemail.ui.theme.isLight
  * get the label through the description of the row or screen that shows it.
  */
 @Composable
-fun LabelChip(chip: LabelChipModel, modifier: Modifier = Modifier) {
-    LabelChipText(chip.text, labelChipColors(chip.colorIndex), modifier)
+fun LabelChip(chip: LabelChipModel, modifier: Modifier = Modifier, small: Boolean = false) {
+    LabelChipText(chip.text, labelChipColors(chip.colorIndex), modifier, small)
 }
 
 /** The "+N" chip that stands for labels that did not fit. */
 @Composable
-fun LabelOverflowChip(count: Int, modifier: Modifier = Modifier) {
+fun LabelOverflowChip(count: Int, modifier: Modifier = Modifier, small: Boolean = false) {
     LabelChipText(
         text = stringResource(R.string.label_overflow, count),
         colors = ChipColors(
             MaterialTheme.colorScheme.surfaceVariant,
             MaterialTheme.colorScheme.onSurfaceVariant
         ),
-        modifier = modifier
+        modifier = modifier,
+        small = small
     )
 }
 
-/** The chips of a [LabelSummary] side by side, wrapping onto more lines when the font is large. */
+/**
+ * The chips of a [LabelSummary] side by side, wrapping onto more lines when the font is large;
+ * [small] draws them tighter, for the list rows.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun LabelChipRow(summary: LabelSummary, modifier: Modifier = Modifier) {
+fun LabelChipRow(summary: LabelSummary, modifier: Modifier = Modifier, small: Boolean = false) {
     FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        summary.chips.forEach { LabelChip(it) }
-        if (summary.overflow > 0) LabelOverflowChip(summary.overflow)
+        summary.chips.forEach { LabelChip(it, small = small) }
+        if (summary.overflow > 0) LabelOverflowChip(summary.overflow, small = small)
     }
 }
 
@@ -73,12 +77,12 @@ private fun labelChipColors(index: Int): ChipColors {
 }
 
 @Composable
-private fun LabelChipText(text: String, colors: ChipColors, modifier: Modifier) {
+private fun LabelChipText(text: String, colors: ChipColors, modifier: Modifier, small: Boolean) {
     Text(
         text = text,
         modifier = modifier
-            .background(colors.container, RoundedCornerShape(6.dp))
-            .padding(horizontal = 6.dp, vertical = 2.dp),
+            .background(colors.container, RoundedCornerShape(if (small) 4.dp else 6.dp))
+            .padding(horizontal = if (small) 4.dp else 6.dp, vertical = if (small) 1.dp else 2.dp),
         color = colors.content,
         style = MaterialTheme.typography.labelSmall,
         maxLines = 1,
