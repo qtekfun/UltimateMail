@@ -27,6 +27,7 @@ import com.qtekfun.ultimatemail.ui.nav.AppNavigator
 import com.qtekfun.ultimatemail.ui.search.SearchViewModel
 import com.qtekfun.ultimatemail.ui.settings.AccountSettingsViewModel
 import com.qtekfun.ultimatemail.ui.settings.SettingsViewModel
+import com.qtekfun.ultimatemail.ui.system.BatteryHintViewModel
 import com.qtekfun.ultimatemail.ui.theme.UltimateMailTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -46,6 +47,7 @@ class MainActivity : ComponentActivity() {
     private val drafts: DraftsViewModel by viewModels()
     private val outbox: OutboxViewModel by viewModels()
     private val search: SearchViewModel by viewModels()
+    private val batteryHint: BatteryHintViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,7 +67,8 @@ class MainActivity : ComponentActivity() {
                     accountSettings,
                     reauth,
                     ComposeScreens(composeEntry, composer, drafts, outbox),
-                    search
+                    search,
+                    batteryHint
                 )
             }
         }

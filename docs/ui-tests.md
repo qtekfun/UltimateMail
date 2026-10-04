@@ -38,7 +38,9 @@ adb uninstall com.qtekfun.ultimatemail.test     # only the TEST package, never t
 > that has your real UltimateMail installed. The tests themselves use an in-memory database and
 > in-memory credentials, so `am instrument` as above leaves the real data alone (the screen is
 > driven for about a minute); the uninstall is done by the Android Gradle Plugin, not by them.
-> Keep the screen on and unlocked while they run.
+> Keep the screen on and unlocked while they run. On some phones (OPPO) the installer's "done" screen stays
+> in front right after `adb install`: go to the home screen and wait a few seconds before running, or the first
+> test fails with "No compose hierarchies found".
 
 To run one class with Gradle: `./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.qtekfun.ultimatemail.uitests.SwipeArchiveUiTest`.
 
@@ -56,6 +58,7 @@ Animations may be left on; turning them off in the developer options makes runs 
 | `SignaturePerAccountUiTest` | Two accounts with different signatures. A new message starts with the signature of the account that writes it (with the `-- ` delimiter); switching From swaps only that block (text typed by the user stays) and switching back restores the first one. A message started after switching the menu to the second account gets the second signature. |
 | `ReauthenticationUiTest` | An account in the "sign in again" state shows that line in the menu; tapping it opens the sign-in screen; a wrong password is refused and nothing is stored; the right one stores it, clears the state, asks for a user-initiated sync and the mail already on the device is still there. |
 | `DensitySettingUiTest` | Changing Display density in Settings changes the height of a side menu row: 48 dp (default), 52 dp (comfortable), 38 dp (compact), and the setting is stored. |
+| `BatteryHintUiTest` | The one-time question about the battery exemption appears after the first account exists and "Not now" is final; it does not appear without an account; Settings shows the "Background sync" section with the Allow button. Skipped on a device where the app is already exempt. |
 | `InboxShellUiTest` | The list screen of the iOS-style redesign. The large title shows the mailbox name. The bottom bar has the filter button, the Search field and Compose; Search opens the search screen and Compose the composer. The filter menu (All, Unread, Starred, With attachments) really changes the rows and the subtitle says "Filtered by: ...". Edit shows an empty selection circle on every row (the rows become selectable, none selected), the action bar (Mark, Move, Archive, Trash) disabled with nothing picked, and Done leaves. Select all selects every row and enables the actions. A long press selects exactly one row. |
 | `ConversationRowUiTest` | The sentence a row speaks starts with "Unread" only for an unread conversation (the dot slot has no other hook). The Preview setting (set live through `SettingsRepository`): with 2 lines the snippet is in the row and the row is taller, with None it is gone and the row is shorter, and back to 2 lines it returns. |
 | `MailboxesMenuUiTest` | The Mailboxes menu with two accounts: "All inboxes" with the summed counter, each account's Inbox with its own counter, in that order; the special mailboxes card (Drafts, Sent, Archive, Trash) in order below them; the Accounts section closed by default (the custom folder is not listed) and opening to show it; Settings at the bottom, opening Settings. |

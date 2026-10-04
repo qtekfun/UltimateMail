@@ -418,3 +418,14 @@ Decisiones tomadas por mí (a confirmar):
     solo en modo selección, acciones accesibles en cada fila, fuente al 200 %, `docs/accessibility-audit.md`), pero
     ninguna persona la ha revisado con TalkBack. README, CHANGELOG y los textos de la tienda lo dicen sin "pendiente".
     La lista de comprobaciones manuales sigue en `docs/accessibility-audit.md` por si alguien quiere hacerla.
+43. **Sincronización en segundo plano en Ajustes (2026-10-04, petición del usuario).** En el OPPO el trabajo periódico
+    de WorkManager se paraba con el motivo "restricción de segundo plano" (código 11) y la app no estaba exenta de la
+    optimización de batería; UltimateFiles y UltimateTasks ya lo resolvían con un permiso y una sección en Ajustes. Se
+    copia el enfoque de UltimateFiles: permiso `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` (Play lo restringe, F-Droid no;
+    no se pide nunca sin que el usuario lo elija), sección "Sincronización en segundo plano" con el estado en vivo
+    (se vuelve a leer al volver a la app), botón que abre el diálogo del sistema (con respaldo a la lista de exenciones),
+    pasos para fabricantes conocidos (`aggressiveBatteryVendor`: OPPO, realme, OnePlus, Xiaomi, Redmi, POCO, Huawei,
+    Honor, vivo, iQOO, Samsung) con botón a los ajustes de la app, y un diálogo único tras añadir la primera cuenta
+    (se recuerda al aceptar o descartar; si ya hay exención no se pregunta). Las pruebas de interfaz marcan el diálogo
+    como ya contestado. **No se hace:** abrir las pantallas propias de cada fabricante (cambian entre versiones y no
+    hay forma estable de llegar a ellas); ni un servicio en primer plano ni IDLE (fuera de alcance del MVP).
