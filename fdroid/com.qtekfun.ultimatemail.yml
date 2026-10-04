@@ -1,7 +1,3 @@
-# DRAFT, NOT SUBMITTED. There is no release tag yet, so every value marked REPLACE_ below is a
-# placeholder. Before submitting this file to fdroiddata (metadata/com.qtekfun.ultimatemail.yml),
-# fill them in as RELEASING.md says and delete these comment lines: fdroiddata's tools remove
-# comments anyway.
 Categories:
   - Internet
 License: GPL-3.0-or-later
@@ -19,7 +15,7 @@ Binaries: https://github.com/qtekfun/UltimateMail/releases/download/v%v/Ultimate
 Builds:
   - versionName: 0.1.0
     versionCode: 10099
-    commit: REPLACE_WITH_FULL_SHA_OF_THE_v0.1.0_TAG
+    commit: b6b87bde59041ceac6d27a7a6fe3ad4b5847bf28
     subdir: app
     sudo:
       - apt-get update
