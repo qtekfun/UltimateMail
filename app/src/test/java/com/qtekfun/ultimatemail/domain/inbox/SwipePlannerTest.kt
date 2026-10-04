@@ -19,16 +19,20 @@ class SwipePlannerTest {
         SwipePlanner.decide(action, item, targets)
 
     @Test
-    fun `the default swipes archive to the right and delete to the left`() {
+    fun `the default swipes toggle read to the right and delete to the left`() {
         val defaults = SwipeActions()
 
         assertEquals(
-            SwipeDecision.Apply(RowChange.ARCHIVE),
+            SwipeDecision.Apply(RowChange.MARK_UNREAD),
             decide(SwipeDirection.RIGHT.action(defaults))
         )
         assertEquals(
             SwipeDecision.Apply(RowChange.DELETE),
             decide(SwipeDirection.LEFT.action(defaults))
+        )
+        assertEquals(
+            SwipeDecision.Apply(RowChange.MARK_READ),
+            decide(SwipeDirection.RIGHT.action(defaults), rowItem(unreadCount = 2))
         )
     }
 

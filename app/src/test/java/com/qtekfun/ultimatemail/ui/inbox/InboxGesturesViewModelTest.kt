@@ -24,6 +24,7 @@ import com.qtekfun.ultimatemail.domain.inbox.RefreshTrigger
 import com.qtekfun.ultimatemail.domain.inbox.RowChange
 import com.qtekfun.ultimatemail.domain.inbox.SwipeDirection
 import com.qtekfun.ultimatemail.sync.engine.EngineHarness
+import com.qtekfun.ultimatemail.sync.engine.SyncStatusStore
 import com.qtekfun.ultimatemail.ui.conversation.NoticeCenter
 import com.qtekfun.ultimatemail.ui.conversation.NoticeKind
 import com.qtekfun.ultimatemail.ui.conversation.noticeCenter
@@ -91,7 +92,7 @@ class InboxGesturesViewModelTest {
 
     private fun viewModel(h: EngineHarness, saved: SavedStateHandle = SavedStateHandle()) =
         InboxViewModel(
-            InboxListing(h.db),
+            InboxListing(h.db, SyncStatusStore()),
             AccountListing(h.db),
             RefreshTrigger { },
             saved,
@@ -149,6 +150,58 @@ class InboxGesturesViewModelTest {
 
             vm.toggleSelection(loaded.conversations[0])
             vm.toggleSelection(loaded.conversations[2])
+            assertFalse(awaitState { !it.selection.active }.selection.active)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `Edit starts selection with nothing picked and Done leaves it`() = runTest {
+        val f = start()
+        val vm = viewModel(f.h)
+
+        vm.state.test {
+            vm.show(f.inboxScope)
+            val loaded = awaitState { it.loaded && it.conversations.size == 3 }
+
+            vm.startEditing()
+            val editing = awaitState { it.selection.active }
+            assertEquals(0, editing.selection.count)
+            assertTrue(editing.selected.isEmpty())
+
+            // Picking one and taking it off again does not leave the mode: only Done does.
+            vm.toggleSelection(loaded.conversations[0])
+            awaitState { it.selection.count == 1 }
+            vm.toggleSelection(loaded.conversations[0])
+            assertTrue(awaitState { it.selection.count == 0 }.selection.active)
+
+            vm.clearSelection()
+            assertFalse(awaitState { !it.selection.active }.selection.active)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `Edit survives recreating the view model and an action ends it`() = runTest {
+        val f = start()
+        val saved = SavedStateHandle()
+        val vm = viewModel(f.h, saved)
+        vm.state.test {
+            vm.show(f.inboxScope)
+            awaitState { it.loaded && it.conversations.size == 3 }
+            vm.startEditing()
+            awaitState { it.selection.active }
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        val again = viewModel(f.h, saved)
+        again.state.test {
+            again.show(f.inboxScope)
+            val restored = awaitState { it.loaded && it.conversations.size == 3 }
+            assertTrue(restored.selection.active)
+            again.selectAll()
+            awaitState { it.selection.count == 3 }
+            again.applyToSelection(RowChange.MARK_READ)
             assertFalse(awaitState { !it.selection.active }.selection.active)
             cancelAndIgnoreRemainingEvents()
         }
@@ -304,13 +357,16 @@ class InboxGesturesViewModelTest {
     }
 
     @Test
-    fun `swiping right archives and left deletes by default, and the row leaves`() = runTest {
+    fun `swiping right archives when set so and left deletes, and the row leaves`() = runTest {
         val f = start()
+        store.putString("swipe_right", SwipeAction.ARCHIVE.name)
         val vm = viewModel(f.h)
 
         vm.state.test {
             vm.show(f.inboxScope)
-            val loaded = awaitState { it.loaded && it.conversations.size == 3 }
+            val loaded = awaitState {
+                it.loaded && it.conversations.size == 3 && it.swipe.right == SwipeAction.ARCHIVE
+            }
 
             assertTrue(vm.onSwipe(loaded.conversations[0], SwipeDirection.RIGHT))
             assertEquals(NoticeKind.ARCHIVED, eventually { notices.notice.value }.kind)
@@ -323,6 +379,30 @@ class InboxGesturesViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    @Test
+    fun `a fresh install swipes right to mark read, which keeps the row, and left to the trash`() =
+        runTest {
+            val f = start()
+            val vm = viewModel(f.h)
+
+            vm.state.test {
+                vm.show(f.inboxScope)
+                val loaded = awaitState { it.loaded && it.conversations.size == 3 }
+
+                assertFalse(vm.onSwipe(loaded.conversations[0], SwipeDirection.RIGHT))
+                assertEquals(NoticeKind.MARKED_READ, eventually { notices.notice.value }.kind)
+
+                assertTrue(vm.onSwipe(loaded.conversations[1], SwipeDirection.LEFT))
+                eventually { notices.notice.value?.takeIf { it.kind == NoticeKind.DELETED } }
+                assertEquals(
+                    mapOf(2L to "Trash"),
+                    f.h.operations.all(f.accountId).filter { it.payload == "Trash" }
+                        .associate { it.uid to it.payload }
+                )
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
 
     @Test
     fun `the configured swipe actions are followed`() = runTest {
@@ -366,6 +446,7 @@ class InboxGesturesViewModelTest {
     @Test
     fun `archive without an Archive folder springs back and tells the user`() = runTest {
         val f = start(withArchive = false)
+        store.putString("swipe_right", SwipeAction.ARCHIVE.name)
         val vm = viewModel(f.h)
 
         vm.state.test {
@@ -404,6 +485,7 @@ class InboxGesturesViewModelTest {
     @Test
     fun `a swipe that could not be applied asks for the row to be brought back`() = runTest {
         val f = start()
+        store.putString("swipe_right", SwipeAction.ARCHIVE.name)
         // A message the server does not have (uid 0) cannot be moved.
         f.h.messages.upsert(listOf(message(f.accountId, 0, threadId = "local", sentAt = 99)))
         val vm = viewModel(f.h)

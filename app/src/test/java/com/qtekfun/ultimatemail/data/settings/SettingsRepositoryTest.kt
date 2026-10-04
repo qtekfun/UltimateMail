@@ -23,7 +23,7 @@ class SettingsRepositoryTest {
         assertEquals(DisplayDensity.DEFAULT, settings.density)
         assertEquals(PreviewLines.TWO, settings.previewLines)
         assertEquals(false, settings.showAvatars)
-        assertEquals(SwipeAction.ARCHIVE, settings.swipe.right)
+        assertEquals(SwipeAction.TOGGLE_READ, settings.swipe.right)
         assertEquals(SwipeAction.DELETE, settings.swipe.left)
         assertEquals(RemoteContentPolicy.NEVER, settings.remoteContent)
     }
@@ -120,10 +120,25 @@ class SettingsRepositoryTest {
             assertEquals(SwipeActions(), awaitItem())
 
             repository.setTheme(ThemeMode.DARK)
-            repository.setSwipeRight(SwipeAction.TOGGLE_READ)
+            repository.setSwipeRight(SwipeAction.TOGGLE_STAR)
 
-            assertEquals(SwipeActions(right = SwipeAction.TOGGLE_READ), awaitItem())
+            assertEquals(SwipeActions(right = SwipeAction.TOGGLE_STAR), awaitItem())
             expectNoEvents()
         }
+    }
+
+    @Test
+    fun `a fresh install swipes right to toggle read and left to the trash`() {
+        val fresh = repository.current().swipe
+
+        assertEquals(SwipeAction.TOGGLE_READ, fresh.right)
+        assertEquals(SwipeAction.DELETE, fresh.left)
+    }
+
+    @Test
+    fun `swipe actions the user already chose are kept`() {
+        repository.setSwipeRight(SwipeAction.ARCHIVE)
+
+        assertEquals(SwipeAction.ARCHIVE, repository.current().swipe.right)
     }
 }

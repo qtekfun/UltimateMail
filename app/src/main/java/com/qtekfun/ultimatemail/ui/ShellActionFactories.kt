@@ -82,9 +82,11 @@ internal fun inboxActions(
     },
     onScrolled = inbox::onScrolled,
     savedScroll = inbox::savedScroll,
+    syncLine = inbox.syncLine,
     selection = SelectionActions(
         onToggle = inbox::toggleSelection,
         onSwipe = inbox::onSwipe,
+        onEdit = inbox::startEditing,
         onSelectAll = inbox::selectAll,
         onClear = inbox::clearSelection,
         onApply = inbox::applyToSelection,
