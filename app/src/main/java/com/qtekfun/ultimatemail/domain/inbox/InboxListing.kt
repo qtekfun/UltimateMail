@@ -20,7 +20,9 @@ data class InboxStatus(
     val folderName: String?,
     val folderRole: FolderRole?,
     /** False until the first sync has stored something for the folder(s) (RF-10). */
-    val synced: Boolean
+    val synced: Boolean,
+    /** True for a folder the account is set not to sync, so it will stay empty. */
+    val syncDisabled: Boolean = false
 )
 
 /** Conversations of a folder or of the unified inbox, straight from Room and always reactive. */
@@ -42,7 +44,12 @@ class InboxListing @Inject constructor(database: UltimateMailDatabase) {
     fun observeStatus(scope: InboxScope): Flow<InboxStatus> = when (scope) {
         is InboxScope.Folder -> folders.observeAll(scope.accountId).map { all ->
             val folder = all.firstOrNull { it.path == scope.path }
-            InboxStatus(folder?.name, folder?.role, folder?.uidValidity != null)
+            InboxStatus(
+                folder?.name,
+                folder?.role,
+                folder?.uidValidity != null,
+                syncDisabled = folder?.syncEnabled == false
+            )
         }
 
         InboxScope.Unified -> accounts.observeAll().flatMapLatest { list ->
