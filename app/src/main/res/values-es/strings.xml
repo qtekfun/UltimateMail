@@ -36,8 +36,8 @@
     <string name="security_smtp_label">Seguridad del servidor saliente</string>
     <string name="advanced_settings">Ajustes avanzados del servidor</string>
     <string name="advanced_settings_hide">Ocultar ajustes avanzados del servidor</string>
-    <string name="hint_gmail">Puedes iniciar sesión con Google más abajo, con tu propio client ID, o activar la verificación en dos pasos en tu cuenta de Google y usar aquí una contraseña de aplicación en lugar de tu contraseña habitual.</string>
-    <string name="hint_microsoft">Puedes iniciar sesión con Microsoft más abajo, con tu propio client ID. Algunas organizaciones de Microsoft 365 necesitan que un administrador apruebe antes la aplicación, y algunas desactivan el envío por SMTP.</string>
+    <string name="hint_gmail">Gmail necesita una contraseña de aplicación: activa la verificación en dos pasos en tu cuenta de Google, crea una contraseña de aplicación y escríbela abajo en lugar de tu contraseña habitual.</string>
+    <string name="hint_microsoft">Outlook.com y Microsoft 365 pueden no aceptar una contraseña para aplicaciones de correo. Si el servidor la rechaza, crea una contraseña de aplicación en los ajustes de seguridad de tu cuenta Microsoft o pregunta a tu administrador si permite IMAP y SMTP con contraseña.</string>
     <string name="add_account_submit">Añadir cuenta</string>
     <string name="add_account_testing">Comprobando la conexión…</string>
     <string name="add_account_saving">Guardando la cuenta…</string>

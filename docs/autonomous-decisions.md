@@ -402,3 +402,14 @@ Decisiones tomadas por mí (a confirmar):
     seleccionable y la altura); las acciones de la barra de Editar (Marcar, Mover, Archivar, Papelera desde la
     lista), el deslizamiento de la fila a leído/papelera, Marcar como no leído del lector y el colapso del título
     al desplazar. Las pruebas se ejecutaron solo en el PGEM10 (Android 16, en español).
+41. **OAuth oculto, todo con contraseña de aplicación (2026-10-04, decisión del usuario).** Motivo: un cliente de Google
+    que lea Gmail necesita una app verificada (evaluación de seguridad de pago) y, en modo Pruebas, el token caduca a
+    los 7 días; Microsoft pide registrar una app por usuario (y a veces una cuenta de Azure). Una contraseña de aplicación
+    es gratis y no caduca. **Hecho:** interruptor `OAuthFeature.ENABLED = false`; con él apagado desaparece del
+    formulario de alta la sección de inicio de sesión con el proveedor y los campos de client ID; los avisos de Gmail y
+    Microsoft explican la contraseña de aplicación; README, `docs/oauth-setup.md` (con una nota arriba), CHANGELOG, los
+    textos de la tienda y PLAN.md (mejora a muy largo plazo) lo reflejan. **No se borra código:** el flujo OAuth, el
+    refresco de tokens, los almacenes de client ID, las pruebas y las pantallas de depuración siguen ahí. **Cuentas OAuth
+    que ya existan** (de una instalación anterior o de una copia importada) siguen funcionando y pueden volver a iniciar
+    sesión desde la pantalla de reautenticación, que no depende del interruptor. **Pendiente de decisión del usuario:**
+    la versión 0.1.0 ya publicada muestra el inicio de sesión con Google/Microsoft; esto llegaría en una 0.1.1.
