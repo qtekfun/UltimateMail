@@ -101,6 +101,8 @@ class AddAccountUiTest : UiTestBase() {
         ).forEach { folder ->
             waitFor(hasText(text(folder)) and hasClickAction())
         }
+        // The account's own folders are in its section, closed until it is opened.
+        compose.onNode(hasText(address) and hasClickAction()).performClick()
         waitFor(hasText(ACCENTED_FOLDER) and hasClickAction())
 
         val accounts = runBlocking { database.accountDao().observeAll().first() }

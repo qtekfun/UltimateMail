@@ -201,6 +201,16 @@ private fun AccountsSection(state: SettingsState, actions: SettingsActions) {
             )
         }
     }
+    Text(
+        stringResource(R.string.account_add),
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = MinTouchTarget)
+            .clickable(role = Role.Button, onClick = actions.onAddAccount)
+            .padding(horizontal = ScreenPadding, vertical = 12.dp)
+    )
 }
 
 @Composable
