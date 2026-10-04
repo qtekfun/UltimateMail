@@ -34,6 +34,9 @@ class FileAttachmentStorage(private val root: File) : AttachmentStorage {
 
     override fun exists(path: String): Boolean = File(path).let { it.isFile && isInsideRoot(it) }
 
+    override fun open(path: String): java.io.InputStream? =
+        File(path).takeIf { it.isFile && isInsideRoot(it) }?.inputStream()
+
     override fun stored(accountId: Long): List<StoredAttachment> {
         val folders = File(root, accountId.toString()).listFiles { it.isDirectory }.orEmpty()
         return folders.flatMap { folder ->

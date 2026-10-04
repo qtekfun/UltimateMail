@@ -5,6 +5,9 @@ package com.qtekfun.ultimatemail.ui.compose
 
 import app.cash.turbine.test
 import com.qtekfun.ultimatemail.data.local.account
+import com.qtekfun.ultimatemail.data.local.entity.AttachmentEntity
+import com.qtekfun.ultimatemail.data.local.message
+import com.qtekfun.ultimatemail.data.local.model.AttachmentState
 import com.qtekfun.ultimatemail.data.local.model.DraftState
 import com.qtekfun.ultimatemail.data.local.model.OperationType
 import com.qtekfun.ultimatemail.domain.account.AccountListing
@@ -13,9 +16,11 @@ import com.qtekfun.ultimatemail.domain.compose.DraftListItem
 import com.qtekfun.ultimatemail.domain.compose.IncomingCompose
 import com.qtekfun.ultimatemail.domain.compose.OutboxReason
 import com.qtekfun.ultimatemail.domain.compose.OutboxState
+import com.qtekfun.ultimatemail.domain.compose.ServerDraft
 import com.qtekfun.ultimatemail.domain.conversation.ComposeMode
 import com.qtekfun.ultimatemail.domain.conversation.ComposeRequest
 import com.qtekfun.ultimatemail.domain.mail.MailAddress
+import com.qtekfun.ultimatemail.domain.mail.MailResult
 import com.qtekfun.ultimatemail.ui.conversation.NoticeCenter
 import com.qtekfun.ultimatemail.ui.conversation.NoticeKind
 import com.qtekfun.ultimatemail.ui.conversation.noticeCenter
@@ -66,7 +71,7 @@ class EntryAndListsTest {
         val vm = ComposeEntryViewModel(
             entry,
             h.engine,
-            h.attachments,
+            h.opener,
             AccountListing(h.db),
             h.state,
             notices
@@ -321,8 +326,7 @@ class EntryAndListsTest {
         val h = setUp()
         val a = h.writeTo("bob@example.test")
         val entry = ComposeEntry()
-        val vm =
-            DraftsViewModel(h.state, h.engine, h.db.messageDao(), entry, Dispatchers.Unconfined)
+        val vm = DraftsViewModel(h.state, h.engine, entry)
 
         vm.state.test {
             vm.show(h.accountId)
@@ -343,4 +347,136 @@ class EntryAndListsTest {
         }
         assertNull(h.repository.get(a.id))
     }
+
+    @Test
+    fun `a forward from the reader opens with the attachments of the message as chips`() = runTest {
+        val h = setUp()
+        val e = entryOf(h)
+        val message = h.receive()
+        h.db.attachmentDao().insert(
+            listOf(
+                AttachmentEntity(
+                    messageId = message,
+                    partId = "2",
+                    fileName = "report.pdf",
+                    mimeType = "application/pdf",
+                    size = 2,
+                    state = AttachmentState.DOWNLOADED,
+                    localPath = "/files/r"
+                )
+            )
+        )
+        h.engineHarness.storage.files["/files/r"] = byteArrayOf(1, 2)
+
+        e.vm.opened.test {
+            QueuedComposeLauncher(e.entry)
+                .start(ComposeRequest(h.accountId, "INBOX", message, ComposeMode.FORWARD))
+            val id = awaitItem()
+            assertEquals(listOf("report.pdf"), h.attachments.list(id).map { it.displayName })
+            assertNull(e.notices.notice.value)
+        }
+    }
+
+    @Test
+    fun `a forward whose attachment cannot be fetched still opens and says so`() = runTest {
+        val h = setUp()
+        val e = entryOf(h)
+        val message = h.receive()
+        h.db.attachmentDao().insert(
+            listOf(
+                AttachmentEntity(
+                    messageId = message,
+                    partId = "2",
+                    fileName = "far.pdf",
+                    mimeType = "application/pdf",
+                    size = 2
+                )
+            )
+        )
+        h.server.failure =
+            { if (it.startsWith("fetchAttachment")) MailResult.NetworkUnavailable else null }
+
+        e.vm.opened.test {
+            e.vm.start(
+                ComposeStart.Message(
+                    ComposeRequest(h.accountId, "INBOX", message, ComposeMode.FORWARD)
+                )
+            )
+            val id = awaitItem()
+            assertTrue(h.attachments.list(id).isEmpty())
+            assertEquals(NoticeKind.ATTACHMENTS_SKIPPED, e.notices.notice.value?.kind)
+        }
+    }
+
+    @Test
+    fun `a reply does not carry attachments`() = runTest {
+        val h = setUp()
+        val e = entryOf(h)
+        val message = h.receive()
+        h.db.attachmentDao().insert(
+            listOf(
+                AttachmentEntity(
+                    messageId = message,
+                    partId = "2",
+                    fileName = "report.pdf",
+                    mimeType = "application/pdf",
+                    size = 2,
+                    state = AttachmentState.DOWNLOADED,
+                    localPath = "/files/r"
+                )
+            )
+        )
+        h.engineHarness.storage.files["/files/r"] = byteArrayOf(1, 2)
+
+        e.vm.opened.test {
+            e.vm.start(
+                ComposeStart.Message(
+                    ComposeRequest(h.accountId, "INBOX", message, ComposeMode.REPLY)
+                )
+            )
+            assertTrue(h.attachments.list(awaitItem()).isEmpty())
+        }
+    }
+
+    @Test
+    fun `a draft that only the server has opens in the composer`() = runTest {
+        val h = setUp()
+        val e = entryOf(h)
+        val uid = h.server.deliver("Drafts", subject = "Plan", messageId = "<abc@mail.example>")
+        h.db.messageDao().upsert(
+            listOf(
+                message(h.accountId, uid, folderPath = "Drafts", subject = "Plan", bodyText = "Hi")
+                    .copy(messageId = "<abc@mail.example>")
+            )
+        )
+        val row = checkNotNull(h.db.messageDao().get(h.accountId, "Drafts", uid)).id
+        val vm = DraftsViewModel(h.state, h.engine, e.entry)
+
+        e.vm.opened.test {
+            val listed = ServerDraft(row, h.accountId, "Drafts", uid, "Plan", h.clock.instant())
+            vm.openServerDraft(listed)
+            val draft = h.repository.get(awaitItem())!!
+            assertEquals("Hi", draft.body)
+            assertEquals("<abc@mail.example>", draft.serverMessageId)
+        }
+    }
+
+    @Test
+    fun `a server draft whose text cannot be loaded says the message could not be started`() =
+        runTest {
+            val h = setUp()
+            val e = entryOf(h)
+            val uid = h.server.deliver("Drafts", messageId = "<abc@mail.example>")
+            h.db.messageDao().upsert(
+                listOf(
+                    message(h.accountId, uid, folderPath = "Drafts")
+                        .copy(messageId = "<abc@mail.example>")
+                )
+            )
+            val row = checkNotNull(h.db.messageDao().get(h.accountId, "Drafts", uid)).id
+
+            e.vm.start(ComposeStart.ServerDraft(row))
+
+            assertEquals(NoticeKind.COMPOSE_FAILED, e.notices.notice.value?.kind)
+        }
 }

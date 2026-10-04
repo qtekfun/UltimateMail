@@ -17,6 +17,7 @@ import com.qtekfun.ultimatemail.domain.compose.OutboxFileStorage
 import com.qtekfun.ultimatemail.domain.mail.MailFlag
 import com.qtekfun.ultimatemail.domain.mail.MailResult
 import com.qtekfun.ultimatemail.domain.mail.MailSession
+import com.qtekfun.ultimatemail.domain.mail.MessageHeader
 import com.qtekfun.ultimatemail.domain.mail.OutgoingAttachment
 import com.qtekfun.ultimatemail.domain.mail.OutgoingMessage
 import com.qtekfun.ultimatemail.domain.mail.UidRange
@@ -92,7 +93,7 @@ class OutboxOperations @Inject constructor(
         val copies = when (val found = session.newestHeaders(folder.path, RECENT_DRAFTS)) {
             is MailResult.Success ->
                 found.value
-                    .filter { DraftMessageIds.keyOf(it.messageId) == draft.key }
+                    .filter { it.isCopyOf(draft) }
                     .map { ServerCopy(it.uid, it.messageId) }
 
             is MailResult.Failure -> return failureOutcome(found)
@@ -282,12 +283,14 @@ class OutboxOperations @Inject constructor(
         queued: QueuedMessage
     ): MailResult<*> {
         val key = queued.draftKey ?: return MailResult.Success(Unit)
+        val draft = queued.draftId?.let { drafts.get(it) }
         val folder = folders.all(account.id).firstOrNull { it.role == FolderRole.DRAFTS }
             ?: return MailResult.Success(Unit)
         val uids = when (val found = session.newestHeaders(folder.path, RECENT_DRAFTS)) {
             is MailResult.Success ->
                 found.value.filter {
-                    DraftMessageIds.keyOf(it.messageId) == key
+                    DraftMessageIds.keyOf(it.messageId) == key ||
+                        it.messageId.sameMessageId(draft?.serverMessageId)
                 }.map { it.uid }.toSet()
 
             MailResult.NotFound -> emptySet()
@@ -346,3 +349,10 @@ internal object SentCopyPolicy {
             account.smtpHost.trim().lowercase() in hosts ||
             account.imapHost.trim().lowercase() in hosts
 }
+
+/**
+ * A server copy of [draft]: one made by this app for its key, or the very copy the draft was
+ * opened from (a draft written by another app has no key of ours in its Message-ID).
+ */
+private fun MessageHeader.isCopyOf(draft: DraftEntity) =
+    DraftMessageIds.keyOf(messageId) == draft.key || messageId.sameMessageId(draft.serverMessageId)

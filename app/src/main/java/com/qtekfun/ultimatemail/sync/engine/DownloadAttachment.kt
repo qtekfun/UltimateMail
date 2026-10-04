@@ -25,6 +25,9 @@ interface AttachmentStorage {
     /** Whether the file at [path] is still there (the system can clear app storage). */
     fun exists(path: String): Boolean
 
+    /** A stream of the file at [path] (the caller closes it), or null if it is gone. */
+    fun open(path: String): java.io.InputStream?
+
     /** The finished downloads of an account, for [AttachmentFileCleaner]. */
     fun stored(accountId: Long): List<StoredAttachment>
 

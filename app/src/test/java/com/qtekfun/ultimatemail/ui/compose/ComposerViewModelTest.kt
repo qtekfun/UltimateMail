@@ -5,12 +5,14 @@ package com.qtekfun.ultimatemail.ui.compose
 
 import app.cash.turbine.test
 import com.qtekfun.ultimatemail.data.local.account
+import com.qtekfun.ultimatemail.data.local.message
 import com.qtekfun.ultimatemail.data.local.model.DraftKind
 import com.qtekfun.ultimatemail.data.local.model.DraftState
 import com.qtekfun.ultimatemail.data.local.model.OperationType
 import com.qtekfun.ultimatemail.domain.account.AccountListing
 import com.qtekfun.ultimatemail.domain.compose.AttachmentLimits
 import com.qtekfun.ultimatemail.domain.compose.ComposeHarness
+import com.qtekfun.ultimatemail.domain.compose.ServerDraftOpen
 import com.qtekfun.ultimatemail.domain.conversation.ComposeMode
 import com.qtekfun.ultimatemail.domain.conversation.ComposeRequest
 import com.qtekfun.ultimatemail.domain.mail.MailAddress
@@ -344,6 +346,32 @@ class ComposerViewModelTest {
         assertNull(f.notices.notice.value)
         assertEquals(ComposerPhase.FINISHED, f.state.phase)
     }
+
+    @Test
+    fun `back from a server draft that was only looked at keeps the server copy untouched`() =
+        runTest {
+            val f = start()
+            val uid = f.h.server.deliver("Drafts", messageId = "<abc@mail.example>")
+            f.h.db.messageDao().upsert(
+                listOf(
+                    message(f.h.accountId, uid, folderPath = "Drafts", bodyText = "Hi")
+                        .copy(messageId = "<abc@mail.example>")
+                )
+            )
+            val row = checkNotNull(f.h.db.messageDao().get(f.h.accountId, "Drafts", uid)).id
+            val draft = (f.h.serverDrafts.open(row) as ServerDraftOpen.Opened).draft
+            f.vm.load(draft.id)
+
+            f.vm.close()
+            runCurrent()
+
+            assertNotNull(f.h.repository.get(draft.id))
+            assertTrue(f.h.db.pendingOperationDao().all(f.h.accountId).isEmpty())
+            assertEquals(
+                listOf("<abc@mail.example>"),
+                f.h.server.folder("Drafts").messages.values.map { it.messageId }
+            )
+        }
 
     @Test
     fun `back from a saved draft that was only looked at keeps it and says nothing`() = runTest {
