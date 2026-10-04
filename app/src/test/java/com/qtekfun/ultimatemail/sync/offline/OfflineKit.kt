@@ -18,6 +18,7 @@ import com.qtekfun.ultimatemail.sync.engine.BodyDownloader
 import com.qtekfun.ultimatemail.sync.engine.DownloadAttachment
 import com.qtekfun.ultimatemail.sync.engine.EngineHarness
 import com.qtekfun.ultimatemail.sync.engine.FakeMailServer
+import com.qtekfun.ultimatemail.sync.engine.FakeSyncDepthLog
 import com.qtekfun.ultimatemail.sync.engine.FolderCatalog
 import com.qtekfun.ultimatemail.sync.engine.FolderPuller
 import com.qtekfun.ultimatemail.sync.engine.MailOperationExecutor
@@ -163,6 +164,7 @@ class RestartedApp(harness: EngineHarness, scope: TestScope) {
             queue,
             AttachmentFileCleaner(db.attachmentDao(), harness.storage),
             bodies,
+            FakeSyncDepthLog(),
             harness.clock
         ),
         status,

@@ -47,7 +47,8 @@ internal class FolderPuller @Inject constructor(
         session: MailSession,
         account: AccountEntity,
         folder: FolderEntity,
-        assigner: ThreadAssigner
+        assigner: ThreadAssigner,
+        windowDays: Int? = account.offlineWindowDays
     ): PullOutcome {
         val status = session.folderStatus(folder.path).valueOr { return PullOutcome.Failed(it) }
         val reset = pending.resetIfInvalidated(folder, status.uidValidity)
@@ -65,7 +66,7 @@ internal class FolderPuller @Inject constructor(
         if (!untouched) {
             val range = (knownNext ?: FIRST_UID) until status.uidNext
             if (!range.isEmpty()) {
-                counts += fetchNew(session, run, range)
+                counts += fetchNew(session, run, range, windowDays)
                     .valueOr { return PullOutcome.Failed(it) }
             }
             if (knownNext != null) {
@@ -81,6 +82,38 @@ internal class FolderPuller @Inject constructor(
             status.highestModSeq
         )
         pending.settle(account.id, folder.path, afterReset = reset)
+        return PullOutcome.Pulled(counts)
+    }
+
+    /**
+     * Brings down headers older than the ones already stored, down to [windowDays] back (the
+     * deeper phases of a sync). It starts below the lowest UID stored, so a run that was cut
+     * short resumes where it stopped, and it leaves the folder's sync state alone. A folder the
+     * server renumbered is left for the next regular pull, which starts it anew.
+     */
+    // Each failure leaves early; guard clauses keep the normal path flat.
+    @Suppress("ReturnCount")
+    suspend fun backfill(
+        session: MailSession,
+        account: AccountEntity,
+        folder: FolderEntity,
+        assigner: ThreadAssigner,
+        windowDays: Int
+    ): PullOutcome {
+        val status = session.folderStatus(folder.path).valueOr { return PullOutcome.Failed(it) }
+        if (folder.uidValidity != status.uidValidity) return PullOutcome.Pulled(SyncCounts())
+        val lowest = messages.serverUids(account.id, folder.path).firstOrNull() ?: status.uidNext
+        val older = FIRST_UID until lowest
+        if (older.isEmpty()) return PullOutcome.Pulled(SyncCounts())
+        val run = Run(
+            account,
+            folder.path,
+            assigner,
+            pending.flagOperations(account.id, folder.path)
+        )
+        val counts = fetchNew(session, run, older, windowDays).valueOr {
+            return PullOutcome.Failed(it)
+        }
         return PullOutcome.Pulled(counts)
     }
 
@@ -108,10 +141,11 @@ internal class FolderPuller @Inject constructor(
     private suspend fun fetchNew(
         session: MailSession,
         run: Run,
-        uids: LongRange
+        uids: LongRange,
+        windowDays: Int?
     ): MailResult<SyncCounts> {
         val path = run.path
-        val cutoff = windowStart(run.account)
+        val cutoff = windowStart(windowDays)
         var added = 0
         var top = uids.last
         while (top >= uids.first) {
@@ -221,7 +255,8 @@ internal class FolderPuller @Inject constructor(
     ) = row.seen != flags.seen || row.flagged != flags.flagged || row.answered != flags.answered ||
         row.draft != header.flags.draft || row.labels != labels
 
-    private fun windowStart(account: AccountEntity): Instant? = account.offlineWindowDays
+    private fun windowStart(windowDays: Int?): Instant? = windowDays
+        ?.takeIf { it != SyncStages.WHOLE_MAILBOX }
         ?.let { clock.instant().minus(Duration.ofDays(it.toLong())) }
 
     private companion object {

@@ -153,6 +153,7 @@ class EngineHarness(scope: TestScope, authType: AuthType = AuthType.PASSWORD) {
         status,
         clock
     )
+    val depth = FakeSyncDepthLog()
     val accountSync = AccountSync(
         db.accountDao(),
         db.folderDao(),
@@ -168,6 +169,7 @@ class EngineHarness(scope: TestScope, authType: AuthType = AuthType.PASSWORD) {
         queue,
         AttachmentFileCleaner(db.attachmentDao(), storage),
         bodies,
+        depth,
         clock
     )
     val engine = SyncEngine(db.accountDao(), accountSync, status, clock)
