@@ -653,4 +653,86 @@ class OperationQueueTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    // --- operations held back while the user can still undo ---
+
+    private fun heldMove(to: String, uid: Long = 1) = move(to, uid).copy(holdFor = HOLD)
+
+    @Test
+    fun `a held move is not sent by a sync that runs while the undo is possible`() = runTest {
+        val queue = queue()
+        queue.enqueue(heldMove("Archive"))
+
+        val summary = queue.drain(accountId)
+
+        assertTrue(executed.isEmpty())
+        assertEquals(DrainSummary(), summary)
+        assertEquals(t0.plus(HOLD), stored().single().nextAttemptAt)
+    }
+
+    @Test
+    fun `undoing a held move that a sync skipped leaves nothing to send`() = runTest {
+        val queue = queue()
+        queue.enqueue(heldMove("Archive"))
+        queue.drain(accountId)
+
+        val back = queue.enqueue(move("INBOX"))
+
+        assertNull(back)
+        assertTrue(stored().isEmpty())
+        queue.drain(accountId)
+        assertTrue(executed.isEmpty())
+    }
+
+    @Test
+    fun `releasing the held operations makes them go with the next sync`() = runTest {
+        val queue = queue()
+        queue.enqueue(heldMove("Archive"))
+
+        queue.releaseHeld(accountId)
+        queue.drain(accountId)
+
+        assertEquals(listOf("Archive"), executed.map { it.payload })
+        assertTrue(stored().isEmpty())
+    }
+
+    @Test
+    fun `a held move goes by itself once the hold is over`() = runTest {
+        val queue = queue()
+        queue.enqueue(heldMove("Archive"))
+
+        clock.now = t0.plus(HOLD).plusSeconds(1)
+        queue.drain(accountId)
+
+        assertEquals(listOf("Archive"), executed.map { it.payload })
+    }
+
+    @Test
+    fun `releasing does not hurry an operation that is waiting to be retried`() = runTest {
+        val queue = queue()
+        queue.enqueue(op(OperationType.ADD_LABEL))
+        behaviour = { OperationOutcome.RetryLater("offline") }
+        queue.drain(accountId)
+        val waiting = stored().single()
+
+        queue.releaseHeld(accountId)
+
+        assertEquals(waiting.nextAttemptAt, stored().single().nextAttemptAt)
+        assertTrue(waiting.nextAttemptAt > t0)
+    }
+
+    @Test
+    fun `releasing only touches the account it is asked about`() = runTest {
+        val other = db.accountDao().insert(account("bea@example.test"))
+        val queue = queue()
+        queue.enqueue(heldMove("Archive").copy(accountId = other))
+
+        queue.releaseHeld(accountId)
+
+        assertEquals(t0.plus(HOLD), dao.all(other).single().nextAttemptAt)
+    }
+
+    private companion object {
+        val HOLD: Duration = Duration.ofSeconds(15)
+    }
 }

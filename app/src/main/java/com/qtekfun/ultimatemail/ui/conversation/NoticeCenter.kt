@@ -3,12 +3,16 @@
 
 package com.qtekfun.ultimatemail.ui.conversation
 
+import com.qtekfun.ultimatemail.di.ApplicationScope
 import com.qtekfun.ultimatemail.sync.engine.SyncScheduler
+import com.qtekfun.ultimatemail.sync.queue.HeldOperations
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /** The short messages shown in the snackbar. */
 enum class NoticeKind {
@@ -80,7 +84,11 @@ class PendingUndo(
  * replaced one could still have undone is then final and gets synced.
  */
 @Singleton
-class NoticeCenter @Inject constructor(private val scheduler: SyncScheduler) {
+class NoticeCenter @Inject constructor(
+    private val scheduler: SyncScheduler,
+    private val held: HeldOperations,
+    @ApplicationScope private val scope: CoroutineScope
+) {
     private var nextId = 0L
     private val pending = mutableMapOf<Long, PendingUndo>()
     private val current = MutableStateFlow<ConversationNotice?>(null)
@@ -110,11 +118,19 @@ class NoticeCenter @Inject constructor(private val scheduler: SyncScheduler) {
         return undo
     }
 
-    /** The undo window of [id] is over: what it changed is sent to the server. */
+    /**
+     * The undo window of [id] is over: what it changed is sent to the server. Moves were held
+     * back while the undo was possible (see `NewOperation.holdFor`), so they are released first.
+     */
     fun commit(id: Long) {
         val undo = pending.remove(id)
-        undo?.accountIds?.forEach { scheduler.requestSync(it) }
-        undo?.onCommit?.invoke()
+        if (undo != null) {
+            scope.launch {
+                undo.accountIds.forEach { held.releaseHeld(it) }
+                undo.accountIds.forEach { scheduler.requestSync(it) }
+            }
+            undo.onCommit()
+        }
         clear(id)
     }
 

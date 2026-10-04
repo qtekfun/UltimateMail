@@ -26,6 +26,7 @@ import com.qtekfun.ultimatemail.domain.inbox.SwipeDirection
 import com.qtekfun.ultimatemail.sync.engine.EngineHarness
 import com.qtekfun.ultimatemail.ui.conversation.NoticeCenter
 import com.qtekfun.ultimatemail.ui.conversation.NoticeKind
+import com.qtekfun.ultimatemail.ui.conversation.noticeCenter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -56,7 +57,7 @@ class InboxGesturesViewModelTest {
     @BeforeEach
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
-        notices = NoticeCenter(scheduler)
+        notices = noticeCenter(scheduler)
     }
 
     @AfterEach

@@ -110,6 +110,7 @@ class RetryBackoffTest {
         actions.markRead(h.id("INBOX", 1))
         actions.setStarred(h.id("INBOX", 2), true)
         actions.move(listOf(h.id("INBOX", 3)), "Archive")
+        h.undoWindowPasses()
         h.server.failure = { name ->
             MailResult.ServerRejected(RejectionKind.NO, permanent = true)
                 .takeIf { name.startsWith("setFlags INBOX [1]") }
@@ -199,6 +200,7 @@ class RetryBackoffTest {
         )
         h.actions().markRead(h.id("INBOX", 1))
         h.actions().move(listOf(h.id("INBOX", 2)), "Archive")
+        h.undoWindowPasses()
 
         h.engine.sync(h.accountId)
 
