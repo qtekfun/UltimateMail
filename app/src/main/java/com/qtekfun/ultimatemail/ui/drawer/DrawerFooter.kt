@@ -161,6 +161,8 @@ private fun SyncLine.text(): String = when (this) {
 
     SyncLine.Syncing -> stringResource(R.string.sync_status_syncing)
 
+    is SyncLine.SyncingFolders -> stringResource(R.string.sync_status_folders, done, total)
+
     is SyncLine.DownloadingMessages ->
         stringResource(R.string.sync_status_downloading, done, total)
 

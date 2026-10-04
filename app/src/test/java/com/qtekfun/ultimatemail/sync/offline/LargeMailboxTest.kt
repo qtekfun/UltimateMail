@@ -94,8 +94,9 @@ class LargeMailboxTest {
 
         val h = start(windowDays = null, mails = 450, bodies = false)
         val net = FlakyNetwork(h)
-        // listFolders, status Archive, status INBOX, page 1; page 2 is the call that is cut.
-        net.dropBefore(5)
+        // listFolders, status INBOX, page 1; page 2 is the call that is cut (the first sync
+        // reads the Inbox before the other folders).
+        net.dropBefore(4)
         h.engine.sync(h.accountId)
         assertEquals(200, h.messages.serverUids(h.accountId, "INBOX").size, "page 1 is kept")
         assertNull(
