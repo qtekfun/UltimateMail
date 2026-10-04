@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -260,7 +261,7 @@ private fun SenderLine(item: ConversationItem, time: String, highlights: SearchH
                 text = highlighted(item.sender, HighlightField.SENDER, highlights),
                 modifier = Modifier.weight(1f, fill = false),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = weight),
-                maxLines = 1,
+                maxLines = headingLines(),
                 overflow = TextOverflow.Ellipsis
             )
             if (item.messageCount > 1) {
@@ -299,12 +300,18 @@ private fun SubjectLine(item: ConversationItem, highlights: SearchHighlights?) {
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontWeight = if (item.unread) FontWeight.SemiBold else FontWeight.Normal
             ),
-            maxLines = 1,
+            maxLines = headingLines(),
             overflow = TextOverflow.Ellipsis
         )
         Indicators(item)
     }
 }
+
+/** Sender and subject get a second line when the font is large, instead of being cut short. */
+@Composable
+private fun headingLines(): Int = if (LocalDensity.current.fontScale >= LARGE_FONT_SCALE) 2 else 1
+
+private const val LARGE_FONT_SCALE = 1.5f
 
 /** The description phrases from string resources, rebuilt when the configuration changes. */
 @Composable
