@@ -42,9 +42,9 @@ enum class RemoteContentPolicy {
 
 /** The action of each swipe direction on a conversation row. */
 data class SwipeActions(
-    /** Swiping from the left edge towards the right. */
-    val right: SwipeAction = SwipeAction.ARCHIVE,
-    /** Swiping from the right edge towards the left. */
+    /** Swiping from the left edge towards the right; read or unread, as in iOS Mail. */
+    val right: SwipeAction = SwipeAction.TOGGLE_READ,
+    /** Swiping from the right edge towards the left; moves to the Trash. */
     val left: SwipeAction = SwipeAction.DELETE
 )
 
