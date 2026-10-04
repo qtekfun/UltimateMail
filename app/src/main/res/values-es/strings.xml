@@ -18,7 +18,6 @@
     <string name="action_cancel">Cancelar</string>
     <string name="action_back">Atrás</string>
     <string name="account_add">Añadir cuenta</string>
-    <string name="account_switch">Cambiar de cuenta</string>
     <string name="account_remove">Eliminar cuenta</string>
     <string name="account_remove_title">¿Eliminar esta cuenta?</string>
     <string name="account_remove_body">Se borran la contraseña y todo el correo de esta cuenta guardado en este dispositivo. El correo del servidor no se toca.</string>
@@ -69,8 +68,6 @@
     <string name="error_sign_in_cancelled">El inicio de sesión se canceló o fue rechazado. Revisa el client ID y los pasos de configuración e inténtalo de nuevo.</string>
     <string name="error_sign_in_failed">El inicio de sesión terminó pero no se concedió acceso. Inténtalo de nuevo.</string>
     <string name="error_sign_in_no_address">Sesión iniciada, pero el proveedor no indicó qué dirección de correo tiene la cuenta.</string>
-    <string name="folders_empty_title">Aún no hay carpetas</string>
-    <string name="folders_empty_body">La primera sincronización todavía no se ha ejecutado. Las carpetas aparecerán aquí después, y esta lista siempre muestra lo que hay guardado en este dispositivo.</string>
     <string name="folder_inbox">Recibidos</string>
     <string name="folder_drafts">Borradores</string>
     <string name="folder_sent">Enviados</string>
@@ -80,6 +77,9 @@
     <string name="folder_all_mail">Todos los mensajes</string>
     <string name="folder_starred">Destacados</string>
     <string name="drawer_open">Abrir el menú de navegación</string>
+    <string name="drawer_title">Buzones</string>
+    <string name="drawer_all_inboxes">Todas las bandejas</string>
+    <string name="drawer_section_accounts">Cuentas</string>
     <string name="drawer_settings">Ajustes</string>
     <string name="drawer_sync_now">Sincronizar ahora</string>
     <string name="drawer_expand">Desplegar %1$s</string>

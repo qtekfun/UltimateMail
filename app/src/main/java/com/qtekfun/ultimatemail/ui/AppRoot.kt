@@ -17,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
@@ -67,9 +66,7 @@ import com.qtekfun.ultimatemail.ui.shell.MainShell
 import com.qtekfun.ultimatemail.ui.shell.NoAccountsScreen
 import com.qtekfun.ultimatemail.ui.shell.ShellActions
 import com.qtekfun.ultimatemail.ui.shell.ShellCompose
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 
 /** Shows the current [Screen] and connects each screen to its view model. */
 @Suppress("LongParameterList") // One view model per screen; they are created by the activity.
@@ -215,7 +212,6 @@ private fun ShellRoute(
     val menu by drawer.state.collectAsStateWithLifecycle()
     val menuOpen by navigator.drawerOpen.collectAsStateWithLifecycle()
     val inboxState by inbox.state.collectAsStateWithLifecycle()
-    val coroutines = rememberCoroutineScope()
 
     // Nothing is drawn until Room answered, so the empty state does not flash on start.
     if (!menu.loaded) {
@@ -244,7 +240,7 @@ private fun ShellRoute(
         inboxState = inboxState,
         actions = ShellActions(
             onMenuOpenChange = navigator::setDrawerOpen,
-            drawer = drawerActions(drawer, navigator, coroutines, show),
+            drawer = drawerActions(drawer, navigator, show),
             inbox = inboxActions(inbox, navigator) {
                 val from = SearchScope.startingFrom(scope)
                 search.startNew(from)
@@ -309,6 +305,7 @@ private fun SettingsRoute(settings: SettingsViewModel, navigator: AppNavigator) 
             onSwipeLeftChange = settings::setSwipeLeft,
             onRemoteContentChange = settings::setRemoteContent,
             onOpenAccount = { navigator.open(Screen.AccountSettings(it)) },
+            onAddAccount = { navigator.open(Screen.AddAccount) },
             onExportAccounts = { navigator.open(Screen.ExportAccounts) },
             onImportAccounts = { navigator.open(Screen.ImportAccounts) }
         )
