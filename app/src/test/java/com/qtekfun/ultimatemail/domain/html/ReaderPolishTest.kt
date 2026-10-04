@@ -20,10 +20,10 @@ class ReaderPolishTest {
     fun `the page fits the screen width and keeps wide content inside it`() {
         val page = page()
         assertTrue(
-            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" in page
+            "<meta name=\"viewport\" content=\"width=device-width\">" in page
         )
         assertTrue("img{max-width:100%;height:auto}" in page)
-        assertTrue("table{max-width:calc(100vw - 24px)}" in page)
+        assertTrue("table[width],table[style*=\"width\"]{width:100%!important}" in page)
         assertTrue("overflow-wrap:anywhere" in page)
         assertTrue("pre{white-space:pre-wrap}" in page)
     }

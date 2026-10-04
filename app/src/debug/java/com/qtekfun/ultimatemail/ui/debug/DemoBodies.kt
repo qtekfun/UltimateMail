@@ -163,20 +163,30 @@ object DemoBodies {
             "To: Ana <ana@example.test>\nSubject: Report\n\nPlease review the attached report."
     )
 
-    /** A typical notification mail: a 600px layout table, white card, remote logo and button. */
+    /**
+     * A typical notification mail: a fixed layout table inside padded cells, a card inside it,
+     * a remote logo and a button in a table. The paddings add up, so it only fits a phone if the
+     * nested widths are limited, not just the outer table.
+     */
     private fun notification() = DemoBody(
         html = "<table width=\"100%\" bgcolor=\"#f4f4f4\" cellpadding=\"0\" cellspacing=\"0\">" +
-            "<tr><td align=\"center\"><table width=\"600\" bgcolor=\"#ffffff\" " +
-            "cellpadding=\"24\" cellspacing=\"0\" style=\"font-family:Arial;color:#222\">" +
-            "<tr><td><img src=\"https://images.example.test/logo.png\" width=\"180\" " +
-            "height=\"40\" alt=\"Example Cloud\"></td></tr>" +
-            "<tr><td><h1 style=\"font-size:22px\">A new sign-in to your account</h1>" +
+            "<tr><td align=\"center\" style=\"padding:40px 40px\">" +
+            "<table width=\"640\" cellpadding=\"0\" cellspacing=\"0\" " +
+            "style=\"font-family:Arial;color:#222\">" +
+            "<tr><td align=\"center\" style=\"padding:16px\"><img " +
+            "src=\"https://images.example.test/logo.png\" width=\"180\" height=\"40\" " +
+            "alt=\"Example Cloud\"></td></tr>" +
+            "<tr><td style=\"padding:0 32px\"><table width=\"576\" bgcolor=\"#ffffff\" " +
+            "cellpadding=\"0\" cellspacing=\"0\" style=\"border:1px solid #ddd\">" +
+            "<tr><td style=\"padding:32px\"><h1 style=\"font-size:22px\">" +
+            "A new sign-in to your account</h1>" +
             "<p>We noticed a new sign-in from a device we do not recognise. If this was you, " +
             "there is nothing else to do.</p>" +
-            "<p><a href=\"https://example.test/review\" style=\"background:#1a73e8;" +
-            "color:#fff;padding:12px 24px;text-decoration:none\">Review activity</a></p>" +
+            "<table cellpadding=\"0\" cellspacing=\"0\"><tr><td bgcolor=\"#1a73e8\" " +
+            "style=\"padding:12px 24px\"><a href=\"https://example.test/review\" " +
+            "style=\"color:#fff;text-decoration:none\">Review activity</a></td></tr></table>" +
             "<p style=\"font-size:12px;color:#777\">Example Cloud, 1 Example Street.</p>" +
-            "</td></tr></table></td></tr></table>"
+            "</td></tr></table></td></tr></table></td></tr></table>"
     )
 
     /** A fixed 900px newsletter with a wide image and an unbreakable long URL. */
