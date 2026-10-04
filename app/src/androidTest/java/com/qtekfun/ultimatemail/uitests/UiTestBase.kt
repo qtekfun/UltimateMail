@@ -24,6 +24,7 @@ import com.qtekfun.ultimatemail.testing.InMemoryPreferenceStore
 import com.qtekfun.ultimatemail.testing.InMemoryVault
 import com.qtekfun.ultimatemail.testing.TestSyncScheduler
 import com.qtekfun.ultimatemail.ui.MainActivity
+import com.qtekfun.ultimatemail.ui.system.BatteryHintViewModel
 import dagger.hilt.android.testing.HiltAndroidRule
 import java.time.Clock
 import javax.inject.Inject
@@ -76,6 +77,8 @@ abstract class UiTestBase {
     @Before
     fun injectDependencies() {
         hilt.inject()
+        // The one-time battery question would cover the screen of every test that has an account.
+        settings.putBoolean(BatteryHintViewModel.KEY_DONE, true)
     }
 
     @After

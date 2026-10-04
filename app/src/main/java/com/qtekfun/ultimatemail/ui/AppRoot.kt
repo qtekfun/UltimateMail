@@ -66,6 +66,8 @@ import com.qtekfun.ultimatemail.ui.shell.MainShell
 import com.qtekfun.ultimatemail.ui.shell.NoAccountsScreen
 import com.qtekfun.ultimatemail.ui.shell.ShellActions
 import com.qtekfun.ultimatemail.ui.shell.ShellCompose
+import com.qtekfun.ultimatemail.ui.system.BatteryHintHost
+import com.qtekfun.ultimatemail.ui.system.BatteryHintViewModel
 import kotlinx.coroutines.flow.map
 
 /** Shows the current [Screen] and connects each screen to its view model. */
@@ -81,7 +83,8 @@ fun AppRoot(
     accountSettings: AccountSettingsViewModel,
     reauth: ReauthViewModel,
     compose: ComposeScreens,
-    search: SearchViewModel
+    search: SearchViewModel,
+    batteryHint: BatteryHintViewModel
 ) {
     val screen by navigator.screen.collectAsStateWithLifecycle()
     val menuOpen by navigator.drawerOpen.collectAsStateWithLifecycle()
@@ -151,6 +154,7 @@ fun AppRoot(
         // Messages about what was done (archived, deleted, with Undo) outlive the screen.
         NoticeHost(conversation)
         MovePickerHost()
+        BatteryHintHost(batteryHint)
     }
 }
 

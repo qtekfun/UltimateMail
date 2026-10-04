@@ -40,9 +40,10 @@ provider and (while you sign in) the OAuth provider sees your data.
 | Permission | Why |
 |---|---|
 | Internet (`INTERNET`) | To talk to your mail servers and, during sign-in, to the OAuth provider. |
+| Ignore battery optimisations (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`) | So you can let the sync run with the screen off. The app asks once, after the first account is added, and the choice is also in Settings; it never turns it on by itself. |
 
-That is the only permission declared by the app. Background sync uses Android's WorkManager, which
-needs no extra permission of its own. Attachments are handled through the system.
+Background sync uses Android's WorkManager, which needs no extra permission of its own. Attachments
+are handled through the system.
 
 ## Google API Services User Data Policy: Limited Use
 
@@ -114,9 +115,10 @@ proveedor de correo y (mientras inicias sesión) el proveedor de OAuth ve tus da
 | Permiso | Por qué |
 |---|---|
 | Internet (`INTERNET`) | Para hablar con tus servidores de correo y, al iniciar sesión, con el proveedor de OAuth. |
+| Ignorar la optimización de batería (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`) | Para que puedas dejar que la sincronización siga con la pantalla apagada. La app lo pregunta una vez, tras añadir la primera cuenta, y la opción también está en Ajustes; nunca lo activa por sí sola. |
 
-Es el único permiso que declara la app. La sincronización en segundo plano usa WorkManager de
-Android, que no necesita permisos propios. Los adjuntos se gestionan a través del sistema.
+La sincronización en segundo plano usa WorkManager de Android, que no necesita permisos propios. Los
+adjuntos se gestionan a través del sistema.
 
 ## Política de datos de usuario de las API de Google: uso limitado
 
