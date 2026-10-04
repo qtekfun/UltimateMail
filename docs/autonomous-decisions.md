@@ -356,3 +356,22 @@ Decisiones tomadas por mí (a confirmar):
     conversación (se usa el que había al abrirla); con el filtro de no leídas y sin más no leídas al final, la consulta
     recorre la carpeta hasta agotarla (acotado por el tamaño de la carpeta, solo en ese caso); los vecinos de la
     búsqueda; icono propio de redactar (se usa el lápiz de Material).
+39. **Cierre de la sesión autónoma del 2026-10-04 (agente principal).**
+    - **Texto enriquecido (RF-07) se aplaza a v1.1.** El redactor sigue en texto plano. Escribir HTML en Compose sin una
+      biblioteca de edición enriquecida es una pieza grande y arriesgada (selección, cursor, listas, enlaces, firmas con
+      delimitador `-- `, citas, borradores en el servidor sin perder formato) y solo hay dependencias con licencia
+      discutible o sin mantenimiento; añadir una exige tu visto bueno (CLAUDE.md). Hoy un borrador con HTML de otra
+      aplicación pierde el formato al guardarse (decisión 33).
+    - **Rediseño estilo iOS completo** (fases 1 a 4, PRs #57, #58, #59, #60) más el afinado de escala (#61): ver
+      `docs/ios-mail-design.md` y las entradas 35 a 38. Sin recursos de Apple. Queda como mejora el buscador de
+      etiquetas, "Editar" en la lista de buzones, VIP, una barra de búsqueda reducida a icono y el acento azul de iOS
+      como ajuste.
+    - **Limpieza:** worktrees y ramas ya fusionadas, locales y remotas, borradas; `feat/t00-base`, `docs/decisions-log-2`
+      y `feat/integrate-sync-inbox` eran restos (sus PRs están fusionadas o su contenido entró por otro camino).
+    - **Pruebas en el móvil:** a partir de ahora solo con las cuentas de demostración `@seed.invalid`, nunca con el correo
+      real del usuario (petición suya). El correo de GitGuardian de UltimateFiles que usé al probar Deshacer sigue en
+      "Todos los mensajes" de la cuenta real.
+    - **Pendiente de una persona:** pasada con TalkBack, clave de firma de release y secretos de GitHub, tag para la
+      receta de F-Droid, probar Microsoft OAuth con una cuenta real, marcar los incidentes 37846656 y 37846657 de
+      GitGuardian como falsos positivos, y decidir si se quieren los dos pasos de sincronización de la entrada 31
+      (conexiones en paralelo y Gmail por "Todos los mensajes").
