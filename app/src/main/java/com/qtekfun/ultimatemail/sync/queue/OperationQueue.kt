@@ -39,7 +39,7 @@ class OperationQueue @Inject constructor(
     private val executor: OperationExecutor,
     private val clock: Clock,
     @IoDispatcher private val io: CoroutineDispatcher
-) {
+) : HeldOperations {
     private val backoff = Backoff()
     private val merger = OperationMerger(dao, clock)
     private val accountLocks = ConcurrentHashMap<Long, Mutex>()
@@ -51,6 +51,9 @@ class OperationQueue @Inject constructor(
      */
     suspend fun enqueue(operation: NewOperation): Long? =
         withContext(io) { merger.enqueue(operation) }
+
+    override suspend fun releaseHeld(accountId: Long) =
+        withContext(io) { dao.releaseHeld(accountId, clock.instant()) }
 
     /**
      * Runs the operations of [accountId] that are due, in queue order, and says how they went.

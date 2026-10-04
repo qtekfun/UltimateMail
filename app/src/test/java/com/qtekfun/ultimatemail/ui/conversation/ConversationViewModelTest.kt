@@ -119,7 +119,7 @@ class ConversationViewModelTest {
             DownloadAttachment(h.db.attachmentDao(), h.messages, h.sessions, storage),
             launcher,
             SettingsRepository(FakePreferenceStore()),
-            NoticeCenter(scheduler),
+            noticeCenter(scheduler),
             Dispatchers.Unconfined
         )
         backgroundScope.launch { vm.state.collect {} }

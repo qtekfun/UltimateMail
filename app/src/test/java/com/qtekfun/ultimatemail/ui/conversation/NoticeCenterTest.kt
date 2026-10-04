@@ -4,6 +4,8 @@
 package com.qtekfun.ultimatemail.ui.conversation
 
 import com.qtekfun.ultimatemail.domain.conversation.RecordingScheduler
+import com.qtekfun.ultimatemail.sync.engine.SyncScheduler
+import com.qtekfun.ultimatemail.sync.queue.HeldOperations
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -13,7 +15,7 @@ import org.junit.jupiter.api.Test
 
 class NoticeCenterTest {
     private val scheduler = RecordingScheduler()
-    private val center = NoticeCenter(scheduler)
+    private val center = noticeCenter(scheduler)
     private var reverted = 0
 
     private fun undo(vararg accounts: Long) = PendingUndo(accounts.toSet()) { reverted++ }
@@ -65,6 +67,23 @@ class NoticeCenterTest {
         assertEquals(listOf<Long?>(1, 2), scheduler.requests)
         assertNull(center.notice.value)
         assertNull(center.takeUndo(id))
+    }
+
+    @Test
+    fun `committing releases what the undo held back before it asks for the sync`() {
+        val order = mutableListOf<String>()
+        val recording = object : SyncScheduler by scheduler {
+            override fun requestSync(accountId: Long?, userInitiated: Boolean) {
+                order += "sync $accountId"
+            }
+        }
+        val held = HeldOperations { order += "release $it" }
+        val withHold = noticeCenter(recording, held)
+
+        val id = withHold.post(NoticeKind.ARCHIVED, undo = undo(1, 2))
+        withHold.commit(id)
+
+        assertEquals(listOf("release 1", "release 2", "sync 1", "sync 2"), order)
     }
 
     @Test
