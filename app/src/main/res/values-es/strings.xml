@@ -108,6 +108,8 @@
     <string name="inbox_empty_none_body">Los mensajes que recibas aparecerán aquí.</string>
     <string name="inbox_empty_unsynced_title">Aún sin sincronizar</string>
     <string name="inbox_empty_unsynced_body">La primera sincronización todavía no se ha hecho. Desliza hacia abajo para actualizar. Esta lista siempre muestra lo que hay guardado en este dispositivo.</string>
+    <string name="inbox_empty_not_enabled_title">Esta carpeta no se sincroniza</string>
+    <string name="inbox_empty_not_enabled_body">Esta cuenta está configurada para no guardar esta carpeta en el dispositivo. Actívala en los ajustes de la cuenta para ver aquí su correo.</string>
     <string name="inbox_empty_filtered_title">No hay mensajes sin leer</string>
     <string name="inbox_empty_filtered_body">Todo lo cargado aquí ya está leído.</string>
     <string name="conversation_no_subject">(sin asunto)</string>

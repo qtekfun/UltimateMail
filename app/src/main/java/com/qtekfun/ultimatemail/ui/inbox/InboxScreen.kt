@@ -316,6 +316,10 @@ private fun EmptyState(
             R.string.inbox_empty_unsynced_title to
                 R.string.inbox_empty_unsynced_body
 
+        InboxEmpty.NOT_ENABLED ->
+            R.string.inbox_empty_not_enabled_title to
+                R.string.inbox_empty_not_enabled_body
+
         InboxEmpty.NO_MESSAGES -> R.string.inbox_empty_none_title to R.string.inbox_empty_none_body
 
         InboxEmpty.FILTERED_OUT ->
