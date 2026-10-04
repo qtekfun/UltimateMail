@@ -113,6 +113,10 @@
     <string name="inbox_empty_not_enabled_body">Esta cuenta está configurada para no guardar esta carpeta en el dispositivo. Actívala en los ajustes de la cuenta para ver aquí su correo.</string>
     <string name="inbox_empty_filtered_title">No hay mensajes sin leer</string>
     <string name="inbox_empty_filtered_body">Todo lo cargado aquí ya está leído.</string>
+    <string name="inbox_empty_starred_title">No hay mensajes destacados</string>
+    <string name="inbox_empty_starred_body">Nada de lo cargado aquí está destacado.</string>
+    <string name="inbox_empty_attachments_title">No hay mensajes con adjuntos</string>
+    <string name="inbox_empty_attachments_body">Nada de lo cargado aquí tiene adjuntos.</string>
     <string name="conversation_no_subject">(sin asunto)</string>
     <string name="conversation_desc_unread">No leído</string>
     <string name="conversation_desc_from">De %1$s</string>
@@ -334,13 +338,11 @@
     <string name="inbox_deselect">Quitar de la selección</string>
     <string name="inbox_state_selected">Seleccionada</string>
     <string name="inbox_select_all">Seleccionar todo</string>
-    <string name="inbox_selection_close">Cerrar selección</string>
     <plurals name="inbox_selection_count">
         <item quantity="one">%d seleccionada</item>
         <item quantity="many">%d seleccionadas</item>
         <item quantity="other">%d seleccionadas</item>
     </plurals>
-    <string name="inbox_selection_more">Más acciones</string>
     <string name="settings_density">Densidad de la pantalla</string>
     <string name="settings_density_summary">Controla cuánto cabe en pantalla en el menú lateral y en la lista de conversaciones. En compacto caben más, pero las filas son más pequeñas que el tamaño táctil recomendado.</string>
     <string name="density_comfortable">Cómoda</string>
@@ -579,4 +581,16 @@
         <item quantity="other">%1$d mensajes esperando para enviarse</item>
     </plurals>
     <string name="backup_result_sign_in_button">Iniciar sesión: %1$s</string>
+    <string name="inbox_edit">Editar</string>
+    <string name="inbox_done">Listo</string>
+    <string name="inbox_filter_button">Filtrar mensajes</string>
+    <string name="inbox_filter_all">Todos</string>
+    <string name="inbox_filter_starred">Destacados</string>
+    <string name="inbox_filter_attachments">Con adjuntos</string>
+    <string name="inbox_filtered_by">Filtrado por: %1$s</string>
+    <string name="inbox_updated">Actualizado %1$s</string>
+    <string name="inbox_bar_mark">Marcar</string>
+    <string name="inbox_bar_archive">Archivar</string>
+    <string name="inbox_bar_trash">Mover a la papelera</string>
+    <string name="inbox_bar_move">Mover</string>
 </resources>

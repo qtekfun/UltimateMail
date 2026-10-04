@@ -11,6 +11,7 @@ import com.qtekfun.ultimatemail.data.settings.SettingsRepository
 import com.qtekfun.ultimatemail.data.settings.SwipeActions
 import com.qtekfun.ultimatemail.domain.account.AccountListing
 import com.qtekfun.ultimatemail.domain.account.AccountSummary
+import com.qtekfun.ultimatemail.domain.folder.SyncLine
 import com.qtekfun.ultimatemail.domain.inbox.AccountMarker
 import com.qtekfun.ultimatemail.domain.inbox.BulkAvailability
 import com.qtekfun.ultimatemail.domain.inbox.ConversationItem
@@ -36,6 +37,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -44,7 +46,20 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /** Which conversations the list keeps. */
-enum class InboxFilter { ALL, UNREAD }
+enum class InboxFilter {
+    ALL,
+    UNREAD,
+    STARRED,
+    ATTACHMENTS;
+
+    /** Whether [item] stays in a list under this filter. */
+    fun matches(item: ConversationItem): Boolean = when (this) {
+        ALL -> true
+        UNREAD -> item.unread
+        STARRED -> item.flagged
+        ATTACHMENTS -> item.hasAttachments
+    }
+}
 
 /** Why a loaded list has nothing to show. */
 enum class InboxEmpty {
@@ -135,7 +150,8 @@ class InboxViewModel @Inject constructor(
     private val selection = MutableStateFlow(
         Selection(
             savedState.get<String>(SELECTION_SCOPE_KEY),
-            savedState.get<ArrayList<String>>(SELECTION_KEYS_KEY).orEmpty().toSet()
+            savedState.get<ArrayList<String>>(SELECTION_KEYS_KEY).orEmpty().toSet(),
+            savedState.get<Boolean>(SELECTION_EDITING_KEY) == true
         )
     )
     private val restores = MutableSharedFlow<String>(
@@ -178,6 +194,18 @@ class InboxViewModel @Inject constructor(
 
     private val accounts = accountListing.observe()
 
+    /**
+     * The sync progress or the time of the last sync of the list shown, for the title. Kept out
+     * of [state] so that its frequent progress updates do not touch the list.
+     */
+    val syncLine: StateFlow<SyncLine> = scope.flatMapLatest { s ->
+        if (s == null) flowOf(SyncLine.NeverSynced) else listing.observeSync(s)
+    }.distinctUntilChanged().stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+        SyncLine.NeverSynced
+    )
+
     private val list = combine(
         pages,
         statuses,
@@ -214,9 +242,10 @@ class InboxViewModel @Inject constructor(
         isRefreshing: Boolean,
         allAccounts: List<AccountSummary>
     ): InboxState {
-        val shown = when (currentFilter) {
-            InboxFilter.ALL -> page.items
-            InboxFilter.UNREAD -> page.items.filter { it.unread }
+        val shown = if (currentFilter == InboxFilter.ALL) {
+            page.items
+        } else {
+            page.items.filter(currentFilter::matches)
         }
         val folder = page.scope as? InboxScope.Folder
         val status = found.status
@@ -305,6 +334,7 @@ class InboxViewModel @Inject constructor(
         selection.value = value
         savedState[SELECTION_SCOPE_KEY] = value.scopeKey
         savedState[SELECTION_KEYS_KEY] = ArrayList(value.keys)
+        savedState[SELECTION_EDITING_KEY] = value.editing
     }
 
     /** Conversations that left the list (archived, filtered out...) are no longer selected. */
@@ -318,6 +348,12 @@ class InboxViewModel @Inject constructor(
     fun toggleSelection(item: ConversationItem) {
         val key = scope.value?.key ?: return
         setSelection(selection.value.forScope(key).toggle(item.key))
+    }
+
+    /** The "Edit" button: selection mode with nothing picked yet. */
+    fun startEditing() {
+        val key = scope.value?.key ?: return
+        setSelection(selection.value.forScope(key).startEditing())
     }
 
     fun selectAll() {
@@ -420,6 +456,7 @@ class InboxViewModel @Inject constructor(
         private const val SCROLL_OFFSET_KEY = "inbox.scrollOffset"
         private const val SELECTION_SCOPE_KEY = "inbox.selectionScope"
         private const val SELECTION_KEYS_KEY = "inbox.selectionKeys"
+        private const val SELECTION_EDITING_KEY = "inbox.selectionEditing"
         private const val RESTORE_BUFFER = 16
     }
 }

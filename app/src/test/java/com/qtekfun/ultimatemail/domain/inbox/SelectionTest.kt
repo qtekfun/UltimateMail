@@ -98,4 +98,29 @@ class SelectionTest {
 
         assertEquals(listOf("x", "z"), picked.pick(items).map { it.threadId })
     }
+
+    @Test
+    fun `Edit turns the mode on with nothing picked and it stays on when the last pick goes`() {
+        val editing = empty.startEditing()
+        assertTrue(editing.active)
+        assertEquals(0, editing.count)
+
+        val none = editing.toggle("a").toggle("a")
+        assertTrue(none.active)
+    }
+
+    @Test
+    fun `clear, which is Done, leaves the mode even after Edit`() {
+        val done = empty.startEditing().toggle("a").clear()
+
+        assertFalse(done.active)
+        assertEquals(0, done.count)
+    }
+
+    @Test
+    fun `a selection of another list is not editing`() {
+        val other = empty.startEditing().forScope("folder/2/INBOX")
+
+        assertFalse(other.active)
+    }
 }
