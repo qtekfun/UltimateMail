@@ -8,6 +8,10 @@ import androidx.sqlite.SQLiteStatement
 import com.qtekfun.ultimatemail.data.local.dao.BODY_WORK_SQL
 import com.qtekfun.ultimatemail.data.local.dao.CONVERSATIONS_OF_FOLDER_SQL
 import com.qtekfun.ultimatemail.data.local.dao.DRAFTS_BY_STATE_SQL
+import com.qtekfun.ultimatemail.data.local.dao.NEWER_IN_FOLDER_SQL
+import com.qtekfun.ultimatemail.data.local.dao.NEWER_IN_UNIFIED_SQL
+import com.qtekfun.ultimatemail.data.local.dao.OLDER_IN_FOLDER_SQL
+import com.qtekfun.ultimatemail.data.local.dao.OLDER_IN_UNIFIED_SQL
 import com.qtekfun.ultimatemail.data.local.dao.OUTBOX_SQL
 import com.qtekfun.ultimatemail.data.local.dao.THREAD_INDEX
 import com.qtekfun.ultimatemail.data.local.dao.THREAD_SQL
@@ -161,6 +165,25 @@ class QueryPlanTest {
         assertTrue(plan.any { "SEARCH m USING INDEX index_message_accountId_folderPath" in it })
         assertNoMessageScan(plan)
         assertThreadLookupsByThreadIndex(plan)
+    }
+
+    @Test
+    fun `the neighbours of a conversation are found by index, not by loading the list`() = runTest {
+        listOf(
+            NEWER_IN_FOLDER_SQL,
+            OLDER_IN_FOLDER_SQL,
+            NEWER_IN_UNIFIED_SQL,
+            OLDER_IN_UNIFIED_SQL
+        ).forEach { sql ->
+            val plan = plan(sql)
+
+            assertTrue(
+                plan.any { "SEARCH m USING INDEX index_message_accountId_folderPath" in it },
+                plan.toString()
+            )
+            assertNoMessageScan(plan)
+            assertThreadLookupsByThreadIndex(plan)
+        }
     }
 
     @Test

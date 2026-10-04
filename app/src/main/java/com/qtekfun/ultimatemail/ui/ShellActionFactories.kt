@@ -50,6 +50,7 @@ import com.qtekfun.ultimatemail.ui.drawer.DrawerViewModel
 import com.qtekfun.ultimatemail.ui.inbox.InboxActions
 import com.qtekfun.ultimatemail.ui.inbox.InboxViewModel
 import com.qtekfun.ultimatemail.ui.inbox.SelectionActions
+import com.qtekfun.ultimatemail.ui.inbox.readerList
 import com.qtekfun.ultimatemail.ui.nav.AppNavigator
 import com.qtekfun.ultimatemail.ui.nav.Screen
 import com.qtekfun.ultimatemail.ui.picker.MovePickerHost
@@ -78,7 +79,12 @@ internal fun inboxActions(
     onLoadMore = inbox::loadMore,
     onFilterChange = inbox::setFilter,
     onOpenConversation = {
-        navigator.openConversation(it.accountId, it.folderPath, it.threadId)
+        navigator.openConversation(
+            it.accountId,
+            it.folderPath,
+            it.threadId,
+            from = inbox.state.value.readerList()
+        )
     },
     onScrolled = inbox::onScrolled,
     savedScroll = inbox::savedScroll,

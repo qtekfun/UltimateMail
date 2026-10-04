@@ -21,4 +21,7 @@ data class ComposeRequest(
 fun interface ComposeLauncher {
     /** Starts composing. Returns false when the request cannot be taken. */
     fun start(request: ComposeRequest): Boolean
+
+    /** Starts a new, empty message from [accountId]. Returns false when it cannot be taken. */
+    fun startNew(accountId: Long): Boolean = false
 }

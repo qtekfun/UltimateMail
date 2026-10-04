@@ -4,6 +4,7 @@
 package com.qtekfun.ultimatemail.domain.conversation
 
 import com.qtekfun.ultimatemail.data.local.model.AttachmentState
+import com.qtekfun.ultimatemail.data.local.model.FolderRole
 import com.qtekfun.ultimatemail.data.settings.RemoteContentPolicy
 import com.qtekfun.ultimatemail.domain.inbox.LabelSummary
 import java.time.Instant
@@ -112,5 +113,10 @@ data class ConversationView(
     val messages: List<MessageView>,
     /** The newest message: the one star, mark unread, reply and the like apply to. */
     val newest: MessageView?,
-    val targets: FolderTargets
+    val targets: FolderTargets,
+    /** The folder the conversation is read in, for the label of the back button. */
+    val folder: FolderLabel? = null
 )
+
+/** The name of a folder as the server calls it, and its role when it has a special one. */
+data class FolderLabel(val name: String, val role: FolderRole)

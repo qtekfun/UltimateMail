@@ -102,7 +102,16 @@ fun AppRoot(
         when (val current = screen) {
             Screen.AddAccount -> AddAccountRoute(addAccount, navigator)
 
-            is Screen.Conversation -> ConversationRoute(current, conversation, navigator::back)
+            is Screen.Conversation -> {
+                val list by navigator.readerList.collectAsStateWithLifecycle()
+                ConversationRoute(
+                    current,
+                    conversation,
+                    list,
+                    navigator::back,
+                    onOpen = { navigator.openConversation(it.accountId, it.folderPath, it.threadId) }
+                )
+            }
 
             // One call site for every screen with the side menu, so the menu keeps its state
             // (and its closing animation) while the folder changes.

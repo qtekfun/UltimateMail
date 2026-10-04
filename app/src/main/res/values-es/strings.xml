@@ -325,6 +325,10 @@
     <string name="notice_move_soon">Mover a una carpeta estará disponible pronto.</string>
     <string name="inbox_action_mark_read">Marcar como leído</string>
     <string name="conversation_more">Más acciones</string>
+    <string name="conversation_previous">Conversación anterior</string>
+    <string name="conversation_next">Conversación siguiente</string>
+    <string name="conversation_reply_menu">Responder, responder a todos o reenviar</string>
+    <string name="conversation_back_to">Volver a %1$s</string>
     <string name="inbox_action_move">Mover a…</string>
     <string name="inbox_select">Seleccionar</string>
     <string name="inbox_deselect">Quitar de la selección</string>

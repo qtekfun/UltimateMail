@@ -36,7 +36,9 @@ class ConversationPresenter(private val preparer: BodyPreparer = BodyPreparer())
             ),
             messages = views,
             newest = views.lastOrNull(),
-            targets = FolderTargets.resolve(data.folders, folderPath)
+            targets = FolderTargets.resolve(data.folders, folderPath),
+            folder = data.folders.firstOrNull { it.path == folderPath }
+                ?.let { FolderLabel(it.name, it.role) }
         )
     }
 
