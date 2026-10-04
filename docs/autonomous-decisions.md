@@ -375,3 +375,30 @@ Decisiones tomadas por mí (a confirmar):
       receta de F-Droid, probar Microsoft OAuth con una cuenta real, marcar los incidentes 37846656 y 37846657 de
       GitGuardian como falsos positivos, y decidir si se quieren los dos pasos de sincronización de la entrada 31
       (conexiones en paralelo y Gmail por "Todos los mensajes").
+
+40. **Pruebas de interfaz de las pantallas del rediseño (2026-10-04, agente de pruebas).** Decidido por el agente.
+    **Cubierto** (26 pruebas nuevas, todas pasan en el PGEM10 con `am instrument`, sin tocar el correo real):
+    `InboxShellUiTest` (título grande, barra inferior con filtro, Buscar y Redactar, el menú de filtros filtra de
+    verdad y dice "Filtrado por", Editar con círculos vacíos y la barra de acciones desactivada, Listo, Seleccionar
+    todo, pulsación larga), `ConversationRowUiTest` (no leído y ajuste de vista previa Ninguna/2 líneas, también la
+    altura de la fila), `MailboxesMenuUiTest` (Todas las bandejas y bandeja de cada cuenta con contadores, tarjeta de
+    buzones especiales en orden, sección de cuentas plegada y que se abre, Ajustes abajo), `ReaderTopBarUiTest`
+    (atrás con el nombre del buzón, flechas desactivadas en los extremos y que abren al vecino) y
+    `ReaderBottomBarUiTest` (Papelera, Archivar, Mover, menú Responder con las tres opciones, Redactar, menú ⋮ con
+    Destacar y Marcar como no leído), `DraftsSwipeUiTest` (deslizar un borrador: "Borrador descartado" y Deshacer).
+    **Errores de la app encontrados y corregidos:**
+    (1) **La vista previa de la fila nunca mostraba texto en producción**: la columna `snippet` de `message` no la
+    escribía nadie (ni la sincronización ni el guardado del cuerpo), así que el ajuste "Vista previa" de la
+    entrada 36 no tenía efecto. Ahora `BodyStore.save` guarda el inicio del texto (`MessageSnippet`: una línea, sin
+    líneas citadas, 300 caracteres, HTML pasado a texto) con `MessageDao.setSnippet`, con pruebas JVM
+    (`MessageSnippetTest`, `BodyDownloaderTest`). **Límite:** los mensajes cuyo cuerpo ya estaba guardado antes de
+    este arreglo no tienen vista previa hasta que su cuerpo se vuelva a guardar; los mensajes sin cuerpo descargado
+    (fuera de la ventana sin conexión o sobre el tamaño máximo) tampoco la tienen hasta que se abren.
+    (2) La fila declaraba `selected = false` siempre, así que TalkBack decía "no seleccionado" en cada fila fuera del
+    modo selección y no había manera de saber desde la semántica si la lista estaba en modo selección; ahora la
+    fila solo expone el estado seleccionado mientras se está eligiendo (también es lo que usan las pruebas para ver
+    los círculos). **No cubierto:** el color y la forma del punto de no leído y de los círculos (no hay gancho
+    semántico y una comparación de capturas dependería del móvil: se comprueba la frase que lee la fila, el estado
+    seleccionable y la altura); las acciones de la barra de Editar (Marcar, Mover, Archivar, Papelera desde la
+    lista), el deslizamiento de la fila a leído/papelera, Marcar como no leído del lector y el colapso del título
+    al desplazar. Las pruebas se ejecutaron solo en el PGEM10 (Android 16, en español).

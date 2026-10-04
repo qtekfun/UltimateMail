@@ -12,7 +12,7 @@ clock, so they never reach a real server or touch a real account.
 
 ## Status: run on a device (2026-10-04)
 
-All 11 tests pass on a physical phone (PGEM10, Android 16) through `am instrument`, see below. The first run
+All the tests (the 11 first ones and the 26 of the redesign screens, see below) pass on a physical phone (PGEM10, Android 16) through `am instrument`, see below. The first run
 found three tests out of date with the redesign (density sizes, the new swipe defaults, the Mailboxes
 menu with two rows that match an account's address) and a missing Hilt binding in the test module; they
 were fixed. There is no emulator on the development machine, so no other device was tried.
@@ -56,6 +56,12 @@ Animations may be left on; turning them off in the developer options makes runs 
 | `SignaturePerAccountUiTest` | Two accounts with different signatures. A new message starts with the signature of the account that writes it (with the `-- ` delimiter); switching From swaps only that block (text typed by the user stays) and switching back restores the first one. A message started after switching the menu to the second account gets the second signature. |
 | `ReauthenticationUiTest` | An account in the "sign in again" state shows that line in the menu; tapping it opens the sign-in screen; a wrong password is refused and nothing is stored; the right one stores it, clears the state, asks for a user-initiated sync and the mail already on the device is still there. |
 | `DensitySettingUiTest` | Changing Display density in Settings changes the height of a side menu row: 48 dp (default), 52 dp (comfortable), 38 dp (compact), and the setting is stored. |
+| `InboxShellUiTest` | The list screen of the iOS-style redesign. The large title shows the mailbox name. The bottom bar has the filter button, the Search field and Compose; Search opens the search screen and Compose the composer. The filter menu (All, Unread, Starred, With attachments) really changes the rows and the subtitle says "Filtered by: ...". Edit shows an empty selection circle on every row (the rows become selectable, none selected), the action bar (Mark, Move, Archive, Trash) disabled with nothing picked, and Done leaves. Select all selects every row and enables the actions. A long press selects exactly one row. |
+| `ConversationRowUiTest` | The sentence a row speaks starts with "Unread" only for an unread conversation (the dot slot has no other hook). The Preview setting (set live through `SettingsRepository`): with 2 lines the snippet is in the row and the row is taller, with None it is gone and the row is shorter, and back to 2 lines it returns. |
+| `MailboxesMenuUiTest` | The Mailboxes menu with two accounts: "All inboxes" with the summed counter, each account's Inbox with its own counter, in that order; the special mailboxes card (Drafts, Sent, Archive, Trash) in order below them; the Accounts section closed by default (the custom folder is not listed) and opening to show it; Settings at the bottom, opening Settings. |
+| `ReaderTopBarUiTest` | Opening a conversation: Back with the mailbox name, previous and next arrows and the overflow button. At the first conversation Previous is disabled, at the last one Next is; the arrows open the neighbour conversations, and Back still returns to the list. |
+| `ReaderBottomBarUiTest` | The bottom bar of the reader has Trash, Archive, Move, Reply and Compose; Archive and Trash leave the conversation and queue the move to Archive / Trash; Move opens the picker; Reply opens a menu with Reply, Reply all and Forward (Forward opens the composer); Compose opens a new message; the overflow menu has Star (which turns into Remove star) and Mark as unread. |
+| `DraftsSwipeUiTest` | In Drafts, swiping a draft away hides it and shows "Draft discarded" with Undo (the draft is still stored until the window ends); Undo brings the row back. |
 
 ## How the fakes work
 
@@ -82,14 +88,21 @@ Everything lives in `androidTest/.../testing/`.
 - `Seeds.kt` creates an account the way a finished sync leaves it: it fills the fake server,
   inserts the account and runs one real sync.
 
-No production code was changed for these tests and no test tags were needed: the tests find
-nodes by text, content description and actions.
+The tests find nodes by text, content description and actions; no test tags were needed. Two
+small changes in the app came with the redesign tests (see decision 40): a row only exposes the
+"selected" state while the list is in selection mode, and the list preview text is now really stored.
+`FakeMailbox.deliver` takes flags and an attachment marker, and `seedAccount` an `onServer` block, to
+seed read, starred and attachment messages.
 
 ## What could not be verified
 
 - They ran on one phone only; other screen sizes, languages and Android versions are untested.
-- The screens added by the iOS Mail redesign (bottom bar, Edit, reader chrome) have their own
-  classes only if listed above.
+- The colour and shape of the unread dot and of the selection circles are not checked (no hook, and
+  a screenshot comparison would depend on the device); the tests check the row sentence, the
+  selectable/selected state and the row height instead.
+- The swipe of the redesign's rows to read/unread and Trash, the Edit action buttons doing their
+  action (Mark, Move, Archive, Trash from the list), the reader's Mark as unread and the collapse of the
+  large title while scrolling have no UI test yet.
 - The Compose test clock controls snackbar timeouts, so the tests do not rely on a snackbar
   expiring by itself; they use Undo, or a second notice that replaces the first.
 - Real servers, TLS, OAuth and WorkManager are out of scope: they are not part of these tests.
