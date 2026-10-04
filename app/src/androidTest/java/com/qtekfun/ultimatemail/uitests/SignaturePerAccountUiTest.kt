@@ -98,12 +98,9 @@ class SignaturePerAccountUiTest : UiTestBase() {
         pressBack()
         waitForText(text(R.string.inbox_unified))
 
-        // The menu is switched to the second account: now its signature is the one inserted.
+        // The second account's Inbox is opened from the menu: now its signature is the one inserted.
         openDrawer()
-        compose.onNode(hasText(ana) and hasClickAction()).performClick()
-        waitFor(inPopup(hasText(bea)))
-        compose.onNode(inPopup(hasText(bea))).performClick()
-        pressBack()
+        compose.onNode(hasText(bea) and hasClickAction()).performClick()
         startNewMessage()
         waitFor(bodyWith(beaSignature))
         compose.onNode(hasText(text(R.string.composer_from)) and hasClickAction())

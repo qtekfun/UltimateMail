@@ -19,7 +19,6 @@
     <string name="action_cancel">Cancel</string>
     <string name="action_back">Back</string>
     <string name="account_add">Add account</string>
-    <string name="account_switch">Switch account</string>
     <string name="account_remove">Remove account</string>
     <string name="account_remove_title">Remove this account?</string>
     <string name="account_remove_body">This deletes the password and all the mail of this account stored on this device. Mail on the server is not touched.</string>
@@ -70,8 +69,6 @@
     <string name="error_sign_in_cancelled">The sign-in was cancelled or refused. Check the client ID and the setup steps, then try again.</string>
     <string name="error_sign_in_failed">The sign-in finished but no access was granted. Try again.</string>
     <string name="error_sign_in_no_address">Signed in, but the provider did not say which email address this account has.</string>
-    <string name="folders_empty_title">No folders yet</string>
-    <string name="folders_empty_body">The first sync has not run yet. Folders appear here after it, and this list always shows what is stored on this device.</string>
     <string name="folder_inbox">Inbox</string>
     <string name="folder_drafts">Drafts</string>
     <string name="folder_sent">Sent</string>
@@ -81,6 +78,9 @@
     <string name="folder_all_mail">All mail</string>
     <string name="folder_starred">Starred</string>
     <string name="drawer_open">Open navigation menu</string>
+    <string name="drawer_title">Mailboxes</string>
+    <string name="drawer_all_inboxes">All inboxes</string>
+    <string name="drawer_section_accounts">Accounts</string>
     <string name="drawer_settings">Settings</string>
     <string name="drawer_sync_now">Sync now</string>
     <string name="drawer_expand">Expand %1$s</string>
