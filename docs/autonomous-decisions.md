@@ -294,3 +294,31 @@ Decisiones tomadas por mí (a confirmar):
     el icono de bandera sigue siendo la estrella existente (en el color ámbar actual, no el naranja de iOS) para no
     mezclar con el significado de "destacado" del resto de la app; el azul de iOS no se aplica a más cosas que al
     punto (el ajuste de acento llega en otra fase); los ajustes nuevos no entran en la exportación de copias.
+
+38. **Barra de la pantalla de lectura al estilo de Mail de iOS (2026-10-04, fase 4 de `docs/ios-mail-design.md`).**
+    Decidido por el agente. **Arriba:** flecha atrás con el nombre del buzón en pequeño (nombre localizado por rol, o el
+    del servidor; recortado a 112 dp con puntos suspensivos; TalkBack lee "Volver a Bandeja de entrada" y la zona
+    táctil es todo el conjunto, de al menos 48 dp), flechas de conversación anterior (arriba, más nueva) y siguiente
+    (abajo, más antigua), desactivadas en los extremos, y el menú ⋮ con Destacar/Quitar estrella y Marcar como no leído.
+    **Abajo (sustituye a los tres botones con borde):** Archivar (si la cuenta tiene destino y no se está ya en el
+    archivo), Papelera, Mover, Responder (menú con Responder, Responder a todos y Reenviar) y Redactar (mensaje nuevo
+    desde la cuenta de la conversación). Se mantiene la lógica de `FolderTargets`: ambos botones aparecen como hasta
+    ahora; no se añadió un ajuste "archivar o borrar" porque no existe aún. Superficie tonal que respeta la barra de
+    navegación y `FlowRow` con reparto uniforme, para que con fuente al 200 % pase a una segunda fila en vez de cortarse.
+    "Mover" sale del menú ⋮ (ya está abajo). **Cómo sabe el lector cuál es su lista:** `AppNavigator` guarda una
+    `ReaderList` (ámbito más "solo no leídas" si la lista tenía ese filtro) al abrir una conversación desde la lista y
+    la conserva en el estado guardado (sobrevive a la recreación del proceso); al pasar a un vecino no cambia ni ella ni
+    la pantalla de origen, así que Atrás sigue volviendo a la lista. Desde la búsqueda no hay lista y las flechas
+    quedan desactivadas. **Cómo se buscan los vecinos sin cargar la lista:** `ReaderNeighbours` lanza dos consultas de
+    Room (`NeighbourSql.kt`), una por lado, que comparan la posición `(sentAt, id)` del mensaje visible más nuevo de la
+    conversación abierta y devuelven solo la fila vecina (`LIMIT 1`, por el índice de carpeta y fecha; hay un test del
+    plan de consulta con el volumen de referencia). Respetan igual que la lista los movimientos pendientes (una
+    conversación archivada o borrada se salta) y el filtro de no leídas; el vecino se actualiza solo (flujo de Room).
+    Pasar al siguiente es abrirlo como hoy: se marca leído su primer mensaje no leído y se carga el cuerpo; la lista no
+    se recarga. **Pruebas:** `ReaderNeighboursTest` (extremos, empates de fecha, conversaciones que suben al llegar
+    correo, filtro de no leídas, unificada, movimientos pendientes, texto guardado), `ConversationViewModelTest`
+    (vecinos, etiqueta del buzón, ir a un vecino, redactar), `ConversationNavigationTest` (la lista se conserva y se
+    restaura) y `QueryPlanTest`. **No hecho:** el filtro de la lista no se sigue si se cambia después de abrir la
+    conversación (se usa el que había al abrirla); con el filtro de no leídas y sin más no leídas al final, la consulta
+    recorre la carpeta hasta agotarla (acotado por el tamaño de la carpeta, solo en ese caso); los vecinos de la
+    búsqueda; icono propio de redactar (se usa el lápiz de Material).
