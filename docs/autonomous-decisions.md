@@ -413,3 +413,8 @@ Decisiones tomadas por mí (a confirmar):
     que ya existan** (de una instalación anterior o de una copia importada) siguen funcionando y pueden volver a iniciar
     sesión desde la pantalla de reautenticación, que no depende del interruptor. **Pendiente de decisión del usuario:**
     la versión 0.1.0 ya publicada muestra el inicio de sesión con Google/Microsoft; esto llegaría en una 0.1.1.
+42. **Pasada con TalkBack omitida (2026-10-04, decisión del usuario).** No usa lector de pantalla y no la necesita. La
+    accesibilidad sigue cubierta por código y pruebas (táctiles de 48 dp, `contentDescription`, estado seleccionado
+    solo en modo selección, acciones accesibles en cada fila, fuente al 200 %, `docs/accessibility-audit.md`), pero
+    ninguna persona la ha revisado con TalkBack. README, CHANGELOG y los textos de la tienda lo dicen sin "pendiente".
+    La lista de comprobaciones manuales sigue en `docs/accessibility-audit.md` por si alguien quiere hacerla.

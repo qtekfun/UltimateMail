@@ -1,6 +1,6 @@
 UltimateMail es un cliente de correo libre para cualquier cuenta IMAP/SMTP, inspirado en Mail de iOS y en la app de Gmail. Funciona primero sin conexión: lo que ves sale de una base de datos local y tus cambios se sincronizan después mediante una cola que sobrevive a los reinicios.
 
-Primera versión (0.1). Lee, escribe, busca y sincroniza correo y se ha usado con Gmail. Aún no se ha hecho una revisión con TalkBack.
+Primera versión (0.1). Lee, escribe, busca y sincroniza correo y se ha usado con Gmail. No se ha revisado con un lector de pantalla.
 
 Qué hace:
 * Cuentas: ajustes de servidor automáticos y prueba de conexión; contraseña o contraseña de aplicación (Gmail necesita una contraseña de aplicación); exportar e importar cuentas en un fichero cifrado (sin correo dentro).
