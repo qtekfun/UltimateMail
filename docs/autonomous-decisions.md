@@ -121,3 +121,18 @@ Decisiones tomadas por mí (a confirmar):
     **No hecho:** ocultar el botón Redactar al hacer scroll, borrar borradores deslizando, importar borradores del servidor
     al redactor, texto enriquecido y adjuntos al reenviar.
 
+28. **Cierre de pulido (2026-10-04, usuario fuera).** Decididas por el agente, a confirmar:
+    - Lector: las tablas anidadas de ancho fijo se limitan en unidades de ventana (`calc(100vw - 24px)`) porque el
+      porcentaje de una tabla dentro de una celda es circular y Chromium lo ignora (PR #42); el WebView se recorta a sus
+      límites (`clipToBounds`) porque al reabrir un mensaje pintaba encima de la cabecera. Verificado en el PGEM10.
+    - Carpetas con la sincronización desactivada muestran su propio mensaje en vez de "Aún sin sincronizar" (PR #44).
+    - Con fuente a partir de 1,5x, remitente y asunto de la lista usan dos líneas (PR #45).
+    - La hora de la última sincronización buena se guarda en las preferencias privadas, solo la hora y por cuenta; sin
+      migración de Room (PR #46). No se limpia al borrar la cuenta (los ids no se reutilizan; unas pocas bytes).
+    - `reportFullyDrawn()` se llama cuando aparece la primera lista. **No** se añade perfil de base (baseline profile):
+      exige `androidx.profileinstaller` y un módulo de macrobenchmark; en producción ya cumple los umbrales sin él.
+    - `.gitguardian.yaml` ignora solo `MailTestServer.kt` (contraseña `changeit` del servidor de pruebas en memoria). Los
+      otros dos incidentes (37846656 y 37846657) hay que marcarlos como falso positivo en el panel de GitGuardian.
+    - **No se migra el índice 5→6** (opcional): el FTS ya funciona y una migración sin necesidad real es riesgo.
+    - Con la cuenta real del usuario en el móvil solo se hacen pruebas de lectura/navegación: no se envía correo, no se
+      archiva ni se borra nada del servidor.
