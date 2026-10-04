@@ -432,7 +432,9 @@ class ComposerViewModel @Inject constructor(
     private suspend fun saveAndTell(id: Long) {
         val saved = !touched || engine.save(id, editOf(mutable.value)) == DraftChange.SAVED
         if (saved) {
-            serverSync.request(id, force = true)
+            // A draft with nothing new (a server copy only looked at) must not rewrite its copy.
+            val unsent = touched || engine.open(id)?.dirty == true
+            serverSync.request(id, force = unsent)
             if (touched) notices.post(NoticeKind.DRAFT_SAVED)
         }
     }

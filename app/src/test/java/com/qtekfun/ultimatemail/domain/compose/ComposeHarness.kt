@@ -11,7 +11,9 @@ import com.qtekfun.ultimatemail.data.local.model.FolderRole
 import com.qtekfun.ultimatemail.domain.conversation.RecordingScheduler
 import com.qtekfun.ultimatemail.domain.mail.MailAddress
 import com.qtekfun.ultimatemail.domain.mail.MailFolderRole
+import com.qtekfun.ultimatemail.sync.engine.DownloadAttachment
 import com.qtekfun.ultimatemail.sync.engine.EngineHarness
+import com.qtekfun.ultimatemail.sync.engine.LoadMessageBody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.TestScope
 
@@ -41,6 +43,22 @@ class ComposeHarness(scope: TestScope, authType: AuthType = AuthType.PASSWORD) {
     )
     val engine = ComposeEngine(db, repository, serverSync, { quotes }, clock, io)
     val attachments = DraftAttachments(drafts, attachmentSource, files, io)
+    val download = DownloadAttachment(
+        db.attachmentDao(),
+        db.messageDao(),
+        engineHarness.sessions,
+        engineHarness.storage
+    )
+    val forwardAttachments =
+        ForwardAttachments(db.attachmentDao(), download, engineHarness.storage, attachments, io)
+    val serverDrafts = ServerDraftImport(
+        db,
+        LoadMessageBody(db.messageDao(), engineHarness.sessions, engineHarness.bodyStore),
+        forwardAttachments,
+        clock,
+        io
+    )
+    val opener = ComposeOpener(engine, attachments, forwardAttachments, serverDrafts)
     val send = SendDraft(db, engineHarness.queue, files, scheduler, clock, io)
     val actions = OutboxActions(db, engineHarness.queue, repository, scheduler, clock, io)
     val state = ComposeState(drafts, db.messageDao(), pending)
