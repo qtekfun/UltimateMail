@@ -1,1 +1,1 @@
-Modern offline-first mail client for IMAP/SMTP, in early development
+Free offline-first IMAP/SMTP mail client with an iOS Mail look
