@@ -1,1 +1,1 @@
-First development version. You can add an account with a password, see your folders and labels, and browse a synced conversation list. Reading, composing, search and settings are not ready yet.
+First version. Read, write, search and sync mail for IMAP/SMTP accounts, offline first. Safe HTML with remote content blocked, swipe gestures, move/label picker, drafts and an offline send queue with undo, per-account signatures, an iOS Mail inspired look. No push notifications yet; Microsoft sign-in and TalkBack are not verified.

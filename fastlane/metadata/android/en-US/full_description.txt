@@ -1,18 +1,16 @@
 UltimateMail is a free-software mail client for any IMAP/SMTP account, inspired by iOS Mail and the Gmail app. It works offline first: what you see comes from a local database, and your changes are synced later by a queue that survives restarts.
 
-IMPORTANT: UltimateMail is in early development. It is not ready to replace your daily mail app yet. Reading messages, composing, search, swipe gestures and settings are still being built.
+First version (0.1). It reads, writes, searches and syncs mail and has been used with Gmail. Sign-in with Microsoft and a review with TalkBack are not verified yet.
 
-What works today:
-* Adding an account with a password or app password, with automatic server settings and a connection test.
-* Folders and labels, a conversation list with a unified inbox, and background sync.
-* Credentials encrypted with the Android Keystore.
+What it does:
+* Accounts: automatic server settings and connection test; password or app password; sign-in with Google or Microsoft using your own OAuth client; export and import accounts as an encrypted file (no mail inside).
+* Reading: conversations with safe HTML (remote content blocked by default, link destinations confirmed), attachments on demand, bodies kept for offline reading.
+* Writing: reply, reply all, forward with attachments, drafts, a send queue with undo that works offline, one signature per account.
+* Organising: swipe gestures you configure, quick selection, undo, a move and label picker with live search, Gmail labels.
+* Search on the device and on the server.
+* A look modeled on iOS Mail: large titles, a bottom bar with filter, search and compose, message previews, a mailboxes menu. Dark theme, dynamic colors, three densities.
 
-Planned:
-* Reading conversations with safe HTML (remote content blocked by default).
-* Composing, drafts and an offline send queue.
-* Configurable swipe gestures with undo, and a move/label picker with live search.
-* Local and server search, per-account signatures, settings.
-* Sign-in with Google (own OAuth client) and Microsoft.
+Not included yet: push notifications (mail arrives with the periodic sync, about every 15 minutes), rich text, PGP and S/MIME.
 
 Principles:
 * No telemetry, no analytics, no ads, no Google services. Your mail only travels between your device and your mail servers.

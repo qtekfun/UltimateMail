@@ -1,1 +1,1 @@
-Primera versión de desarrollo. Puedes añadir una cuenta con contraseña, ver tus carpetas y etiquetas y recorrer una lista de conversaciones sincronizada. Leer, redactar, buscar y los ajustes todavía no están listos.
+Primera versión. Leer, escribir, buscar y sincronizar correo IMAP/SMTP, primero sin conexión. HTML seguro con contenido remoto bloqueado, gestos, selector de mover y etiquetar, borradores y cola de envío con deshacer, firmas por cuenta, aspecto inspirado en Mail de iOS. Aún sin notificaciones push; el acceso con Microsoft y TalkBack no están verificados.
