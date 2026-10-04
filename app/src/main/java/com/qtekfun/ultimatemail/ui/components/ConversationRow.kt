@@ -58,15 +58,15 @@ import com.qtekfun.ultimatemail.domain.inbox.LabelSummary
 import com.qtekfun.ultimatemail.domain.inbox.MessageTimeFormatter
 import com.qtekfun.ultimatemail.domain.search.HighlightField
 import com.qtekfun.ultimatemail.domain.search.SearchHighlights
-import com.qtekfun.ultimatemail.ui.theme.AvatarPalette
 import com.qtekfun.ultimatemail.ui.theme.LocalDensityMetrics
-import com.qtekfun.ultimatemail.ui.theme.StarColor
-
-private val CheckSize = 24.dp
+import com.qtekfun.ultimatemail.ui.theme.LocalRowAppearance
+import com.qtekfun.ultimatemail.ui.theme.RowStartPadding
 
 /**
- * One row of a conversation list (RF-03): avatar, sender, time, subject, snippet, indicators,
- * label chips and, when [accountMarker] is given, the account the conversation belongs to.
+ * One row of a conversation list (RF-03), in the style of Mail on iOS: a leading slot with the
+ * unread dot, the sender and time, the subject with its indicators, a preview of the text (lines
+ * set in Settings, see [LocalRowAppearance]), the label chips and, when [accountMarker] is given,
+ * the account the conversation belongs to. The avatar is shown only when the user turns it on.
  *
  * Screen readers get one merged sentence ("Unread, from Ana, Lunch, ...") instead of the parts,
  * and the row is at least 72dp tall, so it is a comfortable touch target at any font scale.
@@ -76,8 +76,10 @@ private val CheckSize = 24.dp
  * @param formatter formats the time; get one with [rememberMessageTimeFormatter].
  * @param onClick the row was tapped.
  * @param onLongClick the row was long-pressed (multi-selection); null leaves it out.
- * @param selected the row is picked in selection mode: it is highlighted, shows a check instead
- * of the avatar and is announced as selected.
+ * @param selected the row is picked in selection mode: it is highlighted, shows a check in the
+ * leading slot and is announced as selected.
+ * @param selecting selection mode is on: the leading slot shows a selection circle (empty or
+ * checked) instead of the unread dot, in every row, so the text stays aligned.
  * @param customActions what a screen reader offers on the row in place of swiping.
  * @param accountMarker pass it in the unified inbox only.
  * @param hiddenLabels labels not to show as chips, typically the folder being shown.
@@ -93,6 +95,7 @@ fun ConversationRow(
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
     selected: Boolean = false,
+    selecting: Boolean = false,
     customActions: List<CustomAccessibilityAction> = emptyList(),
     accountMarker: AccountMarker? = null,
     hiddenLabels: Set<String> = emptySet(),
@@ -103,7 +106,13 @@ fun ConversationRow(
         LabelPresentation.summarize(item.labels, hiddenLabels)
     }
     val selectedText = stringResource(R.string.inbox_state_selected)
-    val description = rememberRowDescription(item, formatter, labels, accountMarker, badge)
+    val appearance = LocalRowAppearance.current
+    val description = rememberRowDescription(
+        item,
+        formatter,
+        RowExtras(labels, accountMarker, badge),
+        includeSnippet = appearance.previewLines > 0
+    )
 
     val background =
         if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
@@ -119,17 +128,15 @@ fun ConversationRow(
                 onLongClick
             )
             .padding(
-                start = 6.dp,
+                start = RowStartPadding,
                 end = 16.dp,
                 top = LocalDensityMetrics.current.listRowVerticalPadding + 2.dp,
                 bottom = LocalDensityMetrics.current.listRowVerticalPadding + 2.dp
             ),
         verticalAlignment = Alignment.Top
     ) {
-        UnreadDot(item.unread)
-        if (selected) {
-            SelectedMark(Modifier.padding(end = 12.dp))
-        } else {
+        LeadingSlot(item.unread, selecting, selected, appearance.unreadColor)
+        if (appearance.showAvatars) {
             Avatar(
                 name = item.senderName,
                 address = item.senderAddress,
@@ -139,12 +146,12 @@ fun ConversationRow(
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             SenderLine(item, formatter.format(item.sentAt), highlights)
             SubjectLine(item, highlights)
-            if (item.snippet.isNotBlank()) {
+            if (appearance.previewLines > 0 && item.snippet.isNotBlank()) {
                 Text(
                     text = highlighted(item.snippet.trim(), HighlightField.SNIPPET, highlights),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
+                    maxLines = appearance.previewLines,
                     overflow = TextOverflow.Ellipsis
                 )
             }
@@ -178,25 +185,6 @@ private fun highlighted(
     }
 }
 
-/** The check that replaces the avatar of a selected row. */
-@Composable
-private fun SelectedMark(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(DefaultAvatarSize)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            Icons.Filled.Check,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(CheckSize)
-        )
-    }
-}
-
 /** What a screen reader gets for a row. */
 private class RowSemantics(
     val description: String,
@@ -222,7 +210,7 @@ private fun MetaLine(labels: LabelSummary, accountMarker: AccountMarker?, badge:
                 maxLines = 1
             )
         }
-        if (!labels.isEmpty) LabelChipRow(labels, Modifier.weight(1f))
+        if (!labels.isEmpty) LabelChipRow(labels, Modifier.weight(1f), small = true)
     }
 }
 
@@ -251,7 +239,7 @@ private fun Modifier.rowSemantics(
     }
 }
 
-/** Sender (bold when unread), the number of messages of the conversation, and the time. */
+/** Sender (bold when unread), the number of messages of the conversation, and the time (secondary color). */
 @Composable
 private fun SenderLine(item: ConversationItem, time: String, highlights: SearchHighlights?) {
     val weight = if (item.unread) FontWeight.Bold else FontWeight.Normal
@@ -276,12 +264,8 @@ private fun SenderLine(item: ConversationItem, time: String, highlights: SearchH
         Text(
             text = time,
             modifier = Modifier.padding(start = 8.dp),
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = weight),
-            color = if (item.unread) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1
         )
     }
@@ -341,19 +325,42 @@ private class ResourceDescriptionTexts(private val resources: Resources) : Descr
         resources.getString(R.string.conversation_desc_account, name)
 }
 
-/** The one spoken description of a row (TalkBack), with the optional [badge] at the end. */
+/** What a row shows besides the conversation itself, and a screen reader also says. */
+private class RowExtras(
+    val labels: LabelSummary,
+    val accountMarker: AccountMarker?,
+    val badge: String?
+)
+
+/**
+ * The one spoken description of a row (TalkBack), with the optional badge at the end. The
+ * snippet is read only when the preview is on screen ([includeSnippet]).
+ */
 @Composable
 private fun rememberRowDescription(
     item: ConversationItem,
     formatter: MessageTimeFormatter,
-    labels: LabelSummary,
-    accountMarker: AccountMarker?,
-    badge: String?
+    extras: RowExtras,
+    includeSnippet: Boolean
 ): String {
     val texts = rememberDescriptionTexts()
-    return remember(item, formatter, labels, accountMarker, texts, badge) {
+    return remember(
+        item,
+        formatter,
+        extras.labels,
+        extras.accountMarker,
+        texts,
+        extras.badge,
+        includeSnippet
+    ) {
         ConversationDescriber(texts)
-            .describe(item, formatter.formatSpoken(item.sentAt), labels, accountMarker)
-            .let { if (badge == null) it else "$it, $badge" }
+            .describe(
+                item,
+                formatter.formatSpoken(item.sentAt),
+                extras.labels,
+                extras.accountMarker,
+                includeSnippet
+            )
+            .let { if (extras.badge == null) it else "$it, ${extras.badge}" }
     }
 }

@@ -12,6 +12,12 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
  */
 enum class DisplayDensity { COMFORTABLE, DEFAULT, COMPACT }
 
+/**
+ * How many lines of the message text a conversation row shows under the subject, like the
+ * "Preview" setting of Mail on iOS: none to five, two by default.
+ */
+enum class PreviewLines(val count: Int) { NONE(0), ONE(1), TWO(2), THREE(3), FOUR(4), FIVE(5) }
+
 /** What swiping a conversation row does (RF-11). The gestures themselves arrive with T16. */
 enum class SwipeAction { ARCHIVE, DELETE, MOVE, TOGGLE_READ, TOGGLE_STAR, NONE }
 
@@ -41,6 +47,8 @@ data class AppSettings(
     val dynamicColor: Boolean = true,
     val amoled: Boolean = false,
     val density: DisplayDensity = DisplayDensity.DEFAULT,
+    val previewLines: PreviewLines = PreviewLines.TWO,
+    val showAvatars: Boolean = false,
     val swipe: SwipeActions = SwipeActions(),
     val remoteContent: RemoteContentPolicy = RemoteContentPolicy.NEVER
 )

@@ -342,6 +342,16 @@
     <string name="density_comfortable">Cómoda</string>
     <string name="density_default">Predeterminada</string>
     <string name="density_compact">Compacta</string>
+    <string name="settings_preview">Vista previa</string>
+    <string name="settings_preview_summary">Cuántas líneas de cada mensaje enseña la lista bajo el asunto.</string>
+    <string name="preview_none">Ninguna</string>
+    <plurals name="preview_lines">
+        <item quantity="one">%d línea</item>
+        <item quantity="many">%d de líneas</item>
+        <item quantity="other">%d líneas</item>
+    </plurals>
+    <string name="settings_show_avatars">Mostrar avatares</string>
+    <string name="settings_show_avatars_summary">Muestra la inicial del remitente en un círculo de color en cada fila.</string>
     <string name="reauth_title">Volver a iniciar sesión</string>
     <string name="reauth_account_line">%1$s en %2$s</string>
     <string name="reauth_intro_password">El servidor ya no acepta la contraseña guardada. Escribe la actual. Tus mensajes y ajustes en este dispositivo se conservan.</string>

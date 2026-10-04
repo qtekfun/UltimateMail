@@ -64,6 +64,7 @@ internal fun LazyItemScope.InboxRow(
             },
             onLongClick = { actions.selection.onToggle(item) },
             selected = picked,
+            selecting = selecting,
             customActions = rowActions(item, swipe, selecting, picked, actions.selection),
             accountMarker = state.markers[item.accountId],
             hiddenLabels = view.hiddenLabels
