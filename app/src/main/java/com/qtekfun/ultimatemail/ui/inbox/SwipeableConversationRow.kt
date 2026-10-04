@@ -148,7 +148,16 @@ private fun SwipeEffects(state: SwipeToDismissBoxState, swipe: SwipeRow) {
     val onSwipe by rememberUpdatedState(swipe.onSwipe)
     val haptics = LocalHapticFeedback.current
     LaunchedEffect(state) {
+        // A row that comes back to the list (Undo) can get its saved "already swiped" state
+        // back; that is not a new swipe, so it only has to return to its place.
+        var first = true
         snapshotFlow { state.currentValue }.collect { value ->
+            val restored = first && value != SwipeToDismissBoxValue.Settled
+            first = false
+            if (restored) {
+                state.reset()
+                return@collect
+            }
             val direction = when (value) {
                 SwipeToDismissBoxValue.StartToEnd -> SwipeDirection.RIGHT
                 SwipeToDismissBoxValue.EndToStart -> SwipeDirection.LEFT

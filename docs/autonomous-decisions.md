@@ -146,3 +146,10 @@ Decisiones tomadas por mí (a confirmar):
     (por ejemplo tras soltar el aviso y volver a abrirlo) no se puede deshacer desde la app, habría que conocer el UID
     nuevo que le da el servidor (COPYUID); un correo archivado antes de este arreglo y cuyo deshacer falló está en
     "Todos los mensajes" y hay que devolverlo a Recibidos a mano.
+30. **Deshacer por gesto volvía a archivar (2026-10-04, PR #50).** Segunda causa del mismo síntoma, distinta de la 29: al
+    volver la fila a la lista tras Deshacer, el estado del gesto (`rememberSaveable`) se restauraba como "ya deslizada" y
+    el efecto lo trataba como un deslizamiento nuevo, así que archivaba otra vez y el aviso de deshacer aparecía de nuevo.
+    Ahora una fila que empieza en estado deslizado solo vuelve a su sitio. Se vio con trazas temporales (ids y tipos de
+    operación, sin contenido) en una rama descartable. Verificado en el móvil con las cuentas de demostración, para no
+    tocar más el buzón real; el correo real que usé en las pruebas quedó movido a "Todos los mensajes" y lo recuperé
+    con el selector de etiquetas.
