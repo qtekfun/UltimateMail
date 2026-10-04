@@ -1,18 +1,16 @@
 UltimateMail es un cliente de correo libre para cualquier cuenta IMAP/SMTP, inspirado en Mail de iOS y en la app de Gmail. Funciona primero sin conexión: lo que ves sale de una base de datos local y tus cambios se sincronizan después mediante una cola que sobrevive a los reinicios.
 
-IMPORTANTE: UltimateMail está en desarrollo temprano. Todavía no sirve para sustituir a tu app de correo diaria. Leer mensajes, redactar, buscar, los gestos y los ajustes aún se están construyendo.
+Primera versión (0.1). Lee, escribe, busca y sincroniza correo y se ha usado con Gmail. El acceso con Microsoft y una revisión con TalkBack aún no están verificados.
 
-Lo que funciona hoy:
-* Añadir una cuenta con contraseña o contraseña de aplicación, con ajustes de servidor automáticos y prueba de conexión.
-* Carpetas y etiquetas, lista de conversaciones con bandeja unificada y sincronización en segundo plano.
-* Credenciales cifradas con el Android Keystore.
+Qué hace:
+* Cuentas: ajustes de servidor automáticos y prueba de conexión; contraseña o contraseña de aplicación; acceso con Google o Microsoft con tu propio cliente OAuth; exportar e importar cuentas en un fichero cifrado (sin correo dentro).
+* Lectura: conversaciones con HTML seguro (contenido remoto bloqueado por defecto, destinos de enlaces confirmados), adjuntos bajo demanda, cuerpos guardados para leer sin conexión.
+* Escritura: responder, responder a todos, reenviar con adjuntos, borradores, una cola de envío con deshacer que funciona sin conexión, una firma por cuenta.
+* Organización: gestos de deslizar configurables, selección rápida, deshacer, selector de mover y etiquetar con búsqueda en vivo, etiquetas de Gmail.
+* Búsqueda en el dispositivo y en el servidor.
+* Un aspecto inspirado en Mail de iOS: títulos grandes, barra inferior con filtro, búsqueda y redactar, vistas previas, menú de buzones. Tema oscuro, colores dinámicos y tres densidades.
 
-Planificado:
-* Lectura de conversaciones con HTML seguro (contenido remoto bloqueado por defecto).
-* Redactar, borradores y cola de envío sin conexión.
-* Gestos configurables con deshacer y selector de mover/etiquetar con búsqueda en vivo.
-* Búsqueda local y en el servidor, firmas por cuenta, ajustes.
-* Acceso con Google (cliente OAuth propio) y Microsoft.
+Todavía no incluye: notificaciones push (el correo llega con la sincronización periódica, cada unos 15 minutos), texto enriquecido, PGP ni S/MIME.
 
 Principios:
 * Sin telemetría, sin analíticas, sin anuncios, sin servicios de Google. Tu correo solo viaja entre tu dispositivo y tus servidores de correo.
