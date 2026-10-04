@@ -17,3 +17,6 @@ captures/
 # Signing
 *.jks
 *.keystore
+
+# Claude Code agent worktrees
+.claude/worktrees/
