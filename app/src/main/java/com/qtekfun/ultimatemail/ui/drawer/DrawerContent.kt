@@ -3,93 +3,52 @@
 
 package com.qtekfun.ultimatemail.ui.drawer
 
-import android.text.format.DateFormat
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.qtekfun.ultimatemail.R
 import com.qtekfun.ultimatemail.domain.account.AccountSummary
+import com.qtekfun.ultimatemail.domain.folder.AccountSection
 import com.qtekfun.ultimatemail.domain.folder.FolderListItem
-import com.qtekfun.ultimatemail.domain.folder.SyncLine
 import com.qtekfun.ultimatemail.domain.inbox.InboxScope
-import com.qtekfun.ultimatemail.sync.engine.SyncProblem
+import com.qtekfun.ultimatemail.ui.components.MailIcons
 import com.qtekfun.ultimatemail.ui.nav.Screen
-import com.qtekfun.ultimatemail.ui.theme.LocalDensityMetrics
-import java.util.Date
 
 private val MinTouchTarget = 48.dp
-private val IndentPerLevel = 16.dp
 
 /** What the side menu can do. */
 data class DrawerActions(
-    val onSelectAccount: (Long) -> Unit,
-    val onAddAccount: () -> Unit,
     val onOpenUnified: () -> Unit,
     val onOpenFolder: (accountId: Long, path: String) -> Unit,
-    val onToggleFolder: (String) -> Unit,
+    val onToggleFolder: (accountId: Long, path: String) -> Unit,
+    val onToggleSection: (accountId: Long) -> Unit,
     val onRefresh: () -> Unit,
-    val onRequestRemoval: () -> Unit,
-    val onDismissRemoval: () -> Unit,
-    val onConfirmRemoval: () -> Unit,
     val onOpenDestination: (Screen) -> Unit,
     val onReauthenticate: (accountId: Long) -> Unit
 )
 
 /**
- * The side menu: the account header, the unified inbox, the folders of the selected account
- * (special ones first, then the tree) with the one showing highlighted ([shown]), and at the
- * bottom the sync status and the links of [DrawerDestinations].
+ * The side menu as a mailboxes screen: "All inboxes" and the Inbox of each account, the special
+ * mailboxes of the selected account (and the Outbox while something waits in it), one section
+ * per account with its folders and labels (closed until opened), and at the bottom the sync
+ * status and Settings. The row showing is highlighted ([shown]).
  */
 @Composable
 fun DrawerContent(
@@ -101,250 +60,183 @@ fun DrawerContent(
     outboxCount: Int = 0
 ) {
     val account = state.selected ?: return
-    ModalDrawerSheet(modifier = modifier) {
+    val menu = state.mailboxes
+    ModalDrawerSheet(modifier = modifier, drawerContainerColor = sheetColor()) {
         LazyColumn(modifier = Modifier.weight(1f)) {
-            item(key = "header") { AccountHeader(state, account, actions) }
-            item(key = "unified") {
-                DrawerRow(
-                    label = stringResource(R.string.inbox_unified),
-                    icon = Icons.Filled.Email,
-                    selected = shown == InboxScope.Unified,
-                    onClick = actions.onOpenUnified
-                )
-            }
-            item(key = "divider-top") { DrawerDivider() }
-            if (state.special.isEmpty() && state.folders.isEmpty()) {
-                item(key = "empty") { NoFolders() }
-            }
-            items(state.special, key = { "special:" + it.path }) { folder ->
-                FolderRow(folder, account, shown, state.expanded, actions)
-            }
-            if (state.special.isNotEmpty() && state.folders.isNotEmpty()) {
-                item(key = "divider-folders") { DrawerDivider() }
-            }
-            items(state.folders, key = { "folder:" + it.path }) { folder ->
-                FolderRow(folder, account, shown, state.expanded, actions)
-            }
-        }
-        DrawerDivider()
-        DrawerFooter(state.syncLine, state.selected.id, actions, outboxCount)
-    }
-    if (state.confirmingRemoval) {
-        RemoveAccountDialog(actions.onDismissRemoval, actions.onConfirmRemoval)
-    }
-}
-
-@Composable
-private fun DrawerDivider() {
-    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp, horizontal = 28.dp))
-}
-
-@Composable
-private fun AccountHeader(state: FolderMenuState, account: AccountSummary, actions: DrawerActions) {
-    var open by remember { mutableStateOf(false) }
-    val switchLabel = stringResource(R.string.account_switch)
-    Box(modifier = Modifier.padding(top = 16.dp)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = MinTouchTarget)
-                .clickable(onClickLabel = switchLabel) { open = true }
-                .padding(horizontal = 28.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
+            item(key = "title") {
                 Text(
-                    account.displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    account.email,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    stringResource(R.string.drawer_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(start = 32.dp, top = 24.dp, end = 16.dp)
                 )
             }
-            Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
-        }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            state.accounts.forEach { other ->
-                DropdownMenuItem(
-                    text = { Text(other.email, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    onClick = {
-                        open = false
-                        actions.onSelectAccount(other.id)
-                    }
-                )
-            }
-            HorizontalDivider()
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.account_add)) },
-                leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                onClick = {
-                    open = false
-                    actions.onAddAccount()
+            inboxCard(state, shown, actions)
+            specialCard(state, account, shown, actions, outboxCount)
+            if (menu.sections.isNotEmpty()) {
+                item(key = "accounts-header") {
+                    CardHeader(stringResource(R.string.drawer_section_accounts))
                 }
+            }
+            menu.sections.forEach { section -> accountCard(section, shown, actions) }
+            item(key = "end-space") { Spacer(Modifier.padding(8.dp)) }
+        }
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        DrawerFooter(state.syncLine, account.id, actions)
+    }
+}
+
+private fun LazyListScope.inboxCard(
+    state: FolderMenuState,
+    shown: InboxScope?,
+    actions: DrawerActions
+) {
+    val inboxes = state.mailboxes.inboxes
+    if (inboxes.size == 1) {
+        // One account: "All inboxes" and its Inbox are the same list, so there is a single row.
+        val inbox = inboxes.single()
+        item(key = "inbox:" + inbox.account.id) {
+            MailboxRow(
+                label = stringResource(R.string.folder_inbox),
+                icon = MailIcons.Inbox,
+                selected = shown == inbox.scope,
+                onClick = { actions.onOpenFolder(inbox.scope.accountId, inbox.scope.path) },
+                position = CardPosition.Single,
+                modifier = Modifier.padding(top = 12.dp),
+                count = inbox.unread
             )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.account_remove)) },
-                leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
-                onClick = {
-                    open = false
-                    actions.onRequestRemoval()
-                }
+        }
+        return
+    }
+    val size = inboxes.size + 1
+    item(key = "unified") {
+        MailboxRow(
+            label = stringResource(R.string.drawer_all_inboxes),
+            icon = Icons.Filled.Email,
+            selected = shown == InboxScope.Unified,
+            onClick = actions.onOpenUnified,
+            position = CardPosition.of(0, size),
+            modifier = Modifier.padding(top = 12.dp),
+            count = state.mailboxes.unifiedUnread
+        )
+    }
+    inboxes.forEachIndexed { index, inbox ->
+        item(key = "inbox:" + inbox.account.id) {
+            MailboxRow(
+                label = inbox.account.email,
+                icon = MailIcons.Inbox,
+                selected = shown == inbox.scope,
+                onClick = { actions.onOpenFolder(inbox.scope.accountId, inbox.scope.path) },
+                position = CardPosition.of(index + 1, size),
+                count = inbox.unread
             )
         }
     }
 }
 
-@Composable
-private fun NoFolders() {
-    Column(modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp)) {
-        Text(
-            stringResource(R.string.folders_empty_title),
-            style = MaterialTheme.typography.titleSmall
-        )
-        Text(
-            stringResource(R.string.folders_empty_body),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+private fun LazyListScope.specialCard(
+    state: FolderMenuState,
+    account: AccountSummary,
+    shown: InboxScope?,
+    actions: DrawerActions,
+    outboxCount: Int
+) {
+    val special = state.mailboxes.special
+    val size = special.size + if (outboxCount > 0) 1 else 0
+    if (size == 0) return
+    if (state.accounts.size > 1) {
+        item(key = "special-header") { CardHeader(account.email) }
+    } else {
+        item(key = "special-space") { Spacer(Modifier.padding(6.dp)) }
+    }
+    special.forEachIndexed { index, folder ->
+        item(key = "special:" + folder.path) {
+            FolderRow(folder, RowEnv(account.id, shown, actions), CardPosition.of(index, size))
+        }
+    }
+    if (outboxCount > 0) {
+        item(key = "outbox") {
+            MailboxRow(
+                label = stringResource(R.string.drawer_outbox),
+                icon = Icons.AutoMirrored.Filled.Send,
+                selected = false,
+                onClick = { actions.onOpenDestination(Screen.Outbox) },
+                position = CardPosition.of(size - 1, size),
+                count = outboxCount,
+                countDescription = pluralStringResource(
+                    R.plurals.drawer_outbox_count,
+                    outboxCount,
+                    outboxCount
+                )
+            )
+        }
     }
 }
+
+private fun LazyListScope.accountCard(
+    section: AccountSection,
+    shown: InboxScope?,
+    actions: DrawerActions
+) {
+    val id = section.account.id
+    val size = section.folders.size + 1
+    item(key = "section:$id") {
+        val toggle = { actions.onToggleSection(id) }
+        MailboxRow(
+            label = section.account.email,
+            icon = Icons.Filled.AccountCircle,
+            selected = false,
+            onClick = toggle,
+            position = CardPosition.of(0, size),
+            modifier = Modifier.padding(top = 8.dp),
+            expanded = section.open,
+            onToggle = toggle,
+            toggleDescription = stringResource(
+                if (section.open) R.string.drawer_collapse else R.string.drawer_expand,
+                section.account.email
+            )
+        )
+    }
+    section.folders.forEachIndexed { index, folder ->
+        item(key = "folder:$id:" + folder.path) {
+            FolderRow(
+                folder,
+                RowEnv(id, shown, actions),
+                CardPosition.of(index + 1, size),
+                section.expanded
+            )
+        }
+    }
+}
+
+/** What a folder row needs to know about the account it is listed under. */
+private class RowEnv(val accountId: Long, val shown: InboxScope?, val actions: DrawerActions)
 
 @Composable
 private fun FolderRow(
     folder: FolderListItem,
-    account: AccountSummary,
-    shown: InboxScope?,
-    expanded: Set<String>,
-    actions: DrawerActions
+    env: RowEnv,
+    position: CardPosition,
+    expanded: Set<String> = emptySet()
 ) {
     val name = folder.role.displayName() ?: folder.name
-    val selected = folder.selectable && shown == InboxScope.Folder(account.id, folder.path)
-    val open = folder.path in expanded
-    DrawerRow(
+    val selected = folder.selectable && env.shown == InboxScope.Folder(env.accountId, folder.path)
+    MailboxRow(
         label = name,
         icon = folder.role.icon(folder.isLabel),
         selected = selected,
+        position = position,
         indent = folder.depth,
-        unread = folder.unread,
-        expandable = folder.hasChildren,
-        expanded = open,
-        onToggle = { actions.onToggleFolder(folder.path) },
+        count = folder.unread,
+        expanded = if (folder.hasChildren) folder.path in expanded else null,
+        onToggle = { env.actions.onToggleFolder(env.accountId, folder.path) },
         onClick = {
             if (folder.selectable) {
-                actions.onOpenFolder(account.id, folder.path)
+                env.actions.onOpenFolder(env.accountId, folder.path)
             } else {
-                actions.onToggleFolder(folder.path)
+                env.actions.onToggleFolder(env.accountId, folder.path)
             }
         }
     )
-}
-
-@Composable
-internal fun DrawerRow(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    selected: Boolean,
-    onClick: () -> Unit,
-    indent: Int = 0,
-    unread: Int = 0,
-    expandable: Boolean = false,
-    expanded: Boolean = false,
-    onToggle: () -> Unit = {},
-    /** What a screen reader says for the count when it is not an unread count. */
-    countDescription: String? = null
-) {
-    val colors = MaterialTheme.colorScheme
-    val content = if (selected) colors.onSecondaryContainer else colors.onSurfaceVariant
-    // Not a NavigationDrawerItem: Material 3 fixes its height at 56dp, and the row height here
-    // follows the display density setting.
-    Row(
-        modifier = Modifier
-            .padding(horizontal = 12.dp)
-            .padding(start = IndentPerLevel * indent)
-            .fillMaxWidth()
-            .heightIn(min = LocalDensityMetrics.current.drawerRowHeight)
-            .clip(CircleShape)
-            .background(if (selected) colors.secondaryContainer else Color.Transparent)
-            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
-            .padding(start = 16.dp, end = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(24.dp))
-        Spacer(Modifier.width(12.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = content,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
-        if (unread > 0 || expandable) {
-            RowTrailing(
-                label,
-                unread,
-                expanded.takeIf {
-                    expandable
-                },
-                onToggle,
-                content,
-                countDescription
-            )
-        }
-    }
-}
-
-@Composable
-private fun RowTrailing(
-    label: String,
-    unread: Int,
-    /** Null when the row has no children; otherwise whether they are showing. */
-    expanded: Boolean?,
-    onToggle: () -> Unit,
-    content: Color,
-    countDescription: String? = null
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        if (unread > 0) {
-            val description = countDescription
-                ?: pluralStringResource(R.plurals.drawer_unread_count, unread, unread)
-            Text(
-                text = unread.toString(),
-                style = MaterialTheme.typography.labelLarge,
-                color = content,
-                modifier = Modifier
-                    .padding(horizontal = 8.dp)
-                    .semantics { contentDescription = description }
-            )
-        }
-        if (expanded != null) {
-            val size = LocalDensityMetrics.current.drawerRowHeight
-            val description = stringResource(
-                if (expanded) R.string.drawer_collapse else R.string.drawer_expand,
-                label
-            )
-            Box(
-                modifier = Modifier
-                    .size(size)
-                    .clip(CircleShape)
-                    .clickable(role = Role.Button, onClick = onToggle)
-                    .semantics { contentDescription = description },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = content
-                )
-            }
-        }
-    }
 }
 
 @Composable
